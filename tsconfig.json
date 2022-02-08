@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2020"],
+    "sourceMap": true,
+    "target": "es5",
+    "allowJs": true,
+    "strict": true
+  },
+  "exclude": [
+    "node_modules",
+    "src/features/__other__"
+  ]
+}

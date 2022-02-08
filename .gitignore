@@ -1,0 +1,16 @@
+# dependencies
+/node_modules
+/yarn.lock
+/yarn-error.log
+
+# production
+/build
+
+# misc
+.DS_Store
+
+# ide
+/.idea
+
+# test
+/coverage
