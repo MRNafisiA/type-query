@@ -1,5 +1,5 @@
 import {err, ok} from 'never-catch';
-import createPool from '../src/pool';
+import {createPool} from '../src/pool';
 import {toTransactionIsolationLevel} from '../src/dictionary';
 
 let setting = {

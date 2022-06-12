@@ -1,5 +1,5 @@
 import U from '../../src/U';
-import createEntity from '../../src/entity';
+import {createEntity} from '../../src/entity';
 
 const UserTable = {
     schema: 'public',
