@@ -51,5 +51,4 @@ const createPool = (connectionString: string): Pool => {
     } as const;
 };
 
-export {addHook, removeHook};
-export default createPool;
+export {createPool, addHook, removeHook};

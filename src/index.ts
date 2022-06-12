@@ -1,8 +1,8 @@
 import U from './U';
-import createPool from './pool';
 import PostgresErrors from './error';
 import {createContext} from './context';
 import type {SimpleModel, Model} from './types/model';
+import {createPool, addHook, removeHook} from './pool';
 import {
     createEntity,
     resolveResult,
@@ -21,10 +21,10 @@ import {
 } from './schema';
 
 export {U};
-export {createPool};
 export {PostgresErrors};
 export {createContext};
 export {SimpleModel, Model};
+export {createPool, addHook, removeHook};
 export {
     createEntity,
     resolveResult,
