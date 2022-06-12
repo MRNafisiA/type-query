@@ -1,5 +1,5 @@
 {
-  "name": "type-query",
+  "name": "@mrnafisia/type-query",
   "version": "1.0.0",
   "description": "mini-orm with full type support for postgres.",
   "main": "dist/index.js",
