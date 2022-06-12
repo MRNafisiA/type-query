@@ -1,7 +1,7 @@
 import U from './U';
 import Decimal from 'decimal.js';
-import createContext from './context';
 import type Table from './types/table';
+import {createContext} from './context';
 import type {Context} from './types/context';
 import {ok, err, type Result} from 'never-catch';
 import {OrderDirection, PostgresType} from './types/postgres';
@@ -1055,9 +1055,12 @@ const resolveColumn = <T extends Table, C extends keyof T['columns'] & string>(t
 
 const partialQuery = (text: string = '', params: Param[] = []): PartialQuery => ({text, params});
 
-export default createEntity;
-export {ReservedExpressionKeys};
 export {
+    createEntity,
+    createJoinSelectEntity
+};
+export {
+    ReservedExpressionKeys,
     createQueryResult,
     resolveResult,
     resolveReturning,

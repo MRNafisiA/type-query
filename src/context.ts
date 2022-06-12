@@ -50,5 +50,7 @@ const createContextScopeHelper = <T extends Table>(table: T) =>
         throw `do not except this. first element must be a reserved key. ${JSON.stringify(value)}`;
     });
 
-export default createContext;
-export {createContextScopeHelper};
+export {
+    createContext,
+    createContextScopeHelper
+};

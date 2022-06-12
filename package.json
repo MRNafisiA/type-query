@@ -1,13 +1,26 @@
 {
   "name": "type-query",
   "version": "1.0.0",
-  "repository": "https://github.com/MRNafisiA/type-query.git",
-  "author": "MRNafisiA <mnafisiasl@gmail.com>",
-  "license": "MIT",
+  "description": "mini-orm with full type support for postgres.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest ./tests"
   },
+  "keywords": [
+    "orm",
+    "query-builder",
+    "postgres",
+    "sql",
+    "type-safe"
+  ],
+  "repository": "https://github.com/MRNafisiA/type-query.git",
+  "author": "MRNafisiA <mnafisiasl@gmail.com>",
+  "license": "MIT",
   "devDependencies": {
     "@types/jest": "^28.1.0",
     "@types/node": "^17.0.39",
@@ -18,7 +31,7 @@
   },
   "dependencies": {
     "decimal.js": "^10.3.1",
-    "never-catch": "^1.0.2",
+    "never-catch": "^1.0.6",
     "pg": "^8.7.3"
   }
 }
