@@ -15,8 +15,7 @@ let usersIndex = 0;
 let keepDb = false;
 
 const setTestDBInfo = (connectionUrl: string, name?: string) => {
-    testDBInfo.connectionUrl = connectionUrl;
-    testDBInfo.name = name;
+    testDBInfo = {connectionUrl, name};
     keepDb = evalKeepDb();
     addHook({
         event: 'on-send-query',
