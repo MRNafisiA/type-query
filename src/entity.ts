@@ -105,7 +105,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
     },
     insert: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[], N extends readonly (keyof NullableAndDefaultColumns<T['columns']>)[] = []>(
         rows: InsertValue<T['columns'], N>[] | ((context: Context<T['columns']>) => InsertValue<T['columns'], N>[]),
@@ -199,7 +199,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
     },
     update: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]>(
         sets: UpdateSets<T['columns']> | ((context: Context<T['columns']>) => UpdateSets<T['columns']>),
@@ -279,7 +279,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
     },
     delete: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]>(
         where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
@@ -325,7 +325,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
     },
     join: <MainAlias extends string, JTable extends Table, JAlias extends string>(
         mainAlias: MainAlias,
