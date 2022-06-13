@@ -44,8 +44,8 @@ const createEntity = <T extends Table>(table: T) => ({
         const ignoreInWhere = (options?.ignoreInWhere) ?? false;
         const ignoreInReturning = (options?.ignoreInReturning) ?? false;
         const order = (options?.order) ?? [];
-        const start = (options?.start) ?? BigInt(0);
-        const step = (options?.step) ?? 100;
+        const start = options?.start;
+        const step = options?.step;
 
         const _returning = typeof returning === 'function' ? returning(this.context) : returning;
 
@@ -361,8 +361,8 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }>(
         const ignoreInReturning = (options?.ignoreInReturning) ?? false;
         const ignoreInJoin = (options?.ignoreInJoin) ?? false;
         const order = (options?.order) ?? [];
-        const start = (options?.start) ?? BigInt(0);
-        const step = (options?.step) ?? 100;
+        const start = options?.start;
+        const step = options?.step;
 
         const allTables = [main, ...joinTables] as typeof main[];
         const _returning = typeof returning === 'function' ? returning(this.contexts) : returning;
