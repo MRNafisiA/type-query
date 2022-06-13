@@ -1,6 +1,6 @@
+import {Param} from './entity';
 import type {Result} from 'never-catch';
-import type {Pool as PgPool, PoolClient} from 'pg';
-import {Param} from "./entity";
+import type {Pool as PgPool, PoolClient, ClientBase} from 'pg';
 
 type TransactionIsolationLevel = 'read-uncommitted' | 'read-committed' | 'repeatable-read' | 'serializable';
 
@@ -22,4 +22,8 @@ export type {
     OnSendQueryHook,
     AddHook,
     RemoveHook
+};
+export type{
+    PoolClient,
+    ClientBase
 };

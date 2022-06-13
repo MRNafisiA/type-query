@@ -1,10 +1,10 @@
 import {JSON} from './json';
 import Decimal from 'decimal.js';
 import type Table from './table';
-import type {PoolClient} from 'pg';
+import {Context} from './context';
+import type {ClientBase} from 'pg';
 import type {Result} from 'never-catch';
 import type {ColumnTypeByColumns} from './postgres';
-import {Context} from "./context";
 
 type JoinType = 'inner' | 'left' | 'right' | 'full';
 type Param = number | bigint | string;
@@ -40,7 +40,7 @@ type UpdateSets<Columns extends Table['columns']> = { [columnKey in keyof Column
 
 type Query<Columns extends Table['columns'], Returning extends readonly (keyof Columns | CustomColumn<Expression<ExpressionTypes>, string>)[]> = {
     getData: (params?: Param[]) => Result<QueryData, string>;
-    exec: <M extends Mode>(client: PoolClient, mode: M, params?: Param[]) => Promise<Result<QueryResult<Columns, Returning, M>, unknown>>;
+    exec: <M extends Mode>(client: ClientBase, mode: M, params?: Param[]) => Promise<Result<QueryResult<Columns, Returning, M>, unknown>>;
 };
 type QueryResult<Columns extends Table['columns'], Returning extends readonly (keyof Columns | CustomColumn<Expression<ExpressionTypes>, string>)[], M extends Mode> =
     M extends ['get', 'one']

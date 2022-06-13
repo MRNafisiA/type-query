@@ -1,9 +1,9 @@
-import type {PoolClient} from 'pg';
+import type {ClientBase} from 'pg';
 import type Table from './types/table';
 import {err, ok, type Result} from 'never-catch';
 import {toPostgresType, toReferenceAction} from './dictionary';
 
-const createTables = async (client: PoolClient, tables: Table[], resolve: boolean = true): Promise<Result<undefined, string | { db: unknown, query: string }>> => {
+const createTables = async (client: ClientBase, tables: Table[], resolve: boolean = true): Promise<Result<undefined, string | { db: unknown, query: string }>> => {
     // resolve
     if (resolve) {
         const dependencyResult = resolveTablesDependency(tables);
@@ -38,7 +38,7 @@ const createTables = async (client: PoolClient, tables: Table[], resolve: boolea
     return Promise.resolve(ok(undefined));
 };
 
-const dropTables = async (client: PoolClient, tables: Table[], resolve: boolean = true): Promise<Result<undefined, string | { db: unknown, query: string }>> => {
+const dropTables = async (client: ClientBase, tables: Table[], resolve: boolean = true): Promise<Result<undefined, string | { db: unknown, query: string }>> => {
     // resolve
     if (resolve) {
         const dependencyResult = resolveTablesDependency(tables);

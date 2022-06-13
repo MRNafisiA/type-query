@@ -1,4 +1,5 @@
 import U from './U';
+import {ClientBase} from 'pg';
 import Decimal from 'decimal.js';
 import type Table from './types/table';
 import {createContext} from './context';
@@ -24,7 +25,6 @@ import type {
     TableData,
     JoinData
 } from './types/entity';
-import {PoolClient} from "pg";
 
 // entity
 const createEntity = <T extends Table>(table: T) => ({
@@ -479,7 +479,7 @@ const createQueryResult = <Columns extends Table['columns'], R extends readonly 
             }
             return ok(query);
         },
-        exec: <M extends Mode>(client: PoolClient, mode: M, params: Param[] = []) => {
+        exec: <M extends Mode>(client: ClientBase, mode: M, params: Param[] = []) => {
             if (query === undefined) {
                 const createQueryResult = createQuery(params);
                 if (createQueryResult.ok) {
