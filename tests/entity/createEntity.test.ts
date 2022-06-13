@@ -282,7 +282,7 @@ describe('join', () => {
         expect(sql).toBe('SELECT "dept"."name", "usr"."id" FROM "public"."user" "usr" ' +
             'INNER JOIN "public"."department" "dept" ON "usr"."address" = "dept"."name" ' +
             'FULL OUTER JOIN "public"."building" "bld" ON "usr"."id" = ( "dept"."id" + "bld"."id" ) ' +
-            'WHERE TRUE OFFSET 0 LIMIT 100 ;');
+            'WHERE TRUE ;');
         expect(params).toStrictEqual([]);
     });
     test('full custom-title', () => {
@@ -313,7 +313,7 @@ describe('join', () => {
         expect(sql).toBe('SELECT "dept"."name", "usr"."id", "bld"."building_id" AS "bld_id" FROM "public"."user" "usr" ' +
             'INNER JOIN "public"."department" "dept" ON "usr"."address" = "dept"."name" ' +
             'FULL OUTER JOIN "public"."building" "bld" ON "usr"."id" = ( "dept"."id" + "bld"."building_id" ) ' +
-            'WHERE TRUE OFFSET 0 LIMIT 100 ;');
+            'WHERE TRUE ;');
         expect(params).toStrictEqual([]);
     });
 });
