@@ -13,7 +13,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe(U.stringify(v));
+        expect(text).toBe(U.stringify(v, true));
         expect(params).toStrictEqual([]);
     });
     test('boolean', () => {
@@ -23,7 +23,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe(U.stringify(v));
+        expect(text).toBe(U.stringify(v, true));
         expect(params).toStrictEqual([]);
     });
     test('Decimal', () => {
@@ -33,7 +33,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe(`${U.stringify(v)}`);
+        expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
     test('Date', () => {
@@ -43,7 +43,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe(`${U.stringify(v)}`);
+        expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
     test('number', () => {
@@ -53,7 +53,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe(`${U.stringify(v)}`);
+        expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
     test('bigint', () => {
@@ -63,7 +63,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe(`${U.stringify(v)}`);
+        expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
     test('string', () => {
@@ -74,7 +74,7 @@ describe('ignore-independent', () => {
         }
         const {text, params} = result.value;
         expect(text).toBe('$2');
-        expect(params).toStrictEqual([U.stringify(v)]);
+        expect(params).toStrictEqual([U.stringify(v, false)]);
     });
     test('json-object', () => {
         const v = {value: 'test'};
@@ -84,7 +84,7 @@ describe('ignore-independent', () => {
         }
         const {text, params} = result.value;
         expect(text).toBe('$2');
-        expect(params).toStrictEqual([U.stringify(v)]);
+        expect(params).toStrictEqual([U.stringify(v, false)]);
     });
     test('json-array-no-reserved-key', () => {
         const v = ['test1', {id: 12}];
@@ -94,7 +94,7 @@ describe('ignore-independent', () => {
         }
         const {text, params} = result.value;
         expect(text).toBe('$2');
-        expect(params).toStrictEqual([U.stringify(v)]);
+        expect(params).toStrictEqual([U.stringify(v, false)]);
     });
     test('val-not-undefined', () => {
         const v = 12;
