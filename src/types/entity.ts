@@ -48,7 +48,7 @@ type QueryResult<Columns extends Table['columns'], Returning extends readonly (k
         : M extends ['get', number] | []
             ? QueryResultRow<Columns, Returning>[]
             : M extends ['count', number]
-                ? boolean
+                ? undefined
                 : never;
 type QueryResultRow<Columns extends Table['columns'], Returning extends readonly (keyof Columns | CustomColumn<Expression<ExpressionTypes>, string>)[]> = {
     [key in Exclude<keyof Returning, keyof unknown[]> as Returning[key] extends CustomColumn<Expression<ExpressionTypes>, infer As> ? As : Returning[key] & string]:

@@ -489,7 +489,7 @@ const createQueryResult = <Columns extends Table['columns'], R extends readonly 
                 }
             }
             return client.query(query.sql, query.params)
-                .then(({rows}) => ok(resolveResult<Columns, R, M>(getColumnType, returning, rows, mode)))
+                .then(({rows}) => resolveResult<Columns, R, M>(getColumnType, returning, rows, mode))
                 .catch(e => err(e));
         }
     });
@@ -501,13 +501,13 @@ const createQueryResult = <Columns extends Table['columns'], R extends readonly 
 */
 const resolveResult = <Columns extends Table['columns'], C extends readonly ((keyof Columns & string) | CustomColumn<Expression<ExpressionTypes>, string>)[], M extends Mode>(
     getColumnType: (column: keyof Columns & string) => PostgresType, columns: C, rows: any[], mode: M
-): QueryResult<Columns, C, M> => {
+): Result<QueryResult<Columns, C, M>, false> => {
     // check size in count and get mode
     if (mode[0] === 'count') {
-        return (rows.length === mode[1]) as any;
+        return rows.length === mode[1] ? ok(undefined) as any : err(false);
     }
     if (mode[0] === 'get' && rows.length !== (mode[1] === 'one' ? 1 : mode[1])) {
-        return false as any;
+        return err(false);
     }
 
     // parse result
@@ -521,9 +521,9 @@ const resolveResult = <Columns extends Table['columns'], C extends readonly ((ke
 
     // return first element for [get, one] mode and all for [get, number] and []
     if (mode[0] === 'get' && mode[1] === 'one') {
-        return rows[0];
+        return ok(rows[0]);
     } else {
-        return rows as any;
+        return ok(rows) as any;
     }
 };
 
