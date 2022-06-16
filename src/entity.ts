@@ -570,7 +570,8 @@ const resolveReturning = <C extends string>(
                     tokens.push(
                         `"${alias}".` +
                         `"${column.substring((alias + '_').length)}"` +
-                        `${customParse !== undefined ? `${customParse} AS "${column}"` : ''}`
+                        (customParse ?? '') +
+                        ` AS "${column}"`
                     );
                 } else {
                     tokens.push(

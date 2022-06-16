@@ -279,7 +279,7 @@ describe('join', () => {
             throw 'it should not reach here';
         }
         const {sql, params} = result.value;
-        expect(sql).toBe('SELECT "dept"."name", "usr"."id" FROM "public"."user" "usr" ' +
+        expect(sql).toBe('SELECT "dept"."name" AS "dept_name", "usr"."id" AS "usr_id" FROM "public"."user" "usr" ' +
             'INNER JOIN "public"."department" "dept" ON "usr"."address" = "dept"."name" ' +
             'FULL OUTER JOIN "public"."building" "bld" ON "usr"."id" = ( "dept"."id" + "bld"."id" ) ' +
             'WHERE TRUE ;');
@@ -310,7 +310,7 @@ describe('join', () => {
             throw 'it should not reach here';
         }
         const {sql, params} = result.value;
-        expect(sql).toBe('SELECT "dept"."name", "usr"."id", "bld"."building_id" AS "bld_id" FROM "public"."user" "usr" ' +
+        expect(sql).toBe('SELECT "dept"."name" AS "dept_name", "usr"."id" AS "usr_id", "bld"."building_id" AS "bld_id" FROM "public"."user" "usr" ' +
             'INNER JOIN "public"."department" "dept" ON "usr"."address" = "dept"."name" ' +
             'FULL OUTER JOIN "public"."building" "bld" ON "usr"."id" = ( "dept"."id" + "bld"."building_id" ) ' +
             'WHERE TRUE ;');
