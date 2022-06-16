@@ -60,10 +60,11 @@ type Default = { default: false; }
     | { default: 'value', type: 'json' | 'jsonb', value: JSON }
     );
 
+type Column = Base & Primary & Types & Default;
 type Table = {
     schema: string;
     title: string;
-    columns: { [key: string]: Base & Primary & Types & Default };
+    columns: { [key: string]: Column };
 };
 type TableCheck = {
     schema: string;
@@ -72,4 +73,4 @@ type TableCheck = {
 };
 
 export default Table;
-export type {ReferenceActions, TableCheck};
+export type {ReferenceActions, Column, TableCheck};

@@ -3,6 +3,7 @@ import {ClientBase} from 'pg';
 import Decimal from 'decimal.js';
 import type Table from './types/table';
 import {createContext} from './context';
+import type {Column} from './types/table';
 import type {Context} from './types/context';
 import {ok, err, type Result} from 'never-catch';
 import {OrderDirection, PostgresType} from './types/postgres';
@@ -23,7 +24,7 @@ import type {
     JoinType,
     TablesColumnsKeys,
     TableData,
-    JoinData
+    JoinData, AliasedColumns
 } from './types/entity';
 
 // entity
@@ -333,13 +334,13 @@ const createEntity = <T extends Table>(table: T) => ({
         joinTable: JTable,
         joinAlias: JAlias,
         on: Expression<boolean> | ((contexts: Record<MainAlias, Context<T['columns']>> & Record<JAlias, Context<JTable['columns']>>) => Expression<boolean>)
-    ) => createJoinSelectEntity<Record<MainAlias, T> & Record<JAlias, JTable>>(
+    ) => createJoinSelectEntity<Record<MainAlias, T> & Record<JAlias, JTable>, AliasedColumns<T['columns'], MainAlias> & AliasedColumns<JTable['columns'], JAlias>>(
         {table, alias: mainAlias},
         [{table: joinTable, joinType, alias: joinAlias, on: on as any}],
         {[mainAlias]: createContext(table, mainAlias), [joinAlias]: createContext(joinTable, joinAlias)} as any)
 } as const);
 
-const createJoinSelectEntity = <TablesData extends { [key: string]: Table }>(
+const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, AllColumns extends { [key: string]: Column }>(
     main: TableData,
     joinTables: (TableData & JoinData)[],
     contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }
@@ -438,7 +439,7 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }>(
 
             return ok({sql, params});
         };
-        return createQueryResult(column => {
+        return createQueryResult<AllColumns, R>(column => {
             const {alias, table: {columns}} = getTableDataOfJoinSelectColumn(allTables, column as string);
             return columns[column.substring((alias + '_').length)].type;
         }, createQuery, _returning);
@@ -450,10 +451,14 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }>(
         on: Expression<boolean> | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> } & Record<JAlias, Context<JTable['columns']>>) => Expression<boolean>)
     ) {
         joinTables.push({table: joinTable, on: on as any, joinType, alias: joinAlias});
-        return createJoinSelectEntity<TablesData & Record<JAlias, JTable>>(main, joinTables, {
-            ...contexts,
-            [joinAlias]: createContext(joinTable, joinAlias)
-        });
+        return createJoinSelectEntity<TablesData & Record<JAlias, JTable>, AllColumns & AliasedColumns<JTable['columns'], JAlias>>(
+            main,
+            joinTables,
+            {
+                ...contexts,
+                [joinAlias]: createContext(joinTable, joinAlias)
+            }
+        );
     }
 } as const);
 
