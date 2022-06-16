@@ -4,7 +4,6 @@ import {createContext} from './context';
 import type {ClientBase, PoolClient} from 'pg';
 import type {SimpleModel, Model} from './types/model';
 import {createPool, addHook, removeHook} from './pool';
-import {setTestDBInfo, getTestPool, releaseTestPool} from './testPool';
 import {
     createEntity,
     resolveResult,
@@ -28,7 +27,6 @@ export {createContext};
 export {ClientBase, PoolClient};
 export {SimpleModel, Model};
 export {createPool, addHook, removeHook};
-export {setTestDBInfo, getTestPool, releaseTestPool};
 export {
     createEntity,
     resolveResult,
