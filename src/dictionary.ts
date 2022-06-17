@@ -20,9 +20,9 @@ const toTransactionIsolationLevel = (v: TransactionIsolationLevel) => {
 const toOrderDirection = (v: OrderDirection) => {
     switch (v) {
         case 'asc':
-            return 'ASCENDING';
+            return 'ASC';
         case 'desc':
-            return 'DESCENDING';
+            return 'DESC';
     }
 };
 

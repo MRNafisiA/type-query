@@ -89,7 +89,7 @@ describe('select', () => {
             throw 'it should not reach here';
         }
         const {sql, params} = result.value;
-        expect(sql).toBe('SELECT "id" FROM "public"."user" WHERE TRUE ORDER BY "id" ASCENDING, "job" DESCENDING OFFSET 4 LIMIT 10 ;');
+        expect(sql).toBe('SELECT "id" FROM "public"."user" WHERE TRUE ORDER BY "id" ASC, "job" DESC OFFSET 4 LIMIT 10 ;');
         expect(params).toStrictEqual([]);
     });
 });
