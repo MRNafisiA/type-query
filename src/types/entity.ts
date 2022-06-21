@@ -9,7 +9,7 @@ import type {ColumnTypeByColumns} from './postgres';
 type JoinType = 'inner' | 'left' | 'right' | 'full';
 type Param = number | bigint | string;
 type QueryData = { sql: string, params: Param[] };
-type TableData = { table: Table, alias: string };
+type TableWithAlias = { table: Table, alias: string };
 type JoinData = { joinType: JoinType, on: Expression<boolean> | ((contexts: { [k: string]: Context<Table['columns']> }) => Expression<boolean>) };
 type Mode = [] | ['count', number] | ['get', 'one' | number];
 
@@ -61,7 +61,7 @@ export type {
     JoinType,
     Param,
     QueryData,
-    TableData,
+    TableWithAlias,
     JoinData,
     Mode
 };

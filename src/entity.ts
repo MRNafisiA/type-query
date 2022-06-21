@@ -23,7 +23,7 @@ import type {
     UpdateSets,
     JoinType,
     TablesColumnsKeys,
-    TableData,
+    TableWithAlias,
     JoinData, AliasedColumns
 } from './types/entity';
 
@@ -341,8 +341,8 @@ const createEntity = <T extends Table>(table: T) => ({
 } as const);
 
 const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, AllColumns extends { [key: string]: Column }>(
-    main: TableData,
-    joinTables: (TableData & JoinData)[],
+    main: TableWithAlias,
+    joinTables: (TableWithAlias & JoinData)[],
     contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }
 ) => ({
     contexts: contexts,
@@ -1022,7 +1022,7 @@ const resolveExpression = (expression: Expression<ExpressionTypes>, paramsStart:
     }
 };
 
-const getTableDataOfJoinSelectColumn = (tablesData: TableData[], column: string): TableData => {
+const getTableDataOfJoinSelectColumn = (tablesData: TableWithAlias[], column: string): TableWithAlias => {
     const splitColumn = column.split('_');
     if (splitColumn.length < 2) {
         throw `no separator`;
