@@ -80,7 +80,7 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
                 for (let i = 0; i < candidateFinalData.length; i++) {
                     found = true;
                     const {row: finalRow} = candidateFinalData[i];
-                    for (const key in finalRow) {
+                    for (const key in dbRow) {
                         const value = finalRow[key];
                         if (typeof value === 'function') {
                             const result = await value(dbRow[key], dbRow, selectResult.value);
