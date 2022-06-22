@@ -1,8 +1,9 @@
 import {isEqual} from 'lodash';
 import {createEntity} from './entity';
 import {Err, err, ok} from 'never-catch';
-import {TestTransaction} from './types/testUtil';
+import {TestTableData, TestTransaction} from './types/testUtil';
 import {createTables, resolveTablesDependency} from './schema';
+import Table from "./types/table";
 
 const testTransaction: TestTransaction = async (tablesWithData, callback, pool, isolationLevel = 'serializable', rollback = true) => {
     let error: Err<any> | undefined;
@@ -189,6 +190,14 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
     } else {
         return error;
     }
-}
+};
 
-export {testTransaction};
+const createTestTableData = <T extends Table>(
+    table: T,
+    startData: TestTableData<T>['startData'],
+    finalData: TestTableData<T>['finalData'],
+    skipIt: TestTableData<T>['skipIt'],
+    lengthCheck: TestTableData<T>['lengthCheck']
+): TestTableData<T> => ({table, startData, finalData, skipIt, lengthCheck});
+
+export {testTransaction, createTestTableData};
