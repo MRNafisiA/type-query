@@ -27,5 +27,12 @@ type TestTableData<T extends Table> = {
 };
 type TestTransaction = (data: TestTableData<any>[], callback: (client: PoolClient) => void, pool: Pool, isolationLevel?: TransactionIsolationLevel, rollback?: boolean) =>
     Promise<Result<undefined, any>>;
+type CreateTestTableData = <T extends Table>(
+    table: T,
+    startData: TestTableData<T>['startData'],
+    finalData: TestTableData<T>['finalData'],
+    skipIt?: TestTableData<T>['skipIt'],
+    lengthCheck?: TestTableData<T>['lengthCheck']
+) => TestTableData<T>
 
-export type {TestTableData, TestTransaction};
+export type {TestTableData, TestTransaction, CreateTestTableData};
