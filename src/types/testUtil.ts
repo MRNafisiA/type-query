@@ -26,7 +26,7 @@ type TestTableData<T extends Table> = {
     lengthCheck?: ((rows: SimpleModel<T>[]) => Result<any, any> | Promise<Result<any, any>>) | number | undefined;
 };
 type TestTransaction = (data: TestTableData<any>[], callback: (client: PoolClient) => void, pool: Pool, isolationLevel?: TransactionIsolationLevel, rollback?: boolean) =>
-    Promise<Result<undefined, any>>;
+    Promise<undefined>;
 type CreateTestTableData = <T extends Table>(
     table: T,
     startData: TestTableData<T>['startData'],

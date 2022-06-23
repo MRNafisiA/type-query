@@ -185,9 +185,9 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
         }
     }, isolationLevel);
     if (error === undefined) {
-        return ok(undefined);
+        return undefined;
     } else {
-        return error;
+        throw error;
     }
 };
 
