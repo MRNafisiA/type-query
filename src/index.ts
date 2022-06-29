@@ -2,6 +2,7 @@ import U from './U';
 import PostgresErrors from './error';
 import type {Pool} from './types/pool';
 import {createContext} from './context';
+import {createModelUtils} from './model';
 import type {Context} from './types/context';
 import type {ClientBase, PoolClient} from 'pg';
 import type {TestTableData} from './types/testUtil';
@@ -87,6 +88,7 @@ export type {
 export {U};
 export {PostgresErrors};
 export {createContext};
+export {createModelUtils};
 export {createPool, addHook, removeHook};
 export {testTransaction, createTestTableData};
 export {

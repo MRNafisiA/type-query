@@ -18,8 +18,6 @@ type PostgresType = 'boolean'
     | 'text'
     | 'uuid'
     // time
-    | 'time without time zone'
-    | 'time with time zone'
     | 'date'
     | 'timestamp without time zone'
     | 'timestamp with time zone'
@@ -38,7 +36,7 @@ type PostgresTypeMapper<Type extends PostgresType, Nullable extends boolean> =
                     ? (true extends Nullable ? null : never) | Decimal
                     : Type extends ('character' | 'character varying' | 'text' | 'uuid')
                         ? (true extends Nullable ? null : never) | string
-                        : Type extends ('time without time zone' | 'time with time zone' | 'date' | 'timestamp without time zone' | 'timestamp with time zone')
+                        : Type extends ('date' | 'timestamp without time zone' | 'timestamp with time zone')
                             ? (true extends Nullable ? null : never) | Date
                             : Type extends ('json' | 'jsonb')
                                 ? (true extends Nullable ? null : never) | JSON

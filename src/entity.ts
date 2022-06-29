@@ -519,7 +519,7 @@ const resolveResult = <Columns extends Table['columns'], C extends readonly ((ke
     rows.forEach((_, i) => {
         columns.forEach(column => {
             if (typeof column !== 'object') {
-                rows[i][column] = U.parse(rows[i][column], getColumnType(column));
+                rows[i][column] = U.cast(rows[i][column], getColumnType(column));
             }
         });
     });
@@ -556,34 +556,24 @@ const resolveReturning = <C extends string>(
 
             tokens.push(`( ${resolvedExpResult.value.text} ) AS "${column.as}"`);
         } else {
-            const {type, title, alias} = getColumnTypeTitleAlias(column);
-            let customParse: string | undefined;
-            switch (type) {
-                case 'date':
-                case 'timestamp with time zone':
-                case 'timestamp without time zone':
-                    customParse = '::TEXT';
-                    break;
-            }
+            const {type: _type, title, alias} = getColumnTypeTitleAlias(column);
+            // TODO cast time with/without timezone to custom object
             if (title === undefined) {
                 if (alias !== undefined) {
                     tokens.push(
                         `"${alias}".` +
                         `"${column.substring((alias + '_').length)}"` +
-                        (customParse ?? '') +
                         ` AS "${column}"`
                     );
                 } else {
                     tokens.push(
-                        `"${column}"` +
-                        `${customParse !== undefined ? `${customParse} AS "${column}"` : ''}`
+                        `"${column}"`
                     );
                 }
             } else {
                 tokens.push(
                     (alias !== undefined ? `"${alias}".` : '') +
                     `"${title}"` +
-                    (customParse ?? '') +
                     ` AS "${column}"`
                 );
             }

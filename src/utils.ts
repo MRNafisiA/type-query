@@ -255,20 +255,10 @@ const stringify = <T extends ExpressionTypes>(v: T, inline: boolean = false): T 
     return result as any;
 };
 
-const parse = (v: unknown, type: PostgresType): ExpressionTypes => {
+const cast = (v: unknown, type: PostgresType): ExpressionTypes => {
     switch (type) {
         case 'bigint':
             return BigInt(v as string) as any;
-        case 'time without time zone':
-            return new Date(`1970-01-01T${v}Z`) as any;
-        case 'time with time zone':
-            return new Date(`1970-01-01 ${v}`) as any;
-        case 'date':
-            return new Date(`${v}T00:00:00Z`) as any;
-        case 'timestamp without time zone':
-            return new Date(`${v}+00`) as any;
-        case 'timestamp with time zone':
-            return new Date(v as string) as any;
         case 'numeric':
             return new Decimal(v as string) as any;
         default:
@@ -307,5 +297,5 @@ export {
 };
 export {
     stringify,
-    parse
+    cast
 };

@@ -1,7 +1,7 @@
 import type Table from './table';
-import type {ColumnTypeByColumns, ColumnTypeByTable} from './postgres';
+import type {ColumnTypeByColumns} from './postgres';
 
-type SimpleModel<T extends Table> = { [col in keyof T['columns'] & string]: ColumnTypeByTable<T, col>; };
+type SimpleModel<Columns extends Table['columns']> = { [col in keyof Columns & string]: ColumnTypeByColumns<Columns, col>; };
 
 type Model<Columns extends Table['columns'], Requires extends readonly (keyof Columns)[], Optionals extends readonly (keyof Columns)[]> =
     {
@@ -13,7 +13,25 @@ type Model<Columns extends Table['columns'], Requires extends readonly (keyof Co
         ColumnTypeByColumns<Columns, Optionals[key] & keyof Columns>;
     };
 
+type ModelUtils<Columns extends Table['columns']> = {
+    Parse: <Requires extends readonly (keyof Columns)[], Optionals extends readonly (keyof Columns)[]>(
+        data: { [key: string]: string },
+        requires: Requires,
+        optional: Optionals,
+        validate: boolean
+    ) => Model<Columns, Requires, Optionals> | undefined;
+    Validate: (
+        data: Partial<SimpleModel<Columns>>
+    ) => boolean;
+} & {
+    [key in keyof Columns]: {
+        Parse: (v: string, validate: boolean) => ColumnTypeByColumns<Columns, key> | undefined;
+        Validate: (v: ColumnTypeByColumns<Columns, key>) => boolean;
+    }
+};
+
 export type {
     SimpleModel,
-    Model
+    Model,
+    ModelUtils
 };

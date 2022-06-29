@@ -1,17 +1,12 @@
-import Decimal from 'decimal.js';
-
 type JSON = JsonObject | JsonArray;
 type JsonObject = { [key: string]: BaseJsonValue };
 type JsonArray = BaseJsonValue[];
-type BaseJsonValue = null
-    | boolean
-    | number
-    | bigint
-    | Decimal
+type BaseJsonValue = JsonObject
+    | JsonArray
     | string
-    | Date
-    | JsonObject
-    | JsonArray;
+    | number
+    | boolean
+    | null;
 
 export type {
     JSON,

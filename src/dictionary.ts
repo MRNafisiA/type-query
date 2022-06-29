@@ -63,10 +63,6 @@ const toPostgresType = (v: PostgresType) => {
             return 'text';
         case 'uuid':
             return 'uuid';
-        case 'time without time zone':
-            return 'time without time zone';
-        case 'time with time zone':
-            return 'time with time zone';
         case 'date':
             return 'date';
         case 'timestamp without time zone':

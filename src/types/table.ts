@@ -15,16 +15,12 @@ type Base = {
 type Primary = { primary?: true, nullable: false } | { nullable: true };
 
 type Types =
-    {
-        type: 'boolean'
-            | 'smallint' | 'integer' | 'bigint' | 'real' | 'double precision'
-            | 'text' | 'uuid'
-            | 'date'
-            | 'json' | 'jsonb'
-    }
-    | { type: 'numeric', precision: number, scale: number }
-    | { type: 'character' | 'character varying', length?: number }
-    | { type: 'time without time zone' | 'time with time zone' | 'timestamp without time zone' | 'timestamp with time zone', length?: number };
+    { type: 'boolean' | 'text' | 'uuid' | 'date' | 'json' | 'jsonb' }
+    | { type: 'smallint' | 'integer' | 'real' | 'double precision', min?: number, max?: number }
+    | { type: 'bigint', min?: bigint, max?: bigint }
+    | { type: 'numeric', precision: number, scale: number, min?: Decimal, max?: Decimal }
+    | { type: 'character' | 'character varying', minLength?: number, maxLength?: number, regex?: RegExp }
+    | { type: 'timestamp without time zone' | 'timestamp with time zone', length?: number };
 
 type ReferenceCheck<T extends Table, C extends keyof T['columns']> =
     { type: 'boolean', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'boolean' ? C : never } }
@@ -41,22 +37,20 @@ type ReferenceCheck<T extends Table, C extends keyof T['columns']> =
     | { type: 'numeric', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'numeric' ? C : never } }
     | { type: 'character', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'character' ? C : never } }
     | { type: 'character varying', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'character varying' ? C : never } }
-    | { type: 'time without time zone', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'time without time zone' ? C : never } }
-    | { type: 'time with time zone', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'time with time zone' ? C : never } }
     | { type: 'timestamp without time zone', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'timestamp without time zone' ? C : never } }
     | { type: 'timestamp with time zone', reference?: { table: T, onUpdate?: ReferenceActions, onDelete?: ReferenceActions, column: T['columns'][C]['type'] extends 'timestamp with time zone' ? C : never } };
 
 type Default = { default: false; }
     | { default: true; value: string; }
     | { default: 'auto-increment', type: 'smallint' | 'integer' | 'bigint', seqTitle?: string }
-    | { default: 'created-at' | 'updated-at', type: 'time without time zone' | 'time with time zone' | 'timestamp without time zone' | 'timestamp with time zone' }
+    | { default: 'created-at' | 'updated-at', type: 'timestamp without time zone' | 'timestamp with time zone' }
     | (
     { default: 'value', type: 'boolean', value: boolean }
     | { default: 'value', type: 'smallint' | 'integer' | 'real' | 'double precision', value: number }
     | { default: 'value', type: 'bigint', value: bigint }
     | { default: 'value', type: 'numeric', value: Decimal }
     | { default: 'value', type: 'character' | 'character varying' | 'text' | 'uuid', value: string }
-    | { default: 'value', type: 'time without time zone' | 'time with time zone' | 'date' | 'timestamp without time zone' | 'timestamp with time zone', value: Date }
+    | { default: 'value', type: 'date' | 'timestamp without time zone' | 'timestamp with time zone', value: Date }
     | { default: 'value', type: 'json' | 'jsonb', value: JSON }
     );
 

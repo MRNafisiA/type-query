@@ -70,7 +70,7 @@ test('column custom-parse object', () => {
         throw 'it should not reach here';
     }
     const {text, params} = result.value;
-    expect(text).toBe('"id", "first_and_last_name" AS "name", "createdAt"::TEXT AS "createdAt", '
-        + '"updated_at"::TEXT AS "updatedAt", ( $2 ) AS "test"');
+    expect(text).toBe('"id", "first_and_last_name" AS "name", "createdAt", '
+        + '"updated_at" AS "updatedAt", ( $2 ) AS "test"');
     expect(params).toStrictEqual([U.stringify(2)]);
 });

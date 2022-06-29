@@ -13,17 +13,17 @@ type TestTableData<T extends Table> = {
         &
         { [columnKey in keyof NullableAndDefaultColumns<T['columns']>]?: ColumnTypeByColumns<T['columns'], columnKey & string>; }
         )[];
-    finalData: ((rows: SimpleModel<T>[]) => Result<any, any> | Promise<Result<any, any>>) |
+    finalData: ((rows: SimpleModel<T['columns']>[]) => Result<any, any> | Promise<Result<any, any>>) |
         {
             row: {
                 [columnKey in keyof T['columns']]:
-                ((cell: ColumnTypeByColumns<T['columns'], columnKey>, row: SimpleModel<T>, rows: SimpleModel<T>[]) => Result<any, any> | Promise<Result<any, any>>) |
+                ((cell: ColumnTypeByColumns<T['columns'], columnKey>, row: SimpleModel<T['columns']>, rows: SimpleModel<T['columns']>[]) => Result<any, any> | Promise<Result<any, any>>) |
                 ColumnTypeByColumns<T['columns'], columnKey>;
             },
             useTime?: ['equal', number] | ['moreThanEqual', number] | ['lessThanEqual', number] | undefined
         }[];
-    skipIt?: ((row: SimpleModel<T>) => Result<any, any> | Promise<Result<any, any>>) | undefined;
-    lengthCheck?: ((rows: SimpleModel<T>[]) => Result<any, any> | Promise<Result<any, any>>) | number | undefined;
+    skipIt?: ((row: SimpleModel<T['columns']>) => Result<any, any> | Promise<Result<any, any>>) | undefined;
+    lengthCheck?: ((rows: SimpleModel<T['columns']>[]) => Result<any, any> | Promise<Result<any, any>>) | number | undefined;
 };
 type TestTransaction = (data: TestTableData<any>[], callback: (client: PoolClient) => void, pool: Pool, isolationLevel?: TransactionIsolationLevel, rollback?: boolean) =>
     Promise<undefined>;
