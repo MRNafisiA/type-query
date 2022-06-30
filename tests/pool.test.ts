@@ -1,4 +1,3 @@
-import {err, ok} from 'never-catch';
 import {createPool} from '../src/pool';
 import {toTransactionIsolationLevel} from '../src/dictionary';
 
@@ -116,7 +115,7 @@ test('callback-ok and commit-fail', async () => {
         passRollback: true
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(ok(undefined));
+    const callback = jest.fn().mockReturnValueOnce(true);
 
     await expect(pool.transaction(callback, 'repeatable-read')).rejects.toBe('commit failed!');
     expect(callback.mock.calls.length).toBe(1);
@@ -138,7 +137,7 @@ test('callback-ok and commit-ok', async () => {
         passRollback: true
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(ok(undefined));
+    const callback = jest.fn().mockReturnValueOnce(true);
 
     await expect(pool.transaction(callback, 'repeatable-read')).resolves.toBe(undefined);
     expect(callback.mock.calls.length).toBe(1);
@@ -159,7 +158,7 @@ test('callback-fail and rollback-fail', async () => {
         passRollback: false
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(err(undefined));
+    const callback = jest.fn().mockReturnValueOnce(false);
 
     await expect(pool.transaction(callback, 'repeatable-read')).rejects.toBe('rollback failed!');
     expect(callback.mock.calls.length).toBe(1);
@@ -181,7 +180,7 @@ test('callback-fail and rollback-ok', async () => {
         passRollback: true
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(err(undefined));
+    const callback = jest.fn().mockReturnValueOnce(false);
 
     await expect(pool.transaction(callback, 'repeatable-read')).resolves.toBe(undefined);
     expect(callback.mock.calls.length).toBe(1);

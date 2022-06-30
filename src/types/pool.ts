@@ -1,5 +1,4 @@
 import {Param} from './entity';
-import type {Result} from 'never-catch';
 import type {Pool as PgPool, PoolClient} from 'pg';
 
 type TransactionIsolationLevel = 'read-uncommitted' | 'read-committed' | 'repeatable-read' | 'serializable';
@@ -7,7 +6,7 @@ type TransactionIsolationLevel = 'read-uncommitted' | 'read-committed' | 'repeat
 type Pool = {
     $: PgPool;
     transaction: (
-        callback: (client: PoolClient) => Promise<Result<any, any>>,
+        callback: (client: PoolClient) => Promise<boolean>,
         isolationLevel?: TransactionIsolationLevel
     ) => Promise<void>;
 };

@@ -32,7 +32,7 @@ const createPool = (connectionString: string): Pool => {
             client.query(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionIsolationLevel(isolationLevel)} ;`)
                 .then(async () => {
                     const result = await callback(client);
-                    if (result.ok) {
+                    if (result) {
                         await client.query('COMMIT ;');
                     } else {
                         await client.query('ROLLBACK ;');
