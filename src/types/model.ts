@@ -19,14 +19,14 @@ type ModelUtils<Columns extends Table['columns']> = {
         data: { [key: string]: string },
         requires: Requires,
         optional: Optionals,
-        validate: boolean
-    ) => Result<Model<Columns, Requires, Optionals>, string>;
-    Validate: (
-        data: Partial<SimpleModel<Columns>>
-    ) => Result<undefined, string>;
+        validate?: boolean
+    ) => Result<Model<Columns, Requires, Optionals>, Requires[Exclude<keyof Requires, keyof unknown[]>] | Optionals[Exclude<keyof Optionals, keyof unknown[]>]>;
+    Validate: <D extends Partial<SimpleModel<Columns>>>(
+        data: D,
+    ) => Result<undefined, keyof D>;
 } & {
     [key in keyof Columns]: {
-        Parse: (v: string, validate: boolean) => ColumnTypeByColumns<Columns, key> | undefined;
+        Parse: (v: string, validate?: boolean) => ColumnTypeByColumns<Columns, key> | undefined;
         Validate: (v: ColumnTypeByColumns<Columns, key>) => boolean;
     }
 };

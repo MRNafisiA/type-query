@@ -236,10 +236,10 @@ const createModelUtils = <Columns extends Table['columns']>(
             let require: any;
             for (require of requires) {
                 if (data[require] === undefined) {
-                    return err(`can not parse ${require}`);
+                    return err(require);
                 }
                 if (validate && !columnsParseAndValidate[require].Validate!(data[require] as any)) {
-                    return err(`invalid ${require}`);
+                    return err(require);
                 }
                 result[require] = columnsParseAndValidate[require].Parse!(data[require]);
             }
@@ -250,7 +250,7 @@ const createModelUtils = <Columns extends Table['columns']>(
                     continue;
                 }
                 if (validate && !columnsParseAndValidate[optional].Validate!(data[optional] as any)) {
-                    return err(`invalid ${optional}`);
+                    return err(optional);
                 }
                 result[optional] = columnsParseAndValidate[optional].Parse!(data[optional]);
             }
@@ -261,7 +261,7 @@ const createModelUtils = <Columns extends Table['columns']>(
             let dataKey: any;
             for (dataKey in data) {
                 if (!columnsParseAndValidate[dataKey].Validate!(data[dataKey] as any)) {
-                    return err(`invalid ${dataKey}`);
+                    return err(dataKey);
                 }
             }
             return ok(undefined);
