@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
 import Table from './types/table';
+import {err, ok} from 'never-catch';
 import {ModelUtils} from './types/model';
 import {ColumnTypeByColumns} from './types/postgres';
 
@@ -235,10 +236,10 @@ const createModelUtils = <Columns extends Table['columns']>(
             let require: any;
             for (require of requires) {
                 if (data[require] === undefined) {
-                    return undefined;
+                    return err(`can not parse ${require}`);
                 }
                 if (validate && !columnsParseAndValidate[require].Validate!(data[require] as any)) {
-                    return undefined;
+                    return err(`invalid ${require}`);
                 }
                 result[require] = columnsParseAndValidate[require].Parse!(data[require]);
             }
@@ -249,21 +250,21 @@ const createModelUtils = <Columns extends Table['columns']>(
                     continue;
                 }
                 if (validate && !columnsParseAndValidate[optional].Validate!(data[optional] as any)) {
-                    return undefined;
+                    return err(`invalid ${optional}`);
                 }
                 result[optional] = columnsParseAndValidate[optional].Parse!(data[optional]);
             }
 
-            return result as any;
+            return ok(result as any);
         },
         Validate: data => {
             let dataKey: any;
             for (dataKey in data) {
                 if (!columnsParseAndValidate[dataKey].Validate!(data[dataKey] as any)) {
-                    return false;
+                    return err(`invalid ${dataKey}`);
                 }
             }
-            return true;
+            return ok(undefined);
         },
         ...(columnsParseAndValidate as any)
     };

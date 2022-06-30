@@ -1,5 +1,6 @@
 import type Table from './table';
 import type {ColumnTypeByColumns} from './postgres';
+import {Result} from "never-catch";
 
 type SimpleModel<Columns extends Table['columns']> = { [col in keyof Columns & string]: ColumnTypeByColumns<Columns, col>; };
 
@@ -19,10 +20,10 @@ type ModelUtils<Columns extends Table['columns']> = {
         requires: Requires,
         optional: Optionals,
         validate: boolean
-    ) => Model<Columns, Requires, Optionals> | undefined;
+    ) => Result<Model<Columns, Requires, Optionals>, string>;
     Validate: (
         data: Partial<SimpleModel<Columns>>
-    ) => boolean;
+    ) => Result<undefined, string>;
 } & {
     [key in keyof Columns]: {
         Parse: (v: string, validate: boolean) => ColumnTypeByColumns<Columns, key> | undefined;
