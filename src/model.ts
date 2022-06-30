@@ -4,31 +4,43 @@ import {err, ok} from 'never-catch';
 import {ModelUtils} from './types/model';
 import {ColumnTypeByColumns} from './types/postgres';
 
-const parseBoolean = (v: string): boolean | undefined => v === 'true' ? true : v === 'false' ? false : undefined;
-const parseNumber = (v: string): number | undefined => {
+const parseBoolean = (v: string | undefined): boolean | undefined => v === 'true' ? true : v === 'false' ? false : undefined;
+const parseNumber = (v: string | undefined): number | undefined => {
     const _v = Number(v);
     return Number.isNaN(_v) ? undefined : _v;
 };
-const parseBigInt = (v: string): bigint | undefined => {
+const parseBigInt = (v: string | undefined): bigint | undefined => {
+    if (v === undefined) {
+        return undefined;
+    }
     try {
         return BigInt(v);
     } catch (_) {
         return undefined;
     }
 };
-const parseDecimal = (v: string): Decimal | undefined => {
+const parseDecimal = (v: string | undefined): Decimal | undefined => {
+    if (v === undefined) {
+        return undefined;
+    }
     try {
         return new Decimal(v);
     } catch (_) {
         return undefined;
     }
 };
-const parseString = (v: string): string | undefined => v;
-const parseDate = (v: string): Date | undefined => {
+const parseString = (v: string | undefined): string | undefined => v;
+const parseDate = (v: string | undefined): Date | undefined => {
+    if (v === undefined) {
+        return undefined;
+    }
     const _v = new Date(v);
     return _v.toString() === 'Invalid Date' ? undefined : _v;
 };
-const parseJSON = (v: string): JSON | undefined => {
+const parseJSON = (v: string | undefined): JSON | undefined => {
+    if (v === undefined) {
+        return undefined;
+    }
     let _v;
     try {
         _v = JSON.parse(v);
@@ -115,7 +127,7 @@ const validateStringGenerator = (
 const createModelUtils = <Columns extends Table['columns']>(
     columns: Columns,
     custom?: {
-        parse?: { [key in keyof Columns]?: (v: string) => ColumnTypeByColumns<Columns, key> | undefined }
+        parse?: { [key in keyof Columns]?: (v: string | undefined) => ColumnTypeByColumns<Columns, key> | undefined }
         validate?: { [key in keyof Columns]?: (v: ColumnTypeByColumns<Columns, key>) => boolean }
     }
 ): ModelUtils<Columns> => {
@@ -220,7 +232,7 @@ const createModelUtils = <Columns extends Table['columns']>(
             }
         }
 
-        const parseWithValidate = (v: string, validate: boolean = false) => {
+        const parseWithValidate = (v: string | undefined, validate: boolean = false) => {
             const parsedValue = parseFun!(v);
             if (validate && parsedValue !== undefined && !validateFun!(parsedValue)) {
                 return undefined;

@@ -16,7 +16,7 @@ type Model<Columns extends Table['columns'], Requires extends readonly (keyof Co
 
 type ModelUtils<Columns extends Table['columns']> = {
     Parse: <Requires extends readonly (keyof Columns)[], Optionals extends readonly (keyof Columns)[]>(
-        data: { [key: string]: string },
+        data: { [key: string]: string | undefined },
         requires: Requires,
         optional: Optionals,
         validate?: boolean
@@ -26,7 +26,7 @@ type ModelUtils<Columns extends Table['columns']> = {
     ) => Result<undefined, keyof D>;
 } & {
     [key in keyof Columns]: {
-        Parse: (v: string, validate?: boolean) => ColumnTypeByColumns<Columns, key> | undefined;
+        Parse: (v: string | undefined, validate?: boolean) => ColumnTypeByColumns<Columns, key> | undefined;
         Validate: (v: ColumnTypeByColumns<Columns, key>) => boolean;
     }
 };
