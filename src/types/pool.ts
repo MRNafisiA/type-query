@@ -1,14 +1,15 @@
 import {Param} from './entity';
 import type {Pool as PgPool, PoolClient} from 'pg';
+import {Result} from "never-catch";
 
 type TransactionIsolationLevel = 'read-uncommitted' | 'read-committed' | 'repeatable-read' | 'serializable';
 
 type Pool = {
     $: PgPool;
-    transaction: (
-        callback: (client: PoolClient) => Promise<boolean>,
+    transaction: <R extends Result<unknown, unknown>> (
+        callback: (client: PoolClient) => Promise<R>,
         isolationLevel?: TransactionIsolationLevel
-    ) => Promise<void>;
+    ) => Promise<R>;
 };
 
 type OnSendQueryHook = (query: string, params: Param[]) => void;

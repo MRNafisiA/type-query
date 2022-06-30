@@ -1,5 +1,6 @@
 import {createPool} from '../src/pool';
 import {toTransactionIsolationLevel} from '../src/dictionary';
+import {err, ok} from "never-catch";
 
 let setting = {
     passConnect: false,
@@ -115,7 +116,7 @@ test('callback-ok and commit-fail', async () => {
         passRollback: true
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(true);
+    const callback = jest.fn().mockReturnValueOnce(ok(12));
 
     await expect(pool.transaction(callback, 'repeatable-read')).rejects.toBe('commit failed!');
     expect(callback.mock.calls.length).toBe(1);
@@ -137,9 +138,9 @@ test('callback-ok and commit-ok', async () => {
         passRollback: true
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(true);
+    const callback = jest.fn().mockReturnValueOnce(ok(12));
 
-    await expect(pool.transaction(callback, 'repeatable-read')).resolves.toBe(undefined);
+    await expect(pool.transaction(callback, 'repeatable-read')).resolves.toStrictEqual(ok(12));
     expect(callback.mock.calls.length).toBe(1);
     expect(callback.mock.calls[0][0].name).toBe('i am mocked client.');
     // @ts-ignore
@@ -158,7 +159,7 @@ test('callback-fail and rollback-fail', async () => {
         passRollback: false
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(false);
+    const callback = jest.fn().mockReturnValueOnce(err(10));
 
     await expect(pool.transaction(callback, 'repeatable-read')).rejects.toBe('rollback failed!');
     expect(callback.mock.calls.length).toBe(1);
@@ -180,9 +181,9 @@ test('callback-fail and rollback-ok', async () => {
         passRollback: true
     };
     const pool = createPool('hello db. it is me!');
-    const callback = jest.fn().mockReturnValueOnce(false);
+    const callback = jest.fn().mockReturnValueOnce(err(10));
 
-    await expect(pool.transaction(callback, 'repeatable-read')).resolves.toBe(undefined);
+    await expect(pool.transaction(callback, 'repeatable-read')).resolves.toStrictEqual(err(10));
     expect(callback.mock.calls.length).toBe(1);
     expect(callback.mock.calls[0][0].name).toBe('i am mocked client.');
     // @ts-ignore
