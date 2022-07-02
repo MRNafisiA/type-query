@@ -4,41 +4,91 @@ import {err, ok} from 'never-catch';
 import {ModelUtils} from './types/model';
 import {ColumnTypeByColumns} from './types/postgres';
 
-const parseBoolean = (v: string | undefined): boolean | undefined => v === 'true' ? true : v === 'false' ? false : undefined;
-const parseNumber = (v: string | undefined): number | undefined => {
-    const _v = Number(v);
-    return Number.isNaN(_v) ? undefined : _v;
-};
-const parseBigInt = (v: string | undefined): bigint | undefined => {
-    if (v === undefined) {
-        return undefined;
-    }
-    try {
-        return BigInt(v);
-    } catch (_) {
-        return undefined;
-    }
-};
-const parseDecimal = (v: string | undefined): Decimal | undefined => {
-    if (v === undefined) {
-        return undefined;
-    }
-    try {
-        return new Decimal(v);
-    } catch (_) {
-        return undefined;
+const parseBoolean = (v: unknown): boolean | undefined => {
+    switch (typeof v) {
+        case 'boolean':
+            return v;
+        case 'string':
+            switch (v) {
+                case 'true':
+                    return true;
+                case 'false':
+                    return false
+                default:
+                    return undefined;
+            }
+        default:
+            return undefined;
     }
 };
-const parseString = (v: string | undefined): string | undefined => v;
-const parseDate = (v: string | undefined): Date | undefined => {
-    if (v === undefined) {
-        return undefined;
+const parseNumber = (v: unknown): number | undefined => {
+    switch (typeof v) {
+        case 'number':
+            return v;
+        case 'string':
+            const _v = Number(v);
+            return Number.isNaN(_v) ? undefined : _v;
+        default:
+            return undefined;
     }
-    const _v = new Date(v);
-    return _v.toString() === 'Invalid Date' ? undefined : _v;
 };
-const parseJSON = (v: string | undefined): JSON | undefined => {
-    if (v === undefined) {
+const parseBigInt = (v: unknown): bigint | undefined => {
+    switch (typeof v) {
+        case 'bigint':
+            return v;
+        case 'number':
+            return BigInt(v);
+        case 'string':
+            try {
+                return BigInt(v);
+            } catch (_) {
+                return undefined;
+            }
+        default:
+            return undefined;
+    }
+};
+const parseDecimal = (v: unknown): Decimal | undefined => {
+    if (v instanceof Decimal) {
+        return v;
+    }
+    switch (typeof v) {
+        case 'number':
+            return new Decimal(v);
+        case 'string':
+            try {
+                return new Decimal(v);
+            } catch (_) {
+                return undefined;
+            }
+        default:
+            return undefined;
+    }
+};
+const parseString = (v: unknown): string | undefined => {
+    switch (typeof v) {
+        case 'boolean':
+        case 'number':
+        case 'bigint':
+            return v.toString();
+        case 'string':
+            return v;
+        default:
+            return undefined;
+    }
+};
+const parseDate = (v: unknown): Date | undefined => {
+    switch (typeof v) {
+        case 'number':
+        case 'string':
+            const _v = new Date(v);
+            return _v.toString() === 'Invalid Date' ? undefined : _v;
+        default:
+            return undefined;
+    }
+};
+const parseJSON = (v: unknown): JSON | undefined => {
+    if (typeof v !== 'string') {
         return undefined;
     }
     let _v;
@@ -253,7 +303,7 @@ const createModelUtils = <Columns extends Table['columns']>(
                 if (validate && !columnsParseAndValidate[require].Validate!(data[require] as any)) {
                     return err(require);
                 }
-                result[require] = columnsParseAndValidate[require].Parse!(data[require]);
+                result[require] = columnsParseAndValidate[require].Parse!(data[require] as any);
             }
 
             let optional: any;
@@ -264,7 +314,7 @@ const createModelUtils = <Columns extends Table['columns']>(
                 if (validate && !columnsParseAndValidate[optional].Validate!(data[optional] as any)) {
                     return err(optional);
                 }
-                result[optional] = columnsParseAndValidate[optional].Parse!(data[optional]);
+                result[optional] = columnsParseAndValidate[optional].Parse!(data[optional] as any);
             }
 
             return ok(result as any);
