@@ -32,6 +32,10 @@ const parseNumber = (v: unknown): number | undefined => {
             return undefined;
     }
 };
+const parseInteger = (v: unknown): number | undefined => {
+    const _v = parseNumber(v);
+    return _v === undefined ? undefined : Math.trunc(_v);
+};
 const parseBigInt = (v: unknown): bigint | undefined => {
     switch (typeof v) {
         case 'bigint':
@@ -103,6 +107,12 @@ const parseJSON = (v: unknown): JSON | undefined => {
     return _v;
 };
 
+const smallIntRange = {min: -32768, max: 32767};
+const integerRange = {min: -2147483648, max: 2147483647};
+const bigIntRange = {
+    min: BigInt('-9223372036854775808'),
+    max: BigInt('9223372036854775807')
+};
 const validateNumberGenerator = (
     {min, max}: { min?: number | bigint | undefined, max?: number | bigint | undefined }
 ) => {
@@ -137,9 +147,6 @@ const validateDecimalGenerator = (
         }
     }
 }
-const validateSmallInt = validateNumberGenerator({min: 0, max: 32767});
-const validateInteger = validateNumberGenerator({min: 0, max: 2147483647});
-const validateBigInt = validateNumberGenerator({min: 0, max: BigInt('9223372036854775807')});
 const validateStringGenerator = (
     {regex, min, max}: { regex?: RegExp | undefined, min?: number | undefined, max?: number | undefined }
 ) => {
@@ -190,6 +197,8 @@ const createModelUtils = <Columns extends Table['columns']>(
                     break;
                 case 'smallint':
                 case 'integer':
+                    parseFun = parseInteger as any;
+                    break;
                 case 'real':
                 case 'double precision':
                     parseFun = parseNumber as any;
@@ -222,25 +231,22 @@ const createModelUtils = <Columns extends Table['columns']>(
         if (validateFun === undefined) {
             switch (val.type) {
                 case 'smallint':
-                    if (val.min !== undefined || val.max !== undefined) {
-                        validateFun = validateNumberGenerator({min: val.min, max: val.max}) as any;
-                    } else {
-                        validateFun = validateSmallInt as any;
-                    }
+                    validateFun = validateNumberGenerator({
+                        min: val.min ?? smallIntRange.min,
+                        max: val.max ?? smallIntRange.max
+                    }) as any;
                     break;
                 case 'integer':
-                    if (val.min !== undefined || val.max !== undefined) {
-                        validateFun = validateNumberGenerator({min: val.min, max: val.max}) as any;
-                    } else {
-                        validateFun = validateInteger as any;
-                    }
+                    validateFun = validateNumberGenerator({
+                        min: val.min ?? integerRange.min,
+                        max: val.max ?? integerRange.max
+                    }) as any;
                     break;
                 case 'bigint':
-                    if (val.min !== undefined || val.max !== undefined) {
-                        validateFun = validateNumberGenerator({min: val.min, max: val.max}) as any;
-                    } else {
-                        validateFun = validateBigInt as any;
-                    }
+                    validateFun = validateNumberGenerator({
+                        min: val.min ?? bigIntRange.min,
+                        max: val.max ?? bigIntRange.max
+                    }) as any;
                     break;
                 case 'real':
                 case 'double precision':
