@@ -5,6 +5,7 @@ import {createContext} from './context';
 import {createModelUtils} from './model';
 import type {Context} from './types/context';
 import type {ClientBase, PoolClient} from 'pg';
+import Table, {TableCheck} from './types/table';
 import type {TestTableData} from './types/testUtil';
 import type {SimpleModel, Model} from './types/model';
 import {createPool, addHook, removeHook} from './pool';
@@ -56,6 +57,7 @@ import type {
 export type {Pool};
 export type {Context};
 export type {ClientBase, PoolClient};
+export type {Table, TableCheck};
 export type {TestTableData};
 export type {SimpleModel, Model};
 export type {JSON, JsonObject, JsonArray, BaseJsonValue};
