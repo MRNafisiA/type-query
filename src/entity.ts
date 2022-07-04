@@ -37,14 +37,14 @@ const createEntity = <T extends Table>(table: T) => ({
         options?: {
             ignoreInWhere?: boolean,
             ignoreInReturning?: boolean,
-            order?: { by: keyof T['columns'] & string, direction: OrderDirection }[],
+            orders?: { by: keyof T['columns'] & string, direction: OrderDirection }[],
             start?: bigint,
             step?: number
         }
     ) {
         const ignoreInWhere = (options?.ignoreInWhere) ?? false;
         const ignoreInReturning = (options?.ignoreInReturning) ?? false;
-        const order = (options?.order) ?? [];
+        const orders = (options?.orders) ?? [];
         const start = options?.start;
         const step = options?.step;
 
@@ -77,11 +77,11 @@ const createEntity = <T extends Table>(table: T) => ({
             params.push(...resolvedWhereResult.value.params);
             tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'TRUE' : resolvedWhereResult.value.text);
 
-            // order
-            if (order.length !== 0) {
+            // orders
+            if (orders.length !== 0) {
                 const ordersTextArray = [];
-                for (const orderElement of order) {
-                    const {by, direction} = orderElement;
+                for (const order of orders) {
+                    const {by, direction} = order;
                     ordersTextArray.push(`${resolveColumn(table, by, false)} ${toOrderDirection(direction)}`);
                 }
                 tokens.push('ORDER BY', ordersTextArray.join(', '));
@@ -353,7 +353,7 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
             ignoreInWhere?: boolean,
             ignoreInReturning?: boolean,
             ignoreInJoin?: boolean,
-            order?: { by: TablesColumnsKeys<TablesData>, direction: OrderDirection }[],
+            orders?: { by: TablesColumnsKeys<TablesData>, direction: OrderDirection }[],
             start?: bigint,
             step?: number
         }
@@ -361,7 +361,7 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
         const ignoreInWhere = (options?.ignoreInWhere) ?? false;
         const ignoreInReturning = (options?.ignoreInReturning) ?? false;
         const ignoreInJoin = (options?.ignoreInJoin) ?? false;
-        const order = (options?.order) ?? [];
+        const orders = (options?.orders) ?? [];
         const start = options?.start;
         const step = options?.step;
 
@@ -409,11 +409,11 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
             params.push(...resolvedWhereResult.value.params);
             tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
 
-            // order
-            if (order.length !== 0) {
+            // orders
+            if (orders.length !== 0) {
                 const ordersTextArray = [];
-                for (const orderElement of order) {
-                    const {by, direction} = orderElement;
+                for (const order of orders) {
+                    const {by, direction} = order;
                     const {alias, table: {title}} = getTableDataOfJoinSelectColumn(allTables, by);
                     ordersTextArray.push(`${alias !== undefined ? `"${alias}".` : ''}"${title}" ${direction}`);
                 }

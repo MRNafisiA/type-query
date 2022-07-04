@@ -80,7 +80,7 @@ describe('select', () => {
             ['id'] as const,
             true,
             {
-                order: [{by: 'id', direction: 'asc'}, {by: 'job', direction: 'desc'}],
+                orders: [{by: 'id', direction: 'asc'}, {by: 'job', direction: 'desc'}],
                 start: BigInt('4'),
                 step: 10
             }
