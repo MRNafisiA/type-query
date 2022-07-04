@@ -20,7 +20,7 @@ test('smallint sequence', () => {
                 default: 'auto-increment'
             }
         }
-    })).toStrictEqual([`CREATE SEQUENCE test_table_id_seq as smallint ;`]);
+    })).toStrictEqual([`CREATE SEQUENCE "public"."test_table_id_seq" as smallint ;`]);
 });
 
 test('integer sequence', () => {
@@ -35,7 +35,7 @@ test('integer sequence', () => {
                 default: 'auto-increment'
             }
         }
-    })).toStrictEqual([`CREATE SEQUENCE test_table_id_seq as integer ;`]);
+    })).toStrictEqual([`CREATE SEQUENCE "public"."test_table_id_seq" as integer ;`]);
 });
 
 test('bigint sequence', () => {
@@ -50,5 +50,5 @@ test('bigint sequence', () => {
                 default: 'auto-increment'
             }
         }
-    })).toStrictEqual([`CREATE SEQUENCE test_table_id_seq ;`]);
+    })).toStrictEqual([`CREATE SEQUENCE "public"."test_table_id_seq" ;`]);
 });

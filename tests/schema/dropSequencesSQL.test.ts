@@ -20,5 +20,5 @@ test('sequence', () => {
                 default: 'auto-increment'
             }
         }
-    })).toStrictEqual([`DROP SEQUENCE test_table_id_seq ;`]);
+    })).toStrictEqual([`DROP SEQUENCE "public"."test_table_id_seq" ;`]);
 });

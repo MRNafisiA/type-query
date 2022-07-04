@@ -145,7 +145,7 @@ const createSequencesSQL = (table: Table) => {
         }
 
         // build query
-        const tokens = [`CREATE SEQUENCE ${getSequenceName(table.title, key, column)}`];
+        const tokens = [`CREATE SEQUENCE ${getSequenceName(table.schema, table.title, key, column)}`];
         if (column.type === 'smallint') {
             tokens.push('as smallint');
         } else if (column.type === 'integer') {
@@ -168,7 +168,7 @@ const dropSequencesSQL = (table: Table) => {
         }
 
         // add query to the result
-        queries.push(`DROP SEQUENCE ${getSequenceName(table.title, key, column)} ;`);
+        queries.push(`DROP SEQUENCE ${getSequenceName(table.schema, table.title, key, column)} ;`);
     }
     return queries;
 };
@@ -183,7 +183,7 @@ const createTableSQL = (table: Table) => {
 
         // add default clause
         if (column.default === 'auto-increment') {
-            tokens.push(`DEFAULT nextVal( '${getSequenceName(table.title, key, column)}'::regClass )`);
+            tokens.push(`DEFAULT nextVal( '${getSequenceName(table.schema, table.title, key, column)}'::regClass )`);
         } else if (column.default === true) {
             tokens.push(`DEFAULT ${column.value}`)
         }
@@ -221,8 +221,8 @@ const createTableSQL = (table: Table) => {
 
 const dropTableSQL = (table: Table) => `DROP TABLE "${table.schema}"."${table.title}" ;`;
 
-const getSequenceName = (tableTitle: string, columnKey: string, column: { title?: string; seqTitle?: string }) =>
-    column.seqTitle ?? (tableTitle + '_' + (column.title ?? columnKey) + '_seq');
+const getSequenceName = (tableSchema: string, tableTitle: string, columnKey: string, column: { title?: string; seqTitle?: string }) =>
+    `"${tableSchema}"."` + (column.seqTitle ?? (tableTitle + '_' + (column.title ?? columnKey) + '_seq')) + '"';
 
 export {
     createTables,

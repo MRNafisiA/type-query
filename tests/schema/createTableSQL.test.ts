@@ -48,7 +48,7 @@ test('auto-increment', () => {
                 default: 'auto-increment'
             }
         }
-    })).toBe(`CREATE TABLE "public"."test_table"( "id" smallint DEFAULT nextVal( 'test_table_id_seq'::regClass ) NULL ) ;`);
+    })).toBe(`CREATE TABLE "public"."test_table"( "id" smallint DEFAULT nextVal( '"public"."test_table_id_seq"'::regClass ) NULL ) ;`);
 });
 
 test('default-true', () => {
