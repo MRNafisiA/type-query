@@ -1,111 +1,9 @@
 import Decimal from 'decimal.js';
 import Table from './types/table';
+import * as Parser from './parser';
 import {err, ok} from 'never-catch';
 import {ModelUtils} from './types/model';
 import {ColumnTypeByColumns} from './types/postgres';
-
-const parseBoolean = (v: unknown): boolean | undefined => {
-    switch (typeof v) {
-        case 'boolean':
-            return v;
-        case 'string':
-            switch (v) {
-                case 'true':
-                    return true;
-                case 'false':
-                    return false
-                default:
-                    return undefined;
-            }
-        default:
-            return undefined;
-    }
-};
-const parseNumber = (v: unknown): number | undefined => {
-    switch (typeof v) {
-        case 'number':
-            return v;
-        case 'string':
-            const _v = Number(v);
-            return Number.isNaN(_v) ? undefined : _v;
-        default:
-            return undefined;
-    }
-};
-const parseInteger = (v: unknown): number | undefined => {
-    const _v = parseNumber(v);
-    return _v === undefined ? undefined : Math.trunc(_v);
-};
-const parseBigInt = (v: unknown): bigint | undefined => {
-    switch (typeof v) {
-        case 'bigint':
-            return v;
-        case 'number':
-            return BigInt(v);
-        case 'string':
-            try {
-                return BigInt(v);
-            } catch (_) {
-                return undefined;
-            }
-        default:
-            return undefined;
-    }
-};
-const parseDecimal = (v: unknown): Decimal | undefined => {
-    if (v instanceof Decimal) {
-        return v;
-    }
-    switch (typeof v) {
-        case 'number':
-            return new Decimal(v);
-        case 'string':
-            try {
-                return new Decimal(v);
-            } catch (_) {
-                return undefined;
-            }
-        default:
-            return undefined;
-    }
-};
-const parseString = (v: unknown): string | undefined => {
-    switch (typeof v) {
-        case 'boolean':
-        case 'number':
-        case 'bigint':
-            return v.toString();
-        case 'string':
-            return v;
-        default:
-            return undefined;
-    }
-};
-const parseDate = (v: unknown): Date | undefined => {
-    switch (typeof v) {
-        case 'number':
-        case 'string':
-            const _v = new Date(v);
-            return _v.toString() === 'Invalid Date' ? undefined : _v;
-        default:
-            return undefined;
-    }
-};
-const parseJSON = (v: unknown): JSON | undefined => {
-    if (typeof v !== 'string') {
-        return undefined;
-    }
-    let _v;
-    try {
-        _v = JSON.parse(v);
-    } catch (_) {
-        return undefined;
-    }
-    if (typeof _v !== 'object' || _v === null) {
-        return undefined;
-    }
-    return _v;
-};
 
 const smallIntRange = {min: -32768, max: 32767};
 const integerRange = {min: -2147483648, max: 2147483647};
@@ -193,36 +91,36 @@ const createModelUtils = <Columns extends Table['columns']>(
         if (parseFun === undefined) {
             switch (val.type) {
                 case 'boolean':
-                    parseFun = parseBoolean as any;
+                    parseFun = Parser.boolean as any;
                     break;
                 case 'smallint':
                 case 'integer':
-                    parseFun = parseInteger as any;
+                    parseFun = Parser.integer as any;
                     break;
                 case 'real':
                 case 'double precision':
-                    parseFun = parseNumber as any;
+                    parseFun = Parser.number as any;
                     break;
                 case 'bigint':
-                    parseFun = parseBigInt as any;
+                    parseFun = Parser.bigInt as any;
                     break;
                 case 'numeric':
-                    parseFun = parseDecimal as any;
+                    parseFun = Parser.decimal as any;
                     break;
                 case 'character':
                 case 'character varying':
                 case 'text':
                 case 'uuid':
-                    parseFun = parseString as any;
+                    parseFun = Parser.string as any;
                     break;
                 case 'date':
                 case 'timestamp without time zone':
                 case 'timestamp with time zone':
-                    parseFun = parseDate as any;
+                    parseFun = Parser.date as any;
                     break;
                 case 'json':
                 case 'jsonb':
-                    parseFun = parseJSON as any;
+                    parseFun = Parser.json as any;
                     break;
             }
         }
@@ -339,3 +237,8 @@ const createModelUtils = <Columns extends Table['columns']>(
 };
 
 export {createModelUtils};
+export {
+    validateNumberGenerator,
+    validateDecimalGenerator,
+    validateStringGenerator
+};

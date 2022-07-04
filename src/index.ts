@@ -34,6 +34,7 @@ import {
     dropTableSQL,
     getSequenceName
 } from './schema';
+import * as Parser from './parser';
 import type {
     JoinType,
     Param,
@@ -108,4 +109,7 @@ export {
     createTableSQL,
     dropTableSQL,
     getSequenceName
+};
+export {
+    Parser
 };
