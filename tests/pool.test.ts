@@ -1,6 +1,6 @@
+import {err, ok} from 'never-catch'
 import {createPool} from '../src/pool';
-import {toTransactionIsolationLevel} from '../src/dictionary';
-import {err, ok} from "never-catch";
+import {toTransactionMode} from '../src/dictionary';
 
 let setting = {
     passConnect: false,
@@ -21,10 +21,10 @@ jest.mock('pg', () => {
             this.setting = {...setting};
             this.queryFn = jest.fn((query: string) => {
                 switch (query) {
-                    case 'BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED ;':
-                    case 'BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;':
-                    case 'BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ ;':
-                    case 'BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE ;':
+                    case 'BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED READ WRITE ;':
+                    case 'BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED READ WRITE ;':
+                    case 'BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ WRITE ;':
+                    case 'BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE READ WRITE ;':
                         if (this.setting.passBeginTransaction) {
                             return Promise.resolve();
                         } else {
@@ -104,7 +104,7 @@ test('begin-transaction-fail', async () => {
     expect(pool.$.name).toBe('i am mocked pool.');
     expect((pool.$ as any).releaseFn.mock.calls.length).toBe(1);
     expect((pool.$ as any).queryFn.mock.calls.length).toBe(2);
-    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionIsolationLevel('repeatable-read')} ;`);
+    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionMode('repeatable-read', false)} ;`);
     expect((pool.$ as any).queryFn.mock.calls[1][0]).toBe('ROLLBACK ;');
 });
 
@@ -125,7 +125,7 @@ test('callback-ok and commit-fail', async () => {
     expect(pool.$.name).toBe('i am mocked pool.');
     expect((pool.$ as any).releaseFn.mock.calls.length).toBe(1);
     expect((pool.$ as any).queryFn.mock.calls.length).toBe(3);
-    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionIsolationLevel('repeatable-read')} ;`);
+    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionMode('repeatable-read', false)} ;`);
     expect((pool.$ as any).queryFn.mock.calls[1][0]).toBe('COMMIT ;');
     expect((pool.$ as any).queryFn.mock.calls[2][0]).toBe('ROLLBACK ;');
 });
@@ -147,7 +147,7 @@ test('callback-ok and commit-ok', async () => {
     expect(pool.$.name).toBe('i am mocked pool.');
     expect((pool.$ as any).releaseFn.mock.calls.length).toBe(1);
     expect((pool.$ as any).queryFn.mock.calls.length).toBe(2);
-    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionIsolationLevel('repeatable-read')} ;`);
+    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionMode('repeatable-read', false)} ;`);
     expect((pool.$ as any).queryFn.mock.calls[1][0]).toBe('COMMIT ;');
 });
 
@@ -168,7 +168,7 @@ test('callback-fail and rollback-fail', async () => {
     expect(pool.$.name).toBe('i am mocked pool.');
     expect((pool.$ as any).releaseFn.mock.calls.length).toBe(1);
     expect((pool.$ as any).queryFn.mock.calls.length).toBe(3);
-    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionIsolationLevel('repeatable-read')} ;`);
+    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionMode('repeatable-read', false)} ;`);
     expect((pool.$ as any).queryFn.mock.calls[1][0]).toBe('ROLLBACK ;');
     expect((pool.$ as any).queryFn.mock.calls[2][0]).toBe('ROLLBACK ;');
 });
@@ -190,6 +190,6 @@ test('callback-fail and rollback-ok', async () => {
     expect(pool.$.name).toBe('i am mocked pool.');
     expect((pool.$ as any).releaseFn.mock.calls.length).toBe(1);
     expect((pool.$ as any).queryFn.mock.calls.length).toBe(2);
-    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionIsolationLevel('repeatable-read')} ;`);
+    expect((pool.$ as any).queryFn.mock.calls[0][0]).toBe(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionMode('repeatable-read', false)} ;`);
     expect((pool.$ as any).queryFn.mock.calls[1][0]).toBe('ROLLBACK ;');
 });

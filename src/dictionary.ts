@@ -4,17 +4,23 @@ import type {OrderDirection, PostgresType} from './types/postgres';
 import type {ReferenceActions} from './types/table';
 import type {TransactionIsolationLevel} from './types/pool';
 
-const toTransactionIsolationLevel = (v: TransactionIsolationLevel) => {
-    switch (v) {
+const toTransactionMode = (isolationLevel: TransactionIsolationLevel, readOnly: boolean) => {
+    let result;
+    switch (isolationLevel) {
         case 'read-committed':
-            return 'READ COMMITTED';
+            result = 'READ COMMITTED';
+            break;
         case 'read-uncommitted':
-            return 'READ UNCOMMITTED';
+            result = 'READ UNCOMMITTED';
+            break;
         case 'repeatable-read':
-            return 'REPEATABLE READ';
+            result = 'REPEATABLE READ';
+            break;
         case 'serializable':
-            return 'SERIALIZABLE';
+            result = 'SERIALIZABLE';
+            break;
     }
+    return result + (readOnly ? ' READ ONLY' : ' READ WRITE')
 };
 
 const toOrderDirection = (v: OrderDirection) => {
@@ -175,7 +181,7 @@ const toReservedExpressionKeyDescription = (v: typeof ReservedExpressionKeys[Exc
 };
 
 export {
-    toTransactionIsolationLevel,
+    toTransactionMode,
     toOrderDirection,
     toJoinType,
     toPostgresType,

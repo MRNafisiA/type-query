@@ -8,7 +8,8 @@ type Pool = {
     $: PgPool;
     transaction: <R extends Result<unknown, unknown>> (
         callback: (client: PoolClient) => Promise<R>,
-        isolationLevel?: TransactionIsolationLevel
+        isolationLevel?: TransactionIsolationLevel,
+        readOnly?: boolean
     ) => Promise<R>;
 };
 

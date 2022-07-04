@@ -1,6 +1,6 @@
 import {Pool as PgPool, Query} from 'pg';
+import {toTransactionMode} from './dictionary';
 import type {AddHook, OnSendQueryHook, Pool, RemoveHook} from './types/pool';
-import {toTransactionIsolationLevel} from './dictionary';
 
 const submit = Query.prototype.submit;
 Query.prototype.submit = function (this: any) {
@@ -28,8 +28,8 @@ const createPool = (connectionString: string): Pool => {
     const pool = new PgPool({connectionString});
     return {
         $: pool,
-        transaction: (callback, isolationLevel = 'serializable') => pool.connect().then(client =>
-            client.query(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionIsolationLevel(isolationLevel)} ;`)
+        transaction: (callback, isolationLevel = 'serializable', readOnly = false) => pool.connect().then(client =>
+            client.query(`BEGIN TRANSACTION ISOLATION LEVEL ${toTransactionMode(isolationLevel, readOnly)} ;`)
                 .then(async () => {
                     const result = await callback(client);
                     if (result.ok) {
