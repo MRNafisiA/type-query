@@ -204,10 +204,13 @@ const createModelUtils = <Columns extends Table['columns']>(
                 if (data[require] === undefined) {
                     return err(require);
                 }
-                if (validate && !columnsParseAndValidate[require].Validate!(data[require] as any)) {
+                result[require] = columnsParseAndValidate[require].Parse!(data[require] as any);
+                if (result[require] === undefined) {
                     return err(require);
                 }
-                result[require] = columnsParseAndValidate[require].Parse!(data[require] as any);
+                if (validate && !columnsParseAndValidate[require].Validate!(result[require] as any)) {
+                    return err(require);
+                }
             }
 
             let optional: any;
@@ -215,10 +218,13 @@ const createModelUtils = <Columns extends Table['columns']>(
                 if (data[optional] === undefined) {
                     continue;
                 }
-                if (validate && !columnsParseAndValidate[optional].Validate!(data[optional] as any)) {
+                result[optional] = columnsParseAndValidate[optional].Parse!(data[optional] as any);
+                if (result[optional] === undefined) {
                     return err(optional);
                 }
-                result[optional] = columnsParseAndValidate[optional].Parse!(data[optional] as any);
+                if (validate && !columnsParseAndValidate[optional].Validate!(result[optional] as any)) {
+                    return err(optional);
+                }
             }
 
             return ok(result as any);
