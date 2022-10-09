@@ -255,7 +255,10 @@ const stringify = <T extends ExpressionTypes>(v: T, inline: boolean = false): T 
     return result as any;
 };
 
-const cast = (v: unknown, type: PostgresType): ExpressionTypes => {
+const cast = (v: unknown, [type, nullable]: [type: PostgresType, nullable: boolean]): ExpressionTypes => {
+    if (nullable && v === null) {
+        return null;
+    }
     switch (type) {
         case 'bigint':
             return BigInt(v as string) as any;

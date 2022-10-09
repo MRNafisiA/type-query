@@ -106,7 +106,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => [table.columns[column].type, table.columns[column].nullable], createQuery, _returning);
     },
     insert: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[], N extends readonly (keyof NullableAndDefaultColumns<T['columns']>)[] = []>(
         rows: InsertValue<T['columns'], N>[] | ((context: Context<T['columns']>) => InsertValue<T['columns'], N>[]),
@@ -200,7 +200,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => [table.columns[column].type, table.columns[column].nullable], createQuery, _returning);
     },
     update: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]>(
         sets: UpdateSets<T['columns']> | ((context: Context<T['columns']>) => UpdateSets<T['columns']>),
@@ -280,7 +280,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => [table.columns[column].type, table.columns[column].nullable], createQuery, _returning);
     },
     delete: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]>(
         where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
@@ -326,7 +326,7 @@ const createEntity = <T extends Table>(table: T) => ({
 
             return ok({sql, params});
         };
-        return createQueryResult<T['columns'], R>(column => table.columns[column].type, createQuery, _returning);
+        return createQueryResult<T['columns'], R>(column => [table.columns[column].type, table.columns[column].nullable], createQuery, _returning);
     },
     join: <MainAlias extends string, JTable extends Table, JAlias extends string>(
         mainAlias: MainAlias,
@@ -441,7 +441,8 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
         };
         return createQueryResult<AllColumns, R>(column => {
             const {alias, table: {columns}} = getTableDataOfJoinSelectColumn(allTables, column as string);
-            return columns[column.substring((alias + '_').length)].type;
+            const targetCol = columns[column.substring((alias + '_').length)];
+            return [targetCol.type, targetCol.nullable];
         }, createQuery, _returning);
     },
     join: function <JTable extends Table, JAlias extends string>(
@@ -468,7 +469,7 @@ const ReservedExpressionKeys = ['val', '=n', '!=n', '=t', '=f', 'not', '+', '-',
     'lka', 'lks', '?|', '?&', 'j-a', 'bt', 'qry', 'exists'] as const;
 
 const createQueryResult = <Columns extends Table['columns'], R extends readonly ((keyof Columns & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]>(
-    getColumnType: (column: keyof Columns & string) => PostgresType,
+    getColumnType: (column: keyof Columns & string) => [type: PostgresType, nullable: boolean],
     createQuery: (params: Param[]) => Result<QueryData, string>, returning: R
 ): Query<Columns, R> => {
     let query: { sql: string, params: Param[] } | undefined = undefined;
@@ -505,7 +506,7 @@ const createQueryResult = <Columns extends Table['columns'], R extends readonly 
 * this cause hard to call this function directly, but it is only solution I could come up with.
 */
 const resolveResult = <Columns extends Table['columns'], C extends readonly ((keyof Columns & string) | CustomColumn<Expression<ExpressionTypes>, string>)[], M extends Mode>(
-    getColumnType: (column: keyof Columns & string) => PostgresType, columns: C, rows: any[], mode: M
+    getColumnType: (column: keyof Columns & string) => [type: PostgresType, nullable: boolean], columns: C, rows: any[], mode: M
 ): Result<QueryResult<Columns, C, M>, false> => {
     // check size in count and get mode
     if (mode[0] === 'count') {
