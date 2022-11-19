@@ -22,34 +22,34 @@ test('mode-count', () => {
     const columns = ['id'] as const;
     const mode = ['count', 2] as ['count', 2];
     const result = resolveResult<typeof UserTable.columns, typeof columns, typeof mode>(
-        column => UserTable.columns[column].type, columns, [], mode);
+        column => [UserTable.columns[column].type, UserTable.columns[column].nullable], columns, [], mode);
     expect(result).toStrictEqual(err(false));
 });
 test('mode-get-one-fail', () => {
     const columns = ['id'] as const;
     const mode = ['get', 'one'] as ['get', 'one'];
     const result = resolveResult<typeof UserTable.columns, typeof columns, typeof mode>(
-        column => UserTable.columns[column].type, columns, [], mode);
+        column => [UserTable.columns[column].type, UserTable.columns[column].nullable], columns, [], mode);
     expect(result).toStrictEqual(err(false));
 });
 test('mode-get-multiple-fail', () => {
     const columns = ['id'] as const;
     const mode = ['get', 3] as ['get', 3];
     const result = resolveResult<typeof UserTable.columns, typeof columns, typeof mode>(
-        column => UserTable.columns[column].type, columns, [], mode);
+        column => [UserTable.columns[column].type, UserTable.columns[column].nullable], columns, [], mode);
     expect(result).toStrictEqual(err(false));
 });
 test('mode-get-one-ok', () => {
     const columns = ['id'] as const;
     const mode = ['get', 'one'] as ['get', 'one'];
     const result = resolveResult<typeof UserTable.columns, typeof columns, typeof mode>(
-        column => UserTable.columns[column].type, columns, [{id: 12}], mode);
+        column => [UserTable.columns[column].type, UserTable.columns[column].nullable], columns, [{id: 12}], mode);
     expect(result).toStrictEqual(ok({id: 12}));
 });
 test('mode-get-multiple-ok', () => {
     const columns = ['id'] as const;
     const mode = ['get', 2] as ['get', 2];
     const result = resolveResult<typeof UserTable.columns, typeof columns, typeof mode>(
-        column => UserTable.columns[column].type, columns, [{id: 12}, {id: 13}], mode);
+        column => [UserTable.columns[column].type, UserTable.columns[column].nullable], columns, [{id: 12}, {id: 13}], mode);
     expect(result).toStrictEqual(ok([{id: 12}, {id: 13}]));
 });

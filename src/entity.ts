@@ -414,8 +414,7 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
                 const ordersTextArray = [];
                 for (const order of orders) {
                     const {by, direction} = order;
-                    const {alias, table: {title}} = getTableDataOfJoinSelectColumn(allTables, by);
-                    ordersTextArray.push(`${alias !== undefined ? `"${alias}".` : ''}"${title}" ${direction}`);
+                    ordersTextArray.push(`"${by}" ${direction}`);
                 }
                 tokens.push('ORDER BY', ordersTextArray.join(', '));
             }
