@@ -38,7 +38,7 @@ const createEntity = <T extends Table>(table: T) => ({
             ignoreInWhere?: boolean,
             ignoreInReturning?: boolean,
             ignoreInGroupBy?: boolean,
-            groupBy?: Expression<any>[] | ((context: Context<T['columns']>) => Expression<any>[]),
+            groupBy?: Expression<ExpressionTypes>[] | ((context: Context<T['columns']>) => Expression<ExpressionTypes>[]),
             orders?: { by: keyof T['columns'] & string, direction: OrderDirection }[],
             start?: bigint,
             step?: number
