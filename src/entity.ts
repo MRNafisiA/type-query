@@ -37,6 +37,8 @@ const createEntity = <T extends Table>(table: T) => ({
         options?: {
             ignoreInWhere?: boolean,
             ignoreInReturning?: boolean,
+            ignoreInGroupBy?: boolean,
+            groupBy?: Expression<any>[] | ((context: Context<T['columns']>) => Expression<any>[]),
             orders?: { by: keyof T['columns'] & string, direction: OrderDirection }[],
             start?: bigint,
             step?: number
@@ -44,6 +46,8 @@ const createEntity = <T extends Table>(table: T) => ({
     ) {
         const ignoreInWhere = (options?.ignoreInWhere) ?? false;
         const ignoreInReturning = (options?.ignoreInReturning) ?? false;
+        const ignoreInGroupBy = (options?.ignoreInGroupBy) ?? false;
+        const groupBy = (options?.groupBy) ?? [];
         const orders = (options?.orders) ?? [];
         const start = options?.start;
         const step = options?.step;
@@ -76,6 +80,21 @@ const createEntity = <T extends Table>(table: T) => ({
             }
             params.push(...resolvedWhereResult.value.params);
             tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'TRUE' : resolvedWhereResult.value.text);
+
+            // groupBy
+            const _groupBy = typeof groupBy === 'function' ? groupBy(this.context) : groupBy;
+            if (groupBy.length !== 0) {
+                const groupByTextArray = [];
+                for (const aGroupBy of _groupBy) {
+                    const resolvedGroupBy = resolveExpression(aGroupBy, params.length + 1, ignoreInGroupBy);
+                    if (!resolvedGroupBy.ok) {
+                        return err(`<select> -> ${resolvedGroupBy.error}`);
+                    }
+                    params.push(...resolvedGroupBy.value.params);
+                    groupByTextArray.push(resolvedGroupBy.value.text);
+                }
+                tokens.push('GROUP BY', groupByTextArray.join(', '));
+            }
 
             // orders
             if (orders.length !== 0) {

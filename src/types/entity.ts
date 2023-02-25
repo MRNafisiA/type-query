@@ -18,7 +18,8 @@ type NullableAndDefaultColumns<Columns extends Table['columns']> = {
     [columnKey in keyof Columns as true extends Columns[columnKey]['nullable'] ? columnKey : false extends Columns[columnKey]['default'] ? never : columnKey]:
     true extends Columns[columnKey]['nullable'] ? Columns[columnKey] : false extends Columns[columnKey]['default'] ? never : Columns[columnKey];
 };
-type AliasedColumns<Columns extends Table['columns'], Alias extends string> = { [key in keyof Columns as `${Alias}_${key & string}`]: Columns[key] };
+type AliasedColumns<Columns extends Table['columns'], Alias extends string> =
+    { [key in keyof Columns as `${Alias}_${key & string}`]: Columns[key] };
 type TablesColumnsKeys<Tables extends { [key: string]: Table }> = { [tableKey in keyof Tables & string]: `${tableKey}_${keyof Tables[tableKey]['columns'] & string}` }[keyof { [tableKey in keyof Tables & string]: undefined }];
 
 type ExpressionTypes = null | boolean | number | bigint | Decimal | string | Date | JSON;
