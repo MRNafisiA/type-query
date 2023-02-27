@@ -372,6 +372,8 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
             ignoreInWhere?: boolean,
             ignoreInReturning?: boolean,
             ignoreInJoin?: boolean,
+            ignoreInGroupBy?: boolean,
+            groupBy?: Expression<ExpressionTypes>[] | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }) => Expression<ExpressionTypes>[]),
             orders?: { by: TablesColumnsKeys<TablesData>, direction: OrderDirection }[],
             start?: bigint,
             step?: number
@@ -380,6 +382,8 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
         const ignoreInWhere = (options?.ignoreInWhere) ?? false;
         const ignoreInReturning = (options?.ignoreInReturning) ?? false;
         const ignoreInJoin = (options?.ignoreInJoin) ?? false;
+        const ignoreInGroupBy = (options?.ignoreInGroupBy) ?? false;
+        const groupBy = (options?.groupBy) ?? [];
         const orders = (options?.orders) ?? [];
         const start = options?.start;
         const step = options?.step;
@@ -427,6 +431,21 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
             }
             params.push(...resolvedWhereResult.value.params);
             tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
+
+            // groupBy
+            const _groupBy = typeof groupBy === 'function' ? groupBy(this.contexts) : groupBy;
+            if (groupBy.length !== 0) {
+                const groupByTextArray = [];
+                for (const aGroupBy of _groupBy) {
+                    const resolvedGroupBy = resolveExpression(aGroupBy, params.length + 1, ignoreInGroupBy);
+                    if (!resolvedGroupBy.ok) {
+                        return err(`<join-select> -> ${resolvedGroupBy.error}`);
+                    }
+                    params.push(...resolvedGroupBy.value.params);
+                    groupByTextArray.push(resolvedGroupBy.value.text);
+                }
+                tokens.push('GROUP BY', groupByTextArray.join(', '));
+            }
 
             // orders
             if (orders.length !== 0) {
