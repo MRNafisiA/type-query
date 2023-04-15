@@ -244,7 +244,7 @@ const stringify = <T extends ExpressionTypes>(v: T, inline: boolean = false): T 
     } else if (typeof v === 'number' || typeof v === 'bigint') {
         result = v;
     } else if (v instanceof Decimal) {
-        result = inline ? `'${v.toString()}'` : v.toString();
+        result = v.toString();
     } else if (v instanceof Date) {
         result = inline ? `'${v.toISOString()}'` : v.toISOString();
     } else if (typeof v === 'object') {
