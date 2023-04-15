@@ -83,7 +83,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe('$2');
+        expect(text).toBe('$2::jsonb');
         expect(params).toStrictEqual([U.stringify(v, false)]);
     });
     test('json-array-no-reserved-key', () => {
@@ -93,7 +93,7 @@ describe('ignore-independent', () => {
             throw 'it should not reach here';
         }
         const {text, params} = result.value;
-        expect(text).toBe('$2');
+        expect(text).toBe('$2::jsonb');
         expect(params).toStrictEqual([U.stringify(v, false)]);
     });
     test('val-not-undefined', () => {

@@ -643,8 +643,11 @@ const resolveExpression = (expression: Expression<ExpressionTypes>, paramsStart:
         || expression instanceof Date || typeof expression === 'number' || typeof expression === 'bigint') {
         return ok(partialQuery(`${U.stringify(expression, true)}`));
     }
-    if (typeof expression === 'string' || !(Array.isArray(expression) && ReservedExpressionKeys.includes((expression as any[])[0]))) {
+    if (typeof expression === 'string') {
         return ok(partialQuery(`$${paramsStart++}`, [U.stringify(expression as any, false)]));
+    }
+    if (!(Array.isArray(expression) && ReservedExpressionKeys.includes((expression as any[])[0]))) {
+        return ok(partialQuery(`$${paramsStart++}::jsonb`, [U.stringify(expression as any, false)]));
     }
 
     // wrapped expression
