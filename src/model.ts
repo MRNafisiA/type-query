@@ -82,7 +82,7 @@ const validateStringGenerator = (
 const createModelUtils = <Columns extends Table['columns']>(
     columns: Columns,
     custom?: {
-        parse?: { [key in keyof Columns]?: (v: string | undefined) => ColumnTypeByColumns<Columns, key> | undefined }
+        parse?: { [key in keyof Columns]?: (v: unknown | undefined) => ColumnTypeByColumns<Columns, key> | undefined }
         validate?: { [key in keyof Columns]?: (v: ColumnTypeByColumns<Columns, key>) => boolean }
     }
 ): ModelUtils<Columns> => {
