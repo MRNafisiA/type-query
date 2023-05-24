@@ -9,9 +9,9 @@ type Context<Columns extends Table['columns']> = {
     colNull: <columnKey extends keyof Columns & string>(column: columnKey, op: null extends ColumnTypeByColumns<Columns, columnKey> ? NullOperator : never, alias?: string) => ValueExpression<boolean>;
     colBool: <columnKey extends keyof Columns & string>(column: columnKey, op: boolean extends ColumnTypeByColumns<Columns, columnKey> ? BooleanOperator : never, alias?: string) => ValueExpression<boolean>;
     colCmp: <columnKey extends keyof Columns & string>(column: columnKey, op: CompareOperatorCompatible<ColumnTypeByColumns<Columns, columnKey>, CompareOperator, never>, v: Expression<ColumnTypeByColumns<Columns, columnKey>>, alias?: string) => ValueExpression<boolean>;
-    colList: <columnKey extends keyof Columns & string>(column: columnKey, op: ListOperatorCompatible<ColumnTypeByColumns<Columns, columnKey>, ListOperator, never>, v: Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined, alias?: string) => ValueExpression<boolean>;
-    colLike: <columnKey extends keyof Columns & string, Op extends (string extends ColumnTypeByColumns<Columns, columnKey> ? LikeOperator : never)>(column: columnKey, op: Op, v: Op extends 'like' ? Expression<ColumnTypeByColumns<Columns, columnKey>> : Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined, alias?: string) => ValueExpression<boolean>;
-    colJson: <columnKey extends keyof Columns & string, Op extends (JSON extends ColumnTypeByColumns<Columns, columnKey> ? JsonOperator : never)>(column: columnKey, op: Op, v: Op extends '@>' | '<@' ? Expression<ColumnTypeByColumns<Columns, columnKey>> : Op extends '?' ? Expression<string> : Op extends '?&' | '?|' ? Expression<string>[] | undefined : never, alias?: string) => ValueExpression<boolean>;
+    colList: <columnKey extends keyof Columns & string>(column: columnKey, op: ListOperatorCompatible<ColumnTypeByColumns<Columns, columnKey>, ListOperator, never>, v: readonly Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined, alias?: string) => ValueExpression<boolean>;
+    colLike: <columnKey extends keyof Columns & string, Op extends (string extends ColumnTypeByColumns<Columns, columnKey> ? LikeOperator : never)>(column: columnKey, op: Op, v: Op extends 'like' ? Expression<ColumnTypeByColumns<Columns, columnKey>> : readonly Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined, alias?: string) => ValueExpression<boolean>;
+    colJson: <columnKey extends keyof Columns & string, Op extends (JSON extends ColumnTypeByColumns<Columns, columnKey> ? JsonOperator : never)>(column: columnKey, op: Op, v: Op extends '@>' | '<@' ? Expression<ColumnTypeByColumns<Columns, columnKey>> : Op extends '?' ? Expression<string> : Op extends '?&' | '?|' ? readonly Expression<string>[] | undefined : never, alias?: string) => ValueExpression<boolean>;
     colsAnd: ContextScope<Columns>;
     colsOr: ContextScope<Columns>;
 };
@@ -21,12 +21,12 @@ type ContextScope<Columns extends Table['columns']> = (rules: {
     [op: null extends ColumnTypeByColumns<Columns, columnKey> ? NullOperator : never] |
     [op: ColumnTypeByColumns<Columns, columnKey> extends boolean ? BooleanOperator : never] |
     [op: CompareOperatorCompatible<ColumnTypeByColumns<Columns, columnKey>, CompareOperator, never>, v: Expression<ColumnTypeByColumns<Columns, columnKey>>] |
-    [op: ListOperatorCompatible<ColumnTypeByColumns<Columns, columnKey>, ListOperator, never>, v: Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined] |
+    [op: ListOperatorCompatible<ColumnTypeByColumns<Columns, columnKey>, ListOperator, never>, v: readonly Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined] |
     [op: Extract<LikeOperator, 'like'>, v: ColumnTypeByColumns<Columns, columnKey> extends string ? Expression<ColumnTypeByColumns<Columns, columnKey>> : never] |
-    [op: Extract<LikeOperator, 'like some' | 'like all'>, v: ColumnTypeByColumns<Columns, columnKey> extends string ? Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined : never] |
+    [op: Extract<LikeOperator, 'like some' | 'like all'>, v: ColumnTypeByColumns<Columns, columnKey> extends string ? readonly Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined : never] |
     [op: Extract<JsonOperator, '@>' | '<@'>, v: ColumnTypeByColumns<Columns, columnKey> extends JSON ? Expression<ColumnTypeByColumns<Columns, columnKey>> : never] |
     [op: Extract<JsonOperator, '?'>, v: ColumnTypeByColumns<Columns, columnKey> extends JSON ? Expression<string> : never] |
-    [op: Extract<JsonOperator, '?&' | '?|'>, v: ColumnTypeByColumns<Columns, columnKey> extends JSON ? Expression<string>[] | undefined : never];
+    [op: Extract<JsonOperator, '?&' | '?|'>, v: ColumnTypeByColumns<Columns, columnKey> extends JSON ? readonly Expression<string>[] | undefined : never];
 }, alias?: string) => ValueExpression<boolean>;
 
 type CompareOperatorCompatible<T, True, False> =

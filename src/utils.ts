@@ -31,12 +31,12 @@ function col(table: any, column: any, full: boolean = false, alias?: any): any {
     return ['col', resolveColumn(table, column, full, alias)];
 }
 
-function fun<T extends ExpressionTypes>(name: string | undefined, args: Expression<any>[] | undefined, cast?: string): ValueExpression<T> ;
+function fun<T extends ExpressionTypes>(name: string | undefined, args: readonly Expression<any>[] | undefined, cast?: string): ValueExpression<T> ;
 function fun(name: any, args: any, cast: any = ''): any {
     return ['fun', name, args, cast];
 }
 
-function swt<T extends ExpressionTypes>(cases: ({ when: Expression<boolean>, then: Expression<T> } | undefined)[] | undefined, otherwise?: Expression<T>): ValueExpression<T>;
+function swt<T extends ExpressionTypes>(cases: readonly ({ when: Expression<boolean>, then: Expression<T> } | undefined)[] | undefined, otherwise?: Expression<T>): ValueExpression<T>;
 function swt(cases: any, otherwise: any): any {
     return ['swt', cases, otherwise];
 }
@@ -74,9 +74,9 @@ function artOp(v1: any, op: ArithmeticOperator, v2: any): any {
     }
 }
 
-function artAllOp(op: ArithmeticOperator, v: Expression<number>[] | undefined): ValueExpression<number>;
-function artAllOp(op: ArithmeticOperator, v: Expression<bigint>[] | undefined): ValueExpression<bigint>;
-function artAllOp(op: ArithmeticOperator, v: Expression<Decimal>[] | undefined): ValueExpression<Decimal>;
+function artAllOp(op: ArithmeticOperator, v: readonly Expression<number>[] | undefined): ValueExpression<number>;
+function artAllOp(op: ArithmeticOperator, v: readonly Expression<bigint>[] | undefined): ValueExpression<bigint>;
+function artAllOp(op: ArithmeticOperator, v: readonly Expression<Decimal>[] | undefined): ValueExpression<Decimal>;
 function artAllOp(op: ArithmeticOperator, v: any): any {
     switch (op) {
         case '+':
@@ -98,8 +98,8 @@ function conOp(v1: any, v2: any): any {
     return ['||', [v1, v2]];
 }
 
-function conAllOp(v: Expression<string>[] | undefined): ValueExpression<string>;
-function conAllOp(v: Expression<JSON>[] | undefined): ValueExpression<JSON>;
+function conAllOp(v: readonly Expression<string>[] | undefined): ValueExpression<string>;
+function conAllOp(v: readonly Expression<JSON>[] | undefined): ValueExpression<JSON>;
 function conAllOp(v: any): any {
     return ['||', v];
 }
@@ -109,7 +109,7 @@ function jMinusOp(v1: any, v2: any): any {
     return ['j-', v1, v2];
 }
 
-function jArrMinusOp(v1: Expression<JSON>, v2: Expression<string>[] | undefined): ValueExpression<JSON> ;
+function jArrMinusOp(v1: Expression<JSON>, v2: readonly Expression<string>[] | undefined): ValueExpression<JSON> ;
 function jArrMinusOp(v1: any, v2: any): any {
     return ['j-a', v1, v2];
 }
@@ -119,7 +119,7 @@ function andOp(v1: any, v2: any): any {
     return ['and', [v1, v2]];
 }
 
-function andAllOp(v: Expression<boolean>[] | undefined): ValueExpression<boolean> ;
+function andAllOp(v: readonly Expression<boolean>[] | undefined): ValueExpression<boolean> ;
 function andAllOp(v: any): any {
     return ['and', v];
 }
@@ -129,7 +129,7 @@ function orOp(v1: any, v2: any): any {
     return ['or', [v1, v2]];
 }
 
-function orAllOp(v: Expression<boolean>[] | undefined): ValueExpression<boolean> ;
+function orAllOp(v: readonly Expression<boolean>[] | undefined): ValueExpression<boolean> ;
 function orAllOp(v: any): any {
     return ['or', v];
 }
@@ -176,11 +176,11 @@ function cmpOp(v1: any, op: CompareOperator, v2: any): any {
     }
 }
 
-function listOp(v1: Expression<number>, op: ListOperator, v2: Expression<number>[] | undefined): ValueExpression<boolean> ;
-function listOp(v1: Expression<bigint>, op: ListOperator, v2: Expression<bigint>[] | undefined): ValueExpression<boolean> ;
-function listOp(v1: Expression<Decimal>, op: ListOperator, v2: Expression<Decimal>[] | undefined): ValueExpression<boolean> ;
-function listOp(v1: Expression<string>, op: ListOperator, v2: Expression<string>[] | undefined): ValueExpression<boolean> ;
-function listOp(v1: Expression<Date>, op: ListOperator, v2: Expression<Date>[] | undefined): ValueExpression<boolean> ;
+function listOp(v1: Expression<number>, op: ListOperator, v2: readonly Expression<number>[] | undefined): ValueExpression<boolean> ;
+function listOp(v1: Expression<bigint>, op: ListOperator, v2: readonly Expression<bigint>[] | undefined): ValueExpression<boolean> ;
+function listOp(v1: Expression<Decimal>, op: ListOperator, v2: readonly Expression<Decimal>[] | undefined): ValueExpression<boolean> ;
+function listOp(v1: Expression<string>, op: ListOperator, v2: readonly Expression<string>[] | undefined): ValueExpression<boolean> ;
+function listOp(v1: Expression<Date>, op: ListOperator, v2: readonly Expression<Date>[] | undefined): ValueExpression<boolean> ;
 function listOp(v1: any, op: ListOperator, v2: any): any {
     switch (op) {
         case 'in':
@@ -200,7 +200,7 @@ function btOp(v1: any, v2: any, v3: any): any {
 }
 
 function likeOp(v1: Expression<string>, op: Extract<LikeOperator, 'like'>, v2: Expression<string>): ValueExpression<boolean> ;
-function likeOp(v1: Expression<string>, op: Extract<LikeOperator, 'like all' | 'like some'>, v2: Expression<string>[] | undefined): ValueExpression<boolean> ;
+function likeOp(v1: Expression<string>, op: Extract<LikeOperator, 'like all' | 'like some'>, v2: readonly Expression<string>[] | undefined): ValueExpression<boolean> ;
 function likeOp(v1: any, op: LikeOperator, v2: any): any {
     switch (op) {
         case 'like':
@@ -214,7 +214,7 @@ function likeOp(v1: any, op: LikeOperator, v2: any): any {
 
 function jsonOp(v1: Expression<JSON>, op: Extract<JsonOperator, '@>' | '<@'>, v2: Expression<JSON>): ValueExpression<boolean> ;
 function jsonOp(v1: Expression<JSON>, op: Extract<JsonOperator, '?'>, v2: Expression<string>): ValueExpression<boolean> ;
-function jsonOp(v1: Expression<JSON>, op: Extract<JsonOperator, '?&' | '?|'>, v2: Expression<string>[] | undefined): ValueExpression<boolean> ;
+function jsonOp(v1: Expression<JSON>, op: Extract<JsonOperator, '?&' | '?|'>, v2: readonly Expression<string>[] | undefined): ValueExpression<boolean> ;
 function jsonOp(v1: any, op: JsonOperator, v2: any): any {
     switch (op) {
         case '@>':
