@@ -38,17 +38,19 @@ const createEntity = <T extends Table>(table: T) => ({
             ignoreInWhere?: boolean,
             ignoreInReturning?: boolean,
             ignoreInGroupBy?: boolean,
+            distinct?: boolean
             groupBy?: Expression<ExpressionTypes>[] | ((context: Context<T['columns']>) => Expression<ExpressionTypes>[]),
             orders?: { by: keyof T['columns'] & string, direction: OrderDirection }[],
             start?: bigint,
-            step?: number
+            step?: number,
         }
     ) {
-        const ignoreInWhere = (options?.ignoreInWhere) ?? false;
-        const ignoreInReturning = (options?.ignoreInReturning) ?? false;
-        const ignoreInGroupBy = (options?.ignoreInGroupBy) ?? false;
-        const groupBy = (options?.groupBy) ?? [];
-        const orders = (options?.orders) ?? [];
+        const ignoreInWhere = options?.ignoreInWhere ?? false;
+        const ignoreInReturning = options?.ignoreInReturning ?? false;
+        const ignoreInGroupBy = options?.ignoreInGroupBy ?? false;
+        const distinct = options?.distinct ?? false;
+        const groupBy = options?.groupBy ?? [];
+        const orders = options?.orders ?? [];
         const start = options?.start;
         const step = options?.step;
 
@@ -56,6 +58,11 @@ const createEntity = <T extends Table>(table: T) => ({
 
         const createQuery = (params: Param[]) => {
             const tokens = ['SELECT'];
+
+            // distinct
+            if (distinct) {
+                tokens.push('DISTINCT');
+            }
 
             // select
             const resolvedReturning = resolveReturning(
@@ -373,18 +380,20 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
             ignoreInReturning?: boolean,
             ignoreInJoin?: boolean,
             ignoreInGroupBy?: boolean,
+            distinct?: boolean,
             groupBy?: Expression<ExpressionTypes>[] | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }) => Expression<ExpressionTypes>[]),
             orders?: { by: TablesColumnsKeys<TablesData>, direction: OrderDirection }[],
             start?: bigint,
             step?: number
         }
     ) {
-        const ignoreInWhere = (options?.ignoreInWhere) ?? false;
-        const ignoreInReturning = (options?.ignoreInReturning) ?? false;
-        const ignoreInJoin = (options?.ignoreInJoin) ?? false;
-        const ignoreInGroupBy = (options?.ignoreInGroupBy) ?? false;
-        const groupBy = (options?.groupBy) ?? [];
-        const orders = (options?.orders) ?? [];
+        const ignoreInWhere = options?.ignoreInWhere ?? false;
+        const ignoreInReturning = options?.ignoreInReturning ?? false;
+        const ignoreInJoin = options?.ignoreInJoin ?? false;
+        const ignoreInGroupBy = options?.ignoreInGroupBy ?? false;
+        const distinct = options?.distinct ?? false;
+        const groupBy = options?.groupBy ?? [];
+        const orders = options?.orders ?? [];
         const start = options?.start;
         const step = options?.step;
 
@@ -393,6 +402,11 @@ const createJoinSelectEntity = <TablesData extends { [key: string]: Table }, All
 
         const createQuery = (params: Param[]) => {
             const tokens = ['SELECT'];
+
+            // distinct
+            if (distinct) {
+                tokens.push('DISTINCT');
+            }
 
             // select
             const resolvedReturning = resolveReturning(
