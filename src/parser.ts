@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import {JSON} from './types/json';
+import { JSON as Json } from './types/json';
 
 const boolean = (v: unknown): boolean | undefined => {
     switch (typeof v) {
@@ -10,7 +10,7 @@ const boolean = (v: unknown): boolean | undefined => {
                 case 'true':
                     return true;
                 case 'false':
-                    return false
+                    return false;
                 default:
                     return undefined;
             }
@@ -88,7 +88,7 @@ const date = (v: unknown): Date | undefined => {
             return undefined;
     }
 };
-const json = (v: unknown): JSON | undefined => {
+const json = (v: unknown): Json | undefined => {
     if (typeof v !== 'string') {
         return undefined;
     }
@@ -104,13 +104,4 @@ const json = (v: unknown): JSON | undefined => {
     return _v;
 };
 
-export {
-    boolean,
-    number,
-    integer,
-    bigInt,
-    decimal,
-    string,
-    date,
-    json
-};
+export { boolean, number, integer, bigInt, decimal, string, date, json };

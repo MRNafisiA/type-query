@@ -1,9 +1,9 @@
 import U from '../../src/U';
 import Decimal from 'decimal.js';
-import {err, ok} from 'never-catch';
-import {Param} from '../../src/types/entity';
-import {resolveColumn, resolveExpression} from '../../src/entity';
-import {toReservedExpressionKeyDescription as toDescription} from '../../src/dictionary';
+import { err, ok } from 'never-catch';
+import { Param } from '../../src/types/entity';
+import { resolveColumn, resolveExpression } from '../../src/entity';
+import { toReservedExpressionKeyDescription as toDescription } from '../../src/dictionary';
 
 describe('ignore-independent', () => {
     test('null', () => {
@@ -12,7 +12,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(U.stringify(v, true));
         expect(params).toStrictEqual([]);
     });
@@ -22,7 +22,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(U.stringify(v, true));
         expect(params).toStrictEqual([]);
     });
@@ -32,7 +32,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
@@ -42,7 +42,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
@@ -52,7 +52,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
@@ -62,7 +62,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`${U.stringify(v, true)}`);
         expect(params).toStrictEqual([]);
     });
@@ -72,27 +72,27 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('$2');
         expect(params).toStrictEqual([U.stringify(v, false)]);
     });
     test('json-object', () => {
-        const v = {value: 'test'};
+        const v = { value: 'test' };
         const result = resolveExpression(v, 2);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('$2::jsonb');
         expect(params).toStrictEqual([U.stringify(v, false)]);
     });
     test('json-array-no-reserved-key', () => {
-        const v = ['test1', {id: 12}];
+        const v = ['test1', { id: 12 }];
         const result = resolveExpression(v, 2);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('$2::jsonb');
         expect(params).toStrictEqual([U.stringify(v, false)]);
     });
@@ -102,7 +102,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('$2');
         expect(params).toStrictEqual([U.stringify(v)]);
     });
@@ -112,7 +112,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`NULL IS NULL`);
         expect(params).toStrictEqual([]);
     });
@@ -122,7 +122,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`${U.stringify(v)}`);
         expect(params).toStrictEqual([]);
     });
@@ -132,7 +132,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`( ${U.stringify(v[0])} + ${U.stringify(v[1])} )`);
         expect(params).toStrictEqual([]);
     });
@@ -142,7 +142,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`power( ${U.stringify(v[0])}, ${U.stringify(v[1])} )`);
         expect(params).toStrictEqual([]);
     });
@@ -152,7 +152,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`power( ${U.stringify(v[0])}, power( ${U.stringify(v[1])}, ${U.stringify(v[2])} ) )`);
         expect(params).toStrictEqual([]);
     });
@@ -162,7 +162,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`qq( ${U.stringify(v[0])}, ${U.stringify(v[1])} )`);
         expect(params).toStrictEqual([]);
     });
@@ -172,30 +172,30 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`qq( ${U.stringify(v[0])}, ${U.stringify(v[1])} )::TEXT`);
         expect(params).toStrictEqual([]);
     });
     test('swt cases-when-fail', () => {
-        const result = resolveExpression(U.swt([{when: undefined, then: 4}], 12), 2);
+        const result = resolveExpression(U.swt([{ when: undefined, then: 4 }], 12), 2);
         if (result.ok) {
             throw 'it should not reach here';
         }
         expect(result.error).toBe(`<${toDescription('swt')}>[cases][0][when] -> undefined`);
     });
     test('swt cases-then-fail', () => {
-        const result = resolveExpression(U.swt([{when: true, then: undefined}], 12), 2);
+        const result = resolveExpression(U.swt([{ when: true, then: undefined }], 12), 2);
         if (result.ok) {
             throw 'it should not reach here';
         }
         expect(result.error).toBe(`<${toDescription('swt')}>[cases][0][then] -> undefined`);
     });
     test('swt', () => {
-        const result = resolveExpression(U.swt([{when: true, then: 12}], 30), 2);
+        const result = resolveExpression(U.swt([{ when: true, then: 12 }], 30), 2);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`CASE WHEN TRUE THEN ${U.stringify(12)} ELSE ${U.stringify(30)} END`);
         expect(params).toStrictEqual([]);
     });
@@ -203,13 +203,13 @@ describe('ignore-independent', () => {
         const User = {
             schema: 'public',
             title: 'user',
-            columns: {id: {type: 'smallint', nullable: false, default: false}}
+            columns: { id: { type: 'smallint', nullable: false, default: false } }
         } as const;
         const result = resolveExpression(U.col(User, 'id'), 2);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(resolveColumn(User, 'id', false));
         expect(params).toStrictEqual([]);
     });
@@ -218,29 +218,36 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('now()');
         expect(params).toStrictEqual([]);
     });
     test('qry exists ok', () => {
         const sql = 'SELECT now() as "t" ;';
-        const result = resolveExpression(U.subQry({
-            getData: (params: Param[]) => ok({
-                sql,
-                params
-            })
-        } as any), 2);
+        const result = resolveExpression(
+            U.subQry({
+                getData: (params: Param[]) =>
+                    ok({
+                        sql,
+                        params
+                    })
+            } as any),
+            2
+        );
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`( ${sql} )`);
         expect(params).toStrictEqual([]);
     });
     test('qry exists fail', () => {
-        const result = resolveExpression(U.existsOp({
-            getData: (_: Param[]) => err(`just error!`)
-        } as any), 2);
+        const result = resolveExpression(
+            U.existsOp({
+                getData: (_: Param[]) => err(`just error!`)
+            } as any),
+            2
+        );
         if (result.ok) {
             throw 'it should not reach here';
         }
@@ -251,7 +258,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('12 = $2');
         expect(params).toStrictEqual([U.stringify(13)]);
     });
@@ -267,7 +274,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('12 = $2');
         expect(params).toStrictEqual([U.stringify(42)]);
     });
@@ -276,7 +283,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('12 IN ( $2, 32 )');
         expect(params).toStrictEqual([U.stringify(42)]);
     });
@@ -285,7 +292,7 @@ describe('ignore-independent', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('14 BETWEEN 13 AND $2');
         expect(params).toStrictEqual([U.stringify(15)]);
     });
@@ -369,7 +376,7 @@ describe('ignore-false', () => {
         expect(result.error).toBe(`<${toDescription('swt')}>[cases] -> undefined`);
     });
     test('swt cases-fail', () => {
-        const result = resolveExpression(U.swt([{when: true, then: 4}, undefined], 12), 2, false);
+        const result = resolveExpression(U.swt([{ when: true, then: 4 }, undefined], 12), 2, false);
         if (result.ok) {
             throw 'it should not reach here';
         }
@@ -384,16 +391,16 @@ describe('ignore-false', () => {
         expect(result.error).toBe(`<${toDescription('swt')}>[cases] -> empty`);
     });
     test('swt otherwise-undefined', () => {
-        const result = resolveExpression(U.swt([{when: true, then: U.val(12)}], undefined), 2, false);
+        const result = resolveExpression(U.swt([{ when: true, then: U.val(12) }], undefined), 2, false);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe(`CASE WHEN TRUE THEN $2 END`);
         expect(params).toStrictEqual([U.stringify(12)]);
     });
     test('swt otherwise-fail', () => {
-        const result = resolveExpression(U.swt([{when: true, then: 12}], U.artOp(2, '+', undefined)), 2, false);
+        const result = resolveExpression(U.swt([{ when: true, then: 12 }], U.artOp(2, '+', undefined)), 2, false);
         if (result.ok) {
             throw 'it should not reach here';
         }
@@ -463,7 +470,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -473,7 +480,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -483,7 +490,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -493,7 +500,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -503,7 +510,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('( 12 + $2 )');
         expect(params).toStrictEqual([U.stringify(13)]);
     });
@@ -513,7 +520,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -522,7 +529,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -531,7 +538,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -541,7 +548,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -550,74 +557,81 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
     test('swt cases-neutral otherwise-undefined', () => {
-        const result = resolveExpression(U.swt([
-            undefined,
-            {when: true, then: U.val(4)},
-            undefined
-        ]), 2, true);
+        const result = resolveExpression(U.swt([undefined, { when: true, then: U.val(4) }, undefined]), 2, true);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('CASE WHEN TRUE THEN $2 END');
         expect(params).toStrictEqual([U.stringify(4)]);
     });
     test('swt cases-neutral-empty otherwise-undefined', () => {
-        const result = resolveExpression(U.swt([
-            undefined,
-            undefined
-        ]), 2, true);
+        const result = resolveExpression(U.swt([undefined, undefined]), 2, true);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
     test('swt cases-when-neutral otherwise-undefined', () => {
-        const result = resolveExpression(U.swt([
-            {when: true, then: U.val(4)},
-            {when: undefined, then: 5}
-        ], undefined), 2, true);
+        const result = resolveExpression(
+            U.swt(
+                [
+                    { when: true, then: U.val(4) },
+                    { when: undefined, then: 5 }
+                ],
+                undefined
+            ),
+            2,
+            true
+        );
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('CASE WHEN TRUE THEN $2 END');
         expect(params).toStrictEqual([U.stringify(4)]);
     });
     test('swt cases-when-neutral-empty otherwise-undefined', () => {
-        const result = resolveExpression(U.swt([{when: undefined, then: 4}], undefined), 2, true);
+        const result = resolveExpression(U.swt([{ when: undefined, then: 4 }], undefined), 2, true);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
     test('swt cases-then-neutral otherwise-undefined', () => {
-        const result = resolveExpression(U.swt([
-            {when: false, then: undefined},
-            {when: true, then: U.val(2)}
-        ], undefined), 2, true);
+        const result = resolveExpression(
+            U.swt(
+                [
+                    { when: false, then: undefined },
+                    { when: true, then: U.val(2) }
+                ],
+                undefined
+            ),
+            2,
+            true
+        );
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('CASE WHEN TRUE THEN $2 END');
         expect(params).toStrictEqual([U.stringify(2)]);
     });
     test('swt cases-then-neutral-empty otherwise-undefined', () => {
-        const result = resolveExpression(U.swt([{when: true, then: undefined}], undefined), 2, true);
+        const result = resolveExpression(U.swt([{ when: true, then: undefined }], undefined), 2, true);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -626,7 +640,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -635,16 +649,16 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('$2');
         expect(params).toStrictEqual([U.stringify(12)]);
     });
     test('swt cases-undefined otherwise-neutral', () => {
-        const result = resolveExpression(U.swt([{when: true, then: 4}], U.artOp(undefined, '+', undefined)), 2, true);
+        const result = resolveExpression(U.swt([{ when: true, then: 4 }], U.artOp(undefined, '+', undefined)), 2, true);
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('CASE WHEN TRUE THEN 4 END');
         expect(params).toStrictEqual([]);
     });
@@ -653,7 +667,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -662,7 +676,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -671,7 +685,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -680,7 +694,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -689,7 +703,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('12 IN ( $2, 14 )');
         expect(params).toStrictEqual([U.stringify(12)]);
     });
@@ -698,7 +712,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -707,7 +721,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });
@@ -716,7 +730,7 @@ describe('ignore-true', () => {
         if (!result.ok) {
             throw 'it should not reach here';
         }
-        const {text, params} = result.value;
+        const { text, params } = result.value;
         expect(text).toBe('');
         expect(params).toStrictEqual([]);
     });

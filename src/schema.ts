@@ -1,9 +1,13 @@
-import type {ClientBase} from 'pg';
-import type Table from './types/table';
-import {err, ok, type Result} from 'never-catch';
-import {toPostgresType, toReferenceAction} from './dictionary';
+import type { ClientBase } from 'pg';
+import type { Table } from './types/table';
+import { err, ok, type Result } from 'never-catch';
+import { toPostgresType, toReferenceAction } from './dictionary';
 
-const createTables = async (client: ClientBase, tables: Table[], resolve: boolean = true): Promise<Result<undefined, string | { db: unknown, query: string }>> => {
+const createTables = async (
+    client: ClientBase,
+    tables: Table[],
+    resolve: boolean = true
+): Promise<Result<undefined, string | { db: unknown; query: string }>> => {
     // resolve
     if (resolve) {
         const dependencyResult = resolveTablesDependency(tables);
@@ -17,8 +21,10 @@ const createTables = async (client: ClientBase, tables: Table[], resolve: boolea
     for (const table of tables) {
         const sequencesSQL = createSequencesSQL(table);
         for (const sequenceSQL of sequencesSQL) {
-            const result = await client.query(sequenceSQL)
-                .then(() => true as const).catch(e => ({db: e, query: sequenceSQL}));
+            const result = await client
+                .query(sequenceSQL)
+                .then(() => true as const)
+                .catch(e => ({ db: e, query: sequenceSQL }));
             if (result !== true) {
                 return err(result);
             }
@@ -28,8 +34,10 @@ const createTables = async (client: ClientBase, tables: Table[], resolve: boolea
     // create tables
     for (const table of tables) {
         const tableSQL = createTableSQL(table);
-        const result = await client.query(tableSQL)
-            .then(() => true as const).catch(e => ({db: e, query: tableSQL}));
+        const result = await client
+            .query(tableSQL)
+            .then(() => true as const)
+            .catch(e => ({ db: e, query: tableSQL }));
         if (result !== true) {
             return err(result);
         }
@@ -38,7 +46,11 @@ const createTables = async (client: ClientBase, tables: Table[], resolve: boolea
     return Promise.resolve(ok(undefined));
 };
 
-const dropTables = async (client: ClientBase, tables: Table[], resolve: boolean = true): Promise<Result<undefined, string | { db: unknown, query: string }>> => {
+const dropTables = async (
+    client: ClientBase,
+    tables: Table[],
+    resolve: boolean = true
+): Promise<Result<undefined, string | { db: unknown; query: string }>> => {
     // resolve
     if (resolve) {
         const dependencyResult = resolveTablesDependency(tables);
@@ -51,8 +63,10 @@ const dropTables = async (client: ClientBase, tables: Table[], resolve: boolean 
     // drop tables
     for (const table of tables) {
         const tableSQL = dropTableSQL(table);
-        const result = await client.query(tableSQL)
-            .then(() => true as const).catch(e => ({db: e, query: tableSQL}));
+        const result = await client
+            .query(tableSQL)
+            .then(() => true as const)
+            .catch(e => ({ db: e, query: tableSQL }));
         if (result !== true) {
             return err(result);
         }
@@ -62,8 +76,10 @@ const dropTables = async (client: ClientBase, tables: Table[], resolve: boolean 
     for (const table of tables) {
         const sequencesSQL = dropSequencesSQL(table);
         for (const sequenceSQL of sequencesSQL) {
-            const result = await client.query(sequenceSQL)
-                .then(() => true as const).catch(e => ({db: e, query: sequenceSQL}));
+            const result = await client
+                .query(sequenceSQL)
+                .then(() => true as const)
+                .catch(e => ({ db: e, query: sequenceSQL }));
             if (result !== true) {
                 return err(result);
             }
@@ -104,7 +120,7 @@ const resolveTablesDependency = (tables: Table[]): Result<Table[], string> => {
     return ok(result);
 };
 
-const getAllTablesAndDependencies = (tables: Table[]): Result<[Table[], { parent: Table, child: Table }[]], string> => {
+const getAllTablesAndDependencies = (tables: Table[]): Result<[Table[], { parent: Table; child: Table }[]], string> => {
     const allTables = [...tables];
     const dependencies = [];
     for (const table of allTables) {
@@ -121,13 +137,15 @@ const getAllTablesAndDependencies = (tables: Table[]): Result<[Table[], { parent
 
             // add new dependency if it is not repeated
             if (dependencies.find(v => v.parent === table && v.child === column.reference?.table) === undefined) {
-                dependencies.push({parent: table, child: column.reference.table});
+                dependencies.push({ parent: table, child: column.reference.table });
             }
 
             // check bidirectional dependency
             for (const dependency of dependencies) {
                 if (dependency.parent === column.reference.table && dependency.child === table) {
-                    return err(`bidirectional dependency detected "${table.schema}"."${table.title}" and "${column.reference.table.schema}"."${column.reference.table.title}"`);
+                    return err(
+                        `bidirectional dependency detected "${table.schema}"."${table.title}" and "${column.reference.table.schema}"."${column.reference.table.title}"`
+                    );
                 }
             }
         }
@@ -185,7 +203,7 @@ const createTableSQL = (table: Table) => {
         if (column.default === 'auto-increment') {
             tokens.push(`DEFAULT nextVal( '${getSequenceName(table.schema, table.title, key, column)}'::regClass )`);
         } else if (column.default === true) {
-            tokens.push(`DEFAULT ${column.value}`)
+            tokens.push(`DEFAULT ${column.value}`);
         }
 
         // add not null-null clause
@@ -195,8 +213,12 @@ const createTableSQL = (table: Table) => {
         if (column.reference !== undefined) {
             tokens.push(
                 `REFERENCES "${column.reference.table.schema}"."${column.reference.table.title}"` +
-                `( "${column.reference.table.columns[column.reference.column].title ?? column.reference.column}" ) ` +
-                `ON UPDATE ${toReferenceAction(column.reference.onUpdate ?? 'no-action')} ON DELETE ${toReferenceAction(column.reference.onDelete ?? 'no-action')}`
+                    `( "${
+                        column.reference.table.columns[column.reference.column].title ?? column.reference.column
+                    }" ) ` +
+                    `ON UPDATE ${toReferenceAction(
+                        column.reference.onUpdate ?? 'no-action'
+                    )} ON DELETE ${toReferenceAction(column.reference.onDelete ?? 'no-action')}`
             );
         }
         return tokens.join(' ');
@@ -206,7 +228,11 @@ const createTableSQL = (table: Table) => {
     const constraints = [];
     const primaryKeys = columnsAsEntries.filter(([_, column]) => !column.nullable && column.primary);
     if (primaryKeys.length !== 0) {
-        constraints.push(`CONSTRAINT "${table.title}_pk" PRIMARY KEY( ${primaryKeys.map(([key, column]) => `"${column.title ?? key}"`).join(', ')} )`);
+        constraints.push(
+            `CONSTRAINT "${table.title}_pk" PRIMARY KEY( ${primaryKeys
+                .map(([key, column]) => `"${column.title ?? key}"`)
+                .join(', ')} )`
+        );
     }
 
     // add columns and constrains union
@@ -221,8 +247,12 @@ const createTableSQL = (table: Table) => {
 
 const dropTableSQL = (table: Table) => `DROP TABLE "${table.schema}"."${table.title}" ;`;
 
-const getSequenceName = (tableSchema: string, tableTitle: string, columnKey: string, column: { title?: string; seqTitle?: string }) =>
-    `"${tableSchema}"."` + (column.seqTitle ?? (tableTitle + '_' + (column.title ?? columnKey) + '_seq')) + '"';
+const getSequenceName = (
+    tableSchema: string,
+    tableTitle: string,
+    columnKey: string,
+    column: { title?: string; seqTitle?: string }
+) => `"${tableSchema}"."` + (column.seqTitle ?? tableTitle + '_' + (column.title ?? columnKey) + '_seq') + '"';
 
 export {
     createTables,

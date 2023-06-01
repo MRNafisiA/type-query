@@ -1,14 +1,23 @@
-import {isEqual} from 'lodash';
-import {createEntity} from './entity';
-import {Err, err, ok} from 'never-catch';
-import {createTables, resolveTablesDependency} from './schema';
-import {CreateTestTableData, TestTransaction} from './types/testUtil';
+import { isEqual } from 'lodash';
+import { createEntity } from './entity';
+import { Err, err, ok } from 'never-catch';
+import { createTables, resolveTablesDependency } from './schema';
+import { CreateTestTableData, TestTransaction } from './types/testUtil';
 
-const testTransaction: TestTransaction = async (tablesWithData, callback, pool, isolationLevel = 'serializable', rollback = true) => {
+const testTransaction: TestTransaction = async (
+    tablesWithData,
+    callback,
+    pool,
+    isolationLevel = 'serializable',
+    rollback = true
+) => {
     let error: Err<any> | undefined;
-    await pool.transaction(async (client) => {
+    await pool.transaction(async client => {
         // create tables
-        const createTableResult = await createTables(client, tablesWithData.map(v => v.table));
+        const createTableResult = await createTables(
+            client,
+            tablesWithData.map(v => v.table)
+        );
         if (!createTableResult.ok) {
             error = createTableResult;
             return err(undefined);
@@ -20,19 +29,20 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
             error = resolvedTablesResult;
             return err(undefined);
         }
-        const sortedTablesWithData = tablesWithData.sort((a, b) => resolvedTablesResult.value.indexOf(a.table) - resolvedTablesResult.value.indexOf(b.table));
+        const sortedTablesWithData = tablesWithData.sort(
+            (a, b) => resolvedTablesResult.value.indexOf(a.table) - resolvedTablesResult.value.indexOf(b.table)
+        );
 
         // init db
         for (const tableWithData of sortedTablesWithData) {
             if (tableWithData.startData.length !== 0) {
                 const insertResult = await createEntity(tableWithData.table)
-                    .insert(
-                        tableWithData.startData,
-                        [{exp: true, as: 'confirm'}],
-                        {
-                            nullableDefaultColumns: Object.entries(tableWithData.table.columns).filter(([_, value]) => (value as any).nullable || (value as any).default !== false).map(([key, _]) => key)
-                        }
-                    ).exec(client, ['count', tableWithData.startData.length]);
+                    .insert(tableWithData.startData, [{ exp: true, as: 'confirm' }], {
+                        nullableDefaultColumns: Object.entries(tableWithData.table.columns)
+                            .filter(([_, value]) => (value as any).nullable || (value as any).default !== false)
+                            .map(([key, _]) => key)
+                    })
+                    .exec(client, ['count', tableWithData.startData.length]);
                 if (!insertResult.ok) {
                     error = insertResult;
                     return err(undefined);
@@ -45,13 +55,11 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
 
         // check db
         const differences: any[] = [];
-        for (const {table, finalData, skipIt, lengthCheck} of sortedTablesWithData) {
-            const primaryKeys = Object.entries(table.columns).filter(([_, value]) => !(value as any).nullable && (value as any).primary).map(([key, _]) => key);
-            const selectResult = await createEntity(table)
-                .select(
-                    Object.keys(table.columns),
-                    true,
-                ).exec(client, []);
+        for (const { table, finalData, skipIt, lengthCheck } of sortedTablesWithData) {
+            const primaryKeys = Object.entries(table.columns)
+                .filter(([_, value]) => !(value as any).nullable && (value as any).primary)
+                .map(([key, _]) => key);
+            const selectResult = await createEntity(table).select(Object.keys(table.columns), true).exec(client, []);
             if (!selectResult.ok) {
                 error = selectResult;
                 return err(undefined);
@@ -69,7 +77,7 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
             for (const dbRow of selectResult.value) {
                 let found = false;
                 const tempDifferences: typeof differences = [];
-                const candidateFinalData = finalData.filter(({row: finalRow}) => {
+                const candidateFinalData = finalData.filter(({ row: finalRow }) => {
                     for (const primaryKey of primaryKeys) {
                         if (!isEqual(finalRow[primaryKey], dbRow[primaryKey])) {
                             return false;
@@ -79,7 +87,7 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
                 });
                 for (let i = 0; i < candidateFinalData.length; i++) {
                     found = true;
-                    const {row: finalRow} = candidateFinalData[i];
+                    const { row: finalRow } = candidateFinalData[i];
                     for (const key in dbRow) {
                         const value = finalRow[key];
                         if (typeof value === 'function') {
@@ -99,7 +107,9 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
                                     dbRow,
                                     finalRow,
                                     key,
-                                    message: `->${JSON.stringify(dbRow[key])}<- is not equal to ->${JSON.stringify(value)}<-`
+                                    message: `->${JSON.stringify(dbRow[key])}<- is not equal to ->${JSON.stringify(
+                                        value
+                                    )}<-`
                                 });
                                 found = false;
                             }
@@ -169,7 +179,9 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
                     }
                 } else {
                     if (selectResult.value.length !== lengthCheck) {
-                        differences.push(`length check failed expected(${lengthCheck}) received(${selectResult.value.length})`);
+                        differences.push(
+                            `length check failed expected(${lengthCheck}) received(${selectResult.value.length})`
+                        );
                     }
                 }
             }
@@ -191,12 +203,12 @@ const testTransaction: TestTransaction = async (tablesWithData, callback, pool, 
     }
 };
 
-const createTestTableData: CreateTestTableData = (
+const createTestTableData: CreateTestTableData = (table, startData, finalData, skipIt, lengthCheck) => ({
     table,
     startData,
     finalData,
     skipIt,
     lengthCheck
-) => ({table, startData, finalData, skipIt, lengthCheck});
+});
 
-export {testTransaction, createTestTableData};
+export { testTransaction, createTestTableData };

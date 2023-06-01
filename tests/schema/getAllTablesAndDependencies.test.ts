@@ -1,5 +1,5 @@
 import Table from '../../src/types/table';
-import {getAllTablesAndDependencies} from '../../src/schema';
+import { getAllTablesAndDependencies } from '../../src/schema';
 
 test('empty', () => {
     const allTablesAndDependenciesResult = getAllTablesAndDependencies([]);
@@ -52,7 +52,7 @@ test('reference-no-bidirectional-2-level', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;
@@ -62,7 +62,7 @@ test('reference-no-bidirectional-2-level', () => {
     }
     const [allTables, dependencies] = allTablesAndDependenciesResult.value;
     expect(allTables).toStrictEqual([level1Table, level2Table]);
-    expect(dependencies).toStrictEqual([{parent: level1Table, child: level2Table}]);
+    expect(dependencies).toStrictEqual([{ parent: level1Table, child: level2Table }]);
 });
 
 test('reference-no-bidirectional-2-level-2', () => {
@@ -85,7 +85,7 @@ test('reference-no-bidirectional-2-level-2', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;
@@ -97,7 +97,7 @@ test('reference-no-bidirectional-2-level-2', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;
@@ -108,8 +108,8 @@ test('reference-no-bidirectional-2-level-2', () => {
     const [allTables, dependencies] = allTablesAndDependenciesResult.value;
     expect(allTables).toStrictEqual([level1Table, level1Table2, level2Table]);
     expect(dependencies).toStrictEqual([
-        {parent: level1Table, child: level2Table},
-        {parent: level1Table2, child: level2Table}
+        { parent: level1Table, child: level2Table },
+        { parent: level1Table2, child: level2Table }
     ]);
 });
 
@@ -133,7 +133,7 @@ test('reference-no-bidirectional-3-level', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level3Table, column: 'id'}
+                reference: { table: level3Table, column: 'id' }
             }
         }
     } as const;
@@ -145,7 +145,7 @@ test('reference-no-bidirectional-3-level', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;
@@ -156,8 +156,8 @@ test('reference-no-bidirectional-3-level', () => {
     const [allTables, dependencies] = allTablesAndDependenciesResult.value;
     expect(allTables).toStrictEqual([level1Table, level2Table, level3Table]);
     expect(dependencies).toStrictEqual([
-        {parent: level1Table, child: level2Table},
-        {parent: level2Table, child: level3Table}
+        { parent: level1Table, child: level2Table },
+        { parent: level2Table, child: level3Table }
     ]);
 });
 
@@ -170,7 +170,7 @@ test('reference-bidirectional', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: {} as Table, column: 'd'}
+                reference: { table: {} as Table, column: 'd' }
             }
         }
     } as const;
@@ -182,7 +182,7 @@ test('reference-bidirectional', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;

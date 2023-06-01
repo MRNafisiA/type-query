@@ -1,5 +1,5 @@
 import U from '../../src/U';
-import {resolveReturning} from '../../src/entity';
+import { resolveReturning } from '../../src/entity';
 
 const UserTable = {
     schema: 'public',
@@ -31,27 +31,41 @@ const UserTable = {
 } as const;
 
 test('empty', () => {
-    const result = resolveReturning(_ => ({type: 'boolean', title: undefined}), [], 2, false);
+    const result = resolveReturning(_ => ({ type: 'boolean', title: undefined }), [], 2, false);
     if (result.ok) {
         throw 'it should not reach here';
     }
     expect(result.error).toBe('<returning> -> empty');
 });
 test('object-fail', () => {
-    const result = resolveReturning(_ => ({type: 'boolean', title: undefined}), [{
-        exp: undefined,
-        as: 'test'
-    }], 2, false);
+    const result = resolveReturning(
+        _ => ({ type: 'boolean', title: undefined }),
+        [
+            {
+                exp: undefined,
+                as: 'test'
+            }
+        ],
+        2,
+        false
+    );
     if (result.ok) {
         throw 'it should not reach here';
     }
     expect(result.error).toBe('<returning>[test] -> undefined');
 });
 test('object-neutral', () => {
-    const result = resolveReturning(_ => ({type: 'boolean', title: undefined}), [{
-        exp: undefined,
-        as: 'test'
-    }], 2, true);
+    const result = resolveReturning(
+        _ => ({ type: 'boolean', title: undefined }),
+        [
+            {
+                exp: undefined,
+                as: 'test'
+            }
+        ],
+        2,
+        true
+    );
     if (result.ok) {
         throw 'it should not reach here';
     }
@@ -59,18 +73,17 @@ test('object-neutral', () => {
 });
 test('column custom-parse object', () => {
     const result = resolveReturning<keyof typeof UserTable.columns>(
-        column => ({...UserTable.columns[column]}), [
-        'id',
-        'name',
-        'createdAt',
-        'updatedAt',
-        {exp: U.val(2), as: 'test'}
-    ] as const, 2, false);
+        column => ({ ...UserTable.columns[column] }),
+        ['id', 'name', 'createdAt', 'updatedAt', { exp: U.val(2), as: 'test' }] as const,
+        2,
+        false
+    );
     if (!result.ok) {
         throw 'it should not reach here';
     }
-    const {text, params} = result.value;
-    expect(text).toBe('"id", "first_and_last_name" AS "name", "createdAt", '
-        + '"updated_at" AS "updatedAt", ( $2 ) AS "test"');
+    const { text, params } = result.value;
+    expect(text).toBe(
+        '"id", "first_and_last_name" AS "name", "createdAt", ' + '"updated_at" AS "updatedAt", ( $2 ) AS "test"'
+    );
     expect(params).toStrictEqual([U.stringify(2)]);
 });

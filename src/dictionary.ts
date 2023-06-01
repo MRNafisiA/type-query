@@ -1,8 +1,8 @@
-import type {JoinType} from './types/entity';
-import {ReservedExpressionKeys} from './entity';
-import type {OrderDirection, PostgresType} from './types/postgres';
-import type {ReferenceActions} from './types/table';
-import type {TransactionIsolationLevel} from './types/pool';
+import type { JoinType } from './types/entity';
+import { ReservedExpressionKeys } from './entity';
+import type { ReferenceActions } from './types/table';
+import type { TransactionIsolationLevel } from './types/pool';
+import type { OrderDirection, PostgresType } from './types/postgres';
 
 const toTransactionMode = (isolationLevel: TransactionIsolationLevel, readOnly: boolean) => {
     let result;
@@ -20,7 +20,7 @@ const toTransactionMode = (isolationLevel: TransactionIsolationLevel, readOnly: 
             result = 'SERIALIZABLE';
             break;
     }
-    return result + (readOnly ? ' READ ONLY' : ' READ WRITE')
+    return result + (readOnly ? ' READ ONLY' : ' READ WRITE');
 };
 
 const toOrderDirection = (v: OrderDirection) => {
@@ -97,7 +97,9 @@ const toReferenceAction = (v: ReferenceActions) => {
     }
 };
 
-const toReservedExpressionKeyDescription = (v: typeof ReservedExpressionKeys[Exclude<keyof typeof ReservedExpressionKeys, keyof unknown[]>]) => {
+const toReservedExpressionKeyDescription = (
+    v: (typeof ReservedExpressionKeys)[Exclude<keyof typeof ReservedExpressionKeys, keyof unknown[]>]
+) => {
     switch (v) {
         case 'val':
             return 'wrapped value';
@@ -176,7 +178,7 @@ const toReservedExpressionKeyDescription = (v: typeof ReservedExpressionKeys[Exc
         case 'qry':
             return 'sub-query';
         case 'exists':
-            return 'row exists in sub-query'
+            return 'row exists in sub-query';
     }
 };
 

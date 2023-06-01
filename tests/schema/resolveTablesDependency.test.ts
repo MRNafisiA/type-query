@@ -1,4 +1,4 @@
-import {resolveTablesDependency} from '../../src/schema';
+import { resolveTablesDependency } from '../../src/schema';
 
 test('1-level-2', () => {
     const level1Table = {
@@ -50,7 +50,7 @@ test('2-level-2', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;
@@ -62,7 +62,7 @@ test('2-level-2', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;
@@ -93,7 +93,7 @@ test('3-level', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level3Table, column: 'id'}
+                reference: { table: level3Table, column: 'id' }
             }
         }
     } as const;
@@ -105,7 +105,7 @@ test('3-level', () => {
                 type: 'smallint',
                 nullable: false,
                 default: false,
-                reference: {table: level2Table, column: 'id'}
+                reference: { table: level2Table, column: 'id' }
             }
         }
     } as const;
