@@ -37,13 +37,13 @@ const validateDecimalGenerator = ({ min, max }: { min?: Decimal | undefined; max
         if (max === undefined) {
             return () => true;
         } else {
-            return (v: Decimal) => v.comparedTo(max) >= 0;
+            return (v: Decimal) => v.comparedTo(max) <= 0;
         }
     } else {
         if (max === undefined) {
-            return (v: Decimal) => 0 >= v.comparedTo(min);
+            return (v: Decimal) => 0 <= v.comparedTo(min);
         } else {
-            return (v: Decimal) => 0 >= v.comparedTo(min) && v.comparedTo(max) >= 0;
+            return (v: Decimal) => 0 <= v.comparedTo(min) && v.comparedTo(max) <= 0;
         }
     }
 };
