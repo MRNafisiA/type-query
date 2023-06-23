@@ -79,6 +79,9 @@ const string = (v: unknown): string | undefined => {
     }
 };
 const date = (v: unknown): Date | undefined => {
+    if (v instanceof Date) {
+        return v;
+    }
     switch (typeof v) {
         case 'number':
         case 'string':
