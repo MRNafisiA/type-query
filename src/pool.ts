@@ -1,5 +1,5 @@
-import { Pool as PgPool, Query } from 'pg';
 import { toTransactionMode } from './dictionary';
+import { Pool as PgPool, PoolConfig, Query } from 'pg';
 import type { AddHook, OnSendQueryHook, Pool, RemoveHook } from './types/pool';
 
 const submit = Query.prototype.submit;
@@ -24,8 +24,8 @@ const removeHook: RemoveHook = ({ event, hook }) => {
     }
 };
 
-const createPool = (connectionString: string): Pool => {
-    const pool = new PgPool({ connectionString });
+const createPool = (config: PoolConfig): Pool => {
+    const pool = new PgPool(config);
     return {
         $: pool,
         transaction: (callback, isolationLevel = 'serializable', readOnly = false) =>
