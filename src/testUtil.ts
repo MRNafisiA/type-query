@@ -8,7 +8,7 @@ const testTransaction: TestTransaction = async (
     tablesWithData,
     callback,
     pool,
-    isolationLevel = 'serializable',
+    isolationLevel = 'read-committed',
     rollback = true
 ) => {
     let error: Err<any> | undefined;
