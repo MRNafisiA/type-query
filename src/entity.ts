@@ -32,7 +32,7 @@ import type {
 } from './types/Entity';
 
 // entity
-const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns']> = {}>(table: T) =>
+const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns']>>(table: T) =>
     ({
         table: table,
         context: createContext<T, CTypeMap>(table),
@@ -420,7 +420,7 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
             MainAlias extends string,
             JTable extends Table,
             JAlias extends string,
-            JCTypeMap extends CustomTypeMap<JTable['columns']> = {}
+            JCTypeMap extends CustomTypeMap<JTable['columns']>
         >(
             mainAlias: MainAlias,
             joinType: JoinType,
@@ -623,7 +623,7 @@ const createJoinSelectEntity = <
         join: function <
             JTable extends Table,
             JAlias extends string,
-            JCTypeMap extends CustomTypeMap<JTable['columns']> = {}
+            JCTypeMap extends CustomTypeMap<JTable['columns']>
         >(
             joinType: JoinType,
             joinTable: JTable,

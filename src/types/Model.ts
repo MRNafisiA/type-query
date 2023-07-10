@@ -1,7 +1,7 @@
 import type { Table } from './Table';
 import { ColumnTypeByColumns, CustomTypeMap } from './TypeMapper';
 
-type SimpleModel<Columns extends Table['columns'], CTypeMap extends CustomTypeMap<Columns>={}> = {
+type SimpleModel<Columns extends Table['columns'], CTypeMap extends CustomTypeMap<Columns>> = {
     [col in keyof Columns]: ColumnTypeByColumns<Columns, col, CTypeMap>;
 };
 
