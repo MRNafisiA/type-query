@@ -1,16 +1,17 @@
 import Decimal from 'decimal.js';
-import { Table } from './types/table';
 import * as Parser from './parser';
-import { err, ok } from 'never-catch';
-import { ModelUtils } from './types/model';
-import { ColumnTypeByColumns } from './types/postgres';
+import { Table } from './types/Table';
+import { err, ok, Result } from 'never-catch';
+import { Model, SimpleModel } from './types/Model';
+import { ColumnTypeByColumns, CustomTypeMap } from './types/TypeMapper';
 
-const smallIntRange = { min: -32768, max: 32767 };
-const integerRange = { min: -2147483648, max: 2147483647 };
-const bigIntRange = {
+const SmallIntRange = { min: -32768, max: 32767 };
+const IntegerRange = { min: -2147483648, max: 2147483647 };
+const BigIntRange = {
     min: BigInt('-9223372036854775808'),
     max: BigInt('9223372036854775807')
 };
+
 const validateNumberGenerator = ({
     min,
     max
@@ -87,13 +88,34 @@ const validateStringGenerator = ({
     }
 };
 
-const createModelUtils = <Columns extends Table['columns']>(
+type ModelUtils<Columns extends Table['columns'], CTypeMap extends CustomTypeMap<Columns>> = {
+    Parse: <Requires extends readonly (keyof Columns)[], Optionals extends readonly (keyof Columns)[]>(
+        data: { [key: string]: unknown },
+        requires: Requires,
+        optional: Optionals,
+        validate?: boolean
+    ) => Result<
+        Model<Columns, Requires, Optionals, CTypeMap>,
+        Requires[Exclude<keyof Requires, keyof unknown[]>] | Optionals[Exclude<keyof Optionals, keyof unknown[]>]
+    >;
+    Validate: <D extends Partial<SimpleModel<Columns, CTypeMap>>>(data: D) => Result<undefined, keyof D>;
+} & {
+    [key in keyof Columns]: {
+        Parse: (v: unknown, validate?: boolean) => ColumnTypeByColumns<Columns, key, CTypeMap> | undefined;
+        Validate: (v: ColumnTypeByColumns<Columns, key, CTypeMap>) => boolean;
+    };
+};
+const createModelUtils = <Columns extends Table['columns'], CTypeMap extends CustomTypeMap<Columns>>(
     columns: Columns,
     custom?: {
-        parse?: { [key in keyof Columns]?: (v: unknown | undefined) => ColumnTypeByColumns<Columns, key> | undefined };
-        validate?: { [key in keyof Columns]?: (v: ColumnTypeByColumns<Columns, key>) => boolean };
+        parse?: {
+            [key in keyof Columns]?: (
+                v: unknown | undefined
+            ) => ColumnTypeByColumns<Columns, key, CTypeMap> | undefined;
+        };
+        validate?: { [key in keyof Columns]?: (v: ColumnTypeByColumns<Columns, key, CTypeMap>) => boolean };
     }
-): ModelUtils<Columns> => {
+): ModelUtils<Columns, CTypeMap> => {
     const columnsParseAndValidate = Object.fromEntries(
         Object.entries(columns).map(([key, val]) => {
             let parseFun = custom?.parse?.[key];
@@ -139,20 +161,20 @@ const createModelUtils = <Columns extends Table['columns']>(
                 switch (val.type) {
                     case 'smallint':
                         validateFun = validateNumberGenerator({
-                            min: val.min ?? smallIntRange.min,
-                            max: val.max ?? smallIntRange.max
+                            min: val.min ?? SmallIntRange.min,
+                            max: val.max ?? SmallIntRange.max
                         }) as any;
                         break;
                     case 'integer':
                         validateFun = validateNumberGenerator({
-                            min: val.min ?? integerRange.min,
-                            max: val.max ?? integerRange.max
+                            min: val.min ?? IntegerRange.min,
+                            max: val.max ?? IntegerRange.max
                         }) as any;
                         break;
                     case 'bigint':
                         validateFun = validateNumberGenerator({
-                            min: val.min ?? bigIntRange.min,
-                            max: val.max ?? bigIntRange.max
+                            min: val.min ?? BigIntRange.min,
+                            max: val.max ?? BigIntRange.max
                         }) as any;
                         break;
                     case 'real':
@@ -195,7 +217,7 @@ const createModelUtils = <Columns extends Table['columns']>(
                 }
             }
 
-            const parseWithValidate = (v: string | undefined, validate: boolean = false) => {
+            const parseWithValidate = (v: string | undefined, validate: boolean = true) => {
                 const parsedValue = parseFun!(v);
                 if (validate && parsedValue !== undefined && !validateFun!(parsedValue)) {
                     return undefined;
@@ -206,7 +228,7 @@ const createModelUtils = <Columns extends Table['columns']>(
         })
     );
     return {
-        Parse: (data, requires, optionals, validate = false) => {
+        Parse: (data, requires, optionals, validate = true) => {
             const result = {} as { [key: string]: any };
 
             let require: any;
@@ -252,5 +274,6 @@ const createModelUtils = <Columns extends Table['columns']>(
     };
 };
 
-export { createModelUtils };
+export { SmallIntRange, IntegerRange, BigIntRange };
 export { validateNumberGenerator, validateDecimalGenerator, validateStringGenerator };
+export { type ModelUtils, createModelUtils };

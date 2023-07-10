@@ -1,27 +1,15 @@
+import { Result } from 'never-catch';
 import { toTransactionMode } from './dictionary';
-import { Pool as PgPool, PoolConfig, Query } from 'pg';
-import type { AddHook, OnSendQueryHook, Pool, RemoveHook } from './types/pool';
+import { Pool as PgPool, PoolClient, PoolConfig } from 'pg';
 
-const submit = Query.prototype.submit;
-Query.prototype.submit = function (this: any) {
-    onSendQueryHooks.forEach(hook => hook(this.text, this.values));
-    submit.apply(this, arguments as any);
-};
-
-const onSendQueryHooks: OnSendQueryHook[] = [];
-const addHook: AddHook = ({ event, hook }) => {
-    switch (event) {
-        case 'on-send-query':
-            onSendQueryHooks.push(hook);
-            break;
-    }
-};
-const removeHook: RemoveHook = ({ event, hook }) => {
-    switch (event) {
-        case 'on-send-query':
-            onSendQueryHooks.splice(onSendQueryHooks.indexOf(hook), 1);
-            break;
-    }
+type TransactionIsolationLevel = 'read-uncommitted' | 'read-committed' | 'repeatable-read' | 'serializable';
+type Pool = {
+    $: PgPool;
+    transaction: <R extends Result<unknown, unknown>>(
+        callback: (client: PoolClient) => Promise<R>,
+        isolationLevel?: TransactionIsolationLevel,
+        readOnly?: boolean
+    ) => Promise<R>;
 };
 
 const createPool = (config: PoolConfig): Pool => {
@@ -53,4 +41,5 @@ const createPool = (config: PoolConfig): Pool => {
     } as const;
 };
 
-export { createPool, addHook, removeHook };
+export type { TransactionIsolationLevel, Pool };
+export { createPool };

@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import type { JSON } from './json';
+import type { Json } from './Json';
 import { PostgresType } from './postgres';
 
 type ReferenceActions = 'no-action' | 'restrict' | 'set-null' | 'set-Default' | 'cascade';
@@ -180,7 +180,7 @@ type Default =
           | { default: 'value'; type: 'numeric'; value: Decimal }
           | { default: 'value'; type: 'character' | 'character varying' | 'text' | 'uuid'; value: string }
           | { default: 'value'; type: 'date' | 'timestamp without time zone' | 'timestamp with time zone'; value: Date }
-          | { default: 'value'; type: 'json' | 'jsonb'; value: JSON }
+          | { default: 'value'; type: 'json' | 'jsonb'; value: Json }
       );
 
 type Column = Base & Primary & Types & Default;
@@ -192,7 +192,7 @@ type Table = {
 type TableCheck = {
     schema: string;
     title: string;
-    columns: { [key: string]: Base & Primary & Types & Default & ReferenceCheck<Table, keyof Table['columns']> };
+    columns: { [key: string]: Column & ReferenceCheck<Table, keyof Table['columns']> };
 };
 
-export type { Table, ReferenceActions, Column, TableCheck };
+export type { ReferenceActions, Base, Primary, Types, ReferenceCheck, Default, Column, Table, TableCheck };

@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { JSON as Json } from './types/json';
+import { Json } from './types/Json';
 
 const boolean = (v: unknown): boolean | undefined => {
     switch (typeof v) {
@@ -71,7 +71,7 @@ const string = (v: unknown): string | undefined => {
         case 'boolean':
         case 'number':
         case 'bigint':
-            return v.toString();
+            return `${v}`;
         case 'string':
             return v;
         default:

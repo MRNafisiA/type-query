@@ -1,4 +1,4 @@
-import Table from '../../src/types/table';
+import Table from '../../src/types/Table';
 import { getAllTablesAndDependencies } from '../../src/schema';
 
 test('empty', () => {

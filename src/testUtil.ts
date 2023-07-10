@@ -1,8 +1,63 @@
+import { PoolClient } from 'pg';
 import { isEqual } from 'lodash';
+import { Table } from './types/Table';
 import { createEntity } from './entity';
-import { Err, err, ok } from 'never-catch';
+import { SimpleModel } from './types/Model';
+import { Err, err, ok, Result } from 'never-catch';
+import { Pool, TransactionIsolationLevel } from './pool';
+import { NullableAndDefaultColumns } from './types/Entity';
 import { createTables, resolveTablesDependency } from './schema';
-import { CreateTestTableData, TestTransaction } from './types/testUtil';
+import { ColumnTypeByColumns, CustomTypeMap } from './types/TypeMapper';
+
+type TestTableData<T extends Table, CTypeMap extends CustomTypeMap<T['columns']>> = {
+    table: T;
+    startData: ({
+        [columnKey in Exclude<keyof T['columns'], keyof NullableAndDefaultColumns<T['columns']>>]: ColumnTypeByColumns<
+            T['columns'],
+            columnKey,
+            CTypeMap
+        >;
+    } & {
+        [columnKey in keyof NullableAndDefaultColumns<T['columns']>]?: ColumnTypeByColumns<
+            T['columns'],
+            columnKey & string,
+            CTypeMap
+        >;
+    })[];
+    finalData:
+        | ((rows: SimpleModel<T['columns'], CTypeMap>[]) => Result<any, any> | Promise<Result<any, any>>)
+        | {
+              row: {
+                  [columnKey in keyof T['columns']]:
+                      | ((
+                            cell: ColumnTypeByColumns<T['columns'], columnKey, CTypeMap>,
+                            row: SimpleModel<T['columns'], CTypeMap>,
+                            rows: SimpleModel<T['columns'], CTypeMap>[]
+                        ) => Result<any, any> | Promise<Result<any, any>>)
+                      | ColumnTypeByColumns<T['columns'], columnKey, CTypeMap>;
+              };
+              useTime?: ['equal', number] | ['moreThanEqual', number] | ['lessThanEqual', number] | undefined;
+          }[];
+    skipIt?: ((row: SimpleModel<T['columns'], CTypeMap>) => Result<any, any> | Promise<Result<any, any>>) | undefined;
+    lengthCheck?:
+        | ((rows: SimpleModel<T['columns'], CTypeMap>[]) => Result<any, any> | Promise<Result<any, any>>)
+        | number
+        | undefined;
+};
+type TestTransaction = (
+    data: TestTableData<any, any>[],
+    callback: (client: PoolClient) => void,
+    pool: Pool,
+    isolationLevel?: TransactionIsolationLevel,
+    rollback?: boolean
+) => Promise<undefined>;
+type CreateTestTableData = <T extends Table, CTypeMap extends CustomTypeMap<T['columns']>>(
+    table: T,
+    startData: TestTableData<T, CTypeMap>['startData'],
+    finalData: TestTableData<T, CTypeMap>['finalData'],
+    skipIt?: TestTableData<T, CTypeMap>['skipIt'],
+    lengthCheck?: TestTableData<T, CTypeMap>['lengthCheck']
+) => TestTableData<T, CTypeMap>;
 
 const testTransaction: TestTransaction = async (
     tablesWithData,
@@ -14,11 +69,13 @@ const testTransaction: TestTransaction = async (
     let error: Err<any> | undefined;
     await pool.transaction(async client => {
         // create tables
-        const createTableResult = await createTables(
-            client,
-            tablesWithData.map(v => v.table)
-        );
-        if (!createTableResult.ok) {
+        const createTableQueryResult = createTables(tablesWithData.map(v => v.table));
+        if (!createTableQueryResult.ok) {
+            error = createTableQueryResult;
+            return err(undefined);
+        }
+        const createTableResult = await createTableQueryResult.value.exec(client);
+        if (!createTableResult.ok){
             error = createTableResult;
             return err(undefined);
         }
