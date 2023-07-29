@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
-import type { Json } from './Json';
+import type { Table } from './table';
+import type { JSON } from './json';
 
 type OrderDirection = 'asc' | 'desc';
 
@@ -25,20 +26,29 @@ type PostgresType =
     | 'json'
     | 'jsonb';
 
-type PostgresTypeMapper<Type extends PostgresType = PostgresType> = Type extends 'boolean'
-    ? boolean
+type PostgresTypeMapper<Type extends PostgresType, Nullable extends boolean> = Type extends 'boolean'
+    ? (true extends Nullable ? null : never) | boolean
     : Type extends 'smallint' | 'integer' | 'real' | 'double precision'
-    ? number
+    ? (true extends Nullable ? null : never) | number
     : Type extends 'bigint'
-    ? bigint
+    ? (true extends Nullable ? null : never) | bigint
     : Type extends 'numeric'
-    ? Decimal
+    ? (true extends Nullable ? null : never) | Decimal
     : Type extends 'character' | 'character varying' | 'text' | 'uuid'
-    ? string
+    ? (true extends Nullable ? null : never) | string
     : Type extends 'date' | 'timestamp without time zone' | 'timestamp with time zone'
-    ? Date
+    ? (true extends Nullable ? null : never) | Date
     : Type extends 'json' | 'jsonb'
-    ? Json
+    ? (true extends Nullable ? null : never) | JSON
     : never;
 
-export type { OrderDirection, PostgresType, PostgresTypeMapper };
+type ColumnTypeByColumns<Columns extends Table['columns'], columnKey extends keyof Columns> = PostgresTypeMapper<
+    Columns[columnKey]['type'],
+    Columns[columnKey]['nullable']
+>;
+type ColumnTypeByTable<T extends Table, columnKey extends keyof T['columns']> = PostgresTypeMapper<
+    T['columns'][columnKey]['type'],
+    T['columns'][columnKey]['nullable']
+>;
+
+export type { OrderDirection, PostgresType, PostgresTypeMapper, ColumnTypeByColumns, ColumnTypeByTable };

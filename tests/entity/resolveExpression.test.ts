@@ -1,7 +1,7 @@
-import U from '../../src/U';
+import { U } from '../../src/U';
 import Decimal from 'decimal.js';
 import { err, ok } from 'never-catch';
-import { Param } from '../../src/types/Entity';
+import { Param } from '../../src/types/entity';
 import { resolveColumn, resolveExpression } from '../../src/entity';
 import { toReservedExpressionKeyDescription as toDescription } from '../../src/dictionary';
 

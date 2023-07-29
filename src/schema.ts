@@ -1,9 +1,13 @@
 import type { ClientBase } from 'pg';
-import type { Table } from './types/Table';
+import type { Table } from './types/table';
 import { err, ok, type Result } from 'never-catch';
 import { toPostgresType, toReferenceAction } from './dictionary';
 
-const createTables = (tables: Table[], resolve: boolean = true) => {
+const createTables = async (
+    client: ClientBase,
+    tables: Table[],
+    resolve: boolean = true
+): Promise<Result<undefined, string | { db: unknown; query: string }>> => {
     // resolve
     if (resolve) {
         const dependencyResult = resolveTablesDependency(tables);
@@ -13,41 +17,40 @@ const createTables = (tables: Table[], resolve: boolean = true) => {
         tables = dependencyResult.value;
     }
 
-    // SQLs
-    const sequencesSQL = tables.map(table => createSequencesSQL(table)).flat();
-    const tablesSQL = tables.map(table => createTableSQL(table));
-
-    return ok({
-        getData: () => ({ sequencesSQL, tablesSQL }),
-        exec: async (client: ClientBase): Promise<Result<undefined, string | { db: unknown; query: string }>> => {
-            // create sequences
-            for (const sequenceSQL of sequencesSQL) {
-                const result = await client
-                    .query(sequenceSQL)
-                    .then(() => true as const)
-                    .catch(e => ({ db: e, query: sequenceSQL }));
-                if (result !== true) {
-                    return err(result);
-                }
+    // create sequences
+    for (const table of tables) {
+        const sequencesSQL = createSequencesSQL(table);
+        for (const sequenceSQL of sequencesSQL) {
+            const result = await client
+                .query(sequenceSQL)
+                .then(() => true as const)
+                .catch(e => ({ db: e, query: sequenceSQL }));
+            if (result !== true) {
+                return err(result);
             }
-
-            // create tables
-            for (const tableSQL of tablesSQL) {
-                const result = await client
-                    .query(tableSQL)
-                    .then(() => true as const)
-                    .catch(e => ({ db: e, query: tableSQL }));
-                if (result !== true) {
-                    return err(result);
-                }
-            }
-
-            return Promise.resolve(ok(undefined));
         }
-    });
+    }
+
+    // create tables
+    for (const table of tables) {
+        const tableSQL = createTableSQL(table);
+        const result = await client
+            .query(tableSQL)
+            .then(() => true as const)
+            .catch(e => ({ db: e, query: tableSQL }));
+        if (result !== true) {
+            return err(result);
+        }
+    }
+
+    return Promise.resolve(ok(undefined));
 };
 
-const dropTables = (tables: Table[], resolve: boolean = true) => {
+const dropTables = async (
+    client: ClientBase,
+    tables: Table[],
+    resolve: boolean = true
+): Promise<Result<undefined, string | { db: unknown; query: string }>> => {
     // resolve
     if (resolve) {
         const dependencyResult = resolveTablesDependency(tables);
@@ -57,41 +60,33 @@ const dropTables = (tables: Table[], resolve: boolean = true) => {
         tables = dependencyResult.value.reverse();
     }
 
-    // SQLs
-    const tablesSQL = tables.map(table => dropTableSQL(table));
-    const sequencesSQL = tables.map(table => dropSequencesSQL(table)).flat();
-
-    return ok({
-        getData: () => ({
-            tablesSQL,
-            sequencesSQL
-        }),
-        exec: async (client: ClientBase): Promise<Result<undefined, string | { db: unknown; query: string }>> => {
-            // drop tables
-            for (const tableSQL of tablesSQL) {
-                const result = await client
-                    .query(tableSQL)
-                    .then(() => true as const)
-                    .catch(e => ({ db: e, query: tableSQL }));
-                if (result !== true) {
-                    return err(result);
-                }
-            }
-
-            // drop sequences
-            for (const sequenceSQL of sequencesSQL) {
-                const result = await client
-                    .query(sequenceSQL)
-                    .then(() => true as const)
-                    .catch(e => ({ db: e, query: sequenceSQL }));
-                if (result !== true) {
-                    return err(result);
-                }
-            }
-
-            return Promise.resolve(ok(undefined));
+    // drop tables
+    for (const table of tables) {
+        const tableSQL = dropTableSQL(table);
+        const result = await client
+            .query(tableSQL)
+            .then(() => true as const)
+            .catch(e => ({ db: e, query: tableSQL }));
+        if (result !== true) {
+            return err(result);
         }
-    });
+    }
+
+    // drop sequences
+    for (const table of tables) {
+        const sequencesSQL = dropSequencesSQL(table);
+        for (const sequenceSQL of sequencesSQL) {
+            const result = await client
+                .query(sequenceSQL)
+                .then(() => true as const)
+                .catch(e => ({ db: e, query: sequenceSQL }));
+            if (result !== true) {
+                return err(result);
+            }
+        }
+    }
+
+    return Promise.resolve(ok(undefined));
 };
 
 const resolveTablesDependency = (tables: Table[]): Result<Table[], string> => {

@@ -1,162 +1,192 @@
-import type { JoinType } from './types/Entity';
-import type { ReferenceActions } from './types/Table';
-import type { TransactionIsolationLevel } from './pool';
+import type { JoinType } from './types/entity';
+import { ReservedExpressionKeys } from './entity';
+import type { ReferenceActions } from './types/table';
+import type { TransactionIsolationLevel } from './types/pool';
 import type { OrderDirection, PostgresType } from './types/postgres';
 
-type ReservedExpressionKey = (typeof ReservedExpressionKeys)[Exclude<
-    keyof typeof ReservedExpressionKeys,
-    keyof unknown[]
->];
-const ReservedExpressionKeys = [
-    'val',
-    '=n',
-    '!=n',
-    '=t',
-    '=f',
-    'not',
-    '+',
-    '-',
-    '*',
-    '/',
-    '||',
-    'and',
-    'or',
-    '**',
-    'fun',
-    'swt',
-    'col',
-    'raw',
-    '=',
-    '!=',
-    '>',
-    '>=',
-    '<',
-    '<=',
-    'lk',
-    '@>',
-    '<@',
-    '?',
-    'j-',
-    'in',
-    'nin',
-    'lka',
-    'lks',
-    '?|',
-    '?&',
-    'j-a',
-    'bt',
-    'qry',
-    'exists'
-] as const;
+const toTransactionMode = (isolationLevel: TransactionIsolationLevel, readOnly: boolean) => {
+    let result;
+    switch (isolationLevel) {
+        case 'read-committed':
+            result = 'READ COMMITTED';
+            break;
+        case 'read-uncommitted':
+            result = 'READ UNCOMMITTED';
+            break;
+        case 'repeatable-read':
+            result = 'REPEATABLE READ';
+            break;
+        case 'serializable':
+            result = 'SERIALIZABLE';
+            break;
+    }
+    return result + (readOnly ? ' READ ONLY' : ' READ WRITE');
+};
 
-const TransactionIsolationLevelDic = {
-    'read-committed': 'READ COMMITTED',
-    'read-uncommitted': 'READ UNCOMMITTED',
-    'repeatable-read': 'REPEATABLE READ',
-    serializable: 'SERIALIZABLE'
-} as const;
-const toTransactionMode = (isolationLevel: TransactionIsolationLevel, readOnly: boolean) =>
-    TransactionIsolationLevelDic[isolationLevel] + (readOnly ? ' READ ONLY' : ' READ WRITE');
+const toOrderDirection = (v: OrderDirection) => {
+    switch (v) {
+        case 'asc':
+            return 'ASC';
+        case 'desc':
+            return 'DESC';
+    }
+};
 
-const OrderDirectionDic = {
-    asc: 'ASC',
-    desc: 'DESC'
-} as const;
-const toOrderDirection = (dir: OrderDirection) => OrderDirectionDic[dir];
+const toJoinType = (v: JoinType) => {
+    switch (v) {
+        case 'inner':
+            return 'INNER JOIN';
+        case 'left':
+            return 'LEFT OUTER JOIN';
+        case 'right':
+            return 'RIGHT OUTER JOIN';
+        case 'full':
+            return 'FULL OUTER JOIN';
+    }
+};
 
-const JoinTypDic = {
-    inner: 'INNER JOIN',
-    left: 'LEFT OUTER JOIN',
-    right: 'RIGHT OUTER JOIN',
-    full: 'FULL OUTER JOIN'
-} as const;
-const toJoinType = (joinType: JoinType) => JoinTypDic[joinType];
+const toPostgresType = (v: PostgresType) => {
+    switch (v) {
+        case 'boolean':
+            return 'boolean';
+        case 'smallint':
+            return 'smallint';
+        case 'integer':
+            return 'integer';
+        case 'bigint':
+            return 'bigint';
+        case 'real':
+            return 'real';
+        case 'double precision':
+            return 'double precision';
+        case 'numeric':
+            return 'numeric';
+        case 'character':
+            return 'character';
+        case 'character varying':
+            return 'character varying';
+        case 'text':
+            return 'text';
+        case 'uuid':
+            return 'uuid';
+        case 'date':
+            return 'date';
+        case 'timestamp without time zone':
+            return 'timestamp without time zone';
+        case 'timestamp with time zone':
+            return 'timestamp with time zone';
+        case 'json':
+            return 'json';
+        case 'jsonb':
+            return 'jsonb';
+    }
+};
 
-const PostgresTypeDic = {
-    boolean: 'boolean',
-    smallint: 'smallint',
-    integer: 'integer',
-    bigint: 'bigint',
-    real: 'real',
-    'double precision': 'double precision',
-    numeric: 'numeric',
-    character: 'character',
-    'character varying': 'character varying',
-    text: 'text',
-    uuid: 'uuid',
-    date: 'date',
-    'timestamp without time zone': 'timestamp without time zone',
-    'timestamp with time zone': 'timestamp with time zone',
-    json: 'json',
-    jsonb: 'jsonb'
-} as const;
-const toPostgresType = (type: PostgresType) => PostgresTypeDic[type];
+const toReferenceAction = (v: ReferenceActions) => {
+    switch (v) {
+        case 'no-action':
+            return 'NO ACTION';
+        case 'restrict':
+            return 'RESTRICT';
+        case 'set-null':
+            return 'SET NULL';
+        case 'set-Default':
+            return 'SET DEFAULT';
+        case 'cascade':
+            return 'CASCADE';
+    }
+};
 
-const ReferenceActionDic = {
-    'no-action': 'NO ACTION',
-    restrict: 'RESTRICT',
-    'set-null': 'SET NULL',
-    'set-Default': 'SET DEFAULT',
-    cascade: 'CASCADE'
-} as const;
-const toReferenceAction = (action: ReferenceActions) => ReferenceActionDic[action];
-
-const ReservedExpressionKeyDescriptionDic = {
-    val: 'wrapped value',
-    '=n': 'is null',
-    '!=n': 'is not null',
-    '=t': 'is true',
-    '=f': 'is false',
-    not: 'not of',
-    '+': 'sum',
-    '-': 'minus',
-    '*': 'multiply',
-    '/': 'divide',
-    '||': 'concat',
-    and: 'logical and',
-    or: 'logical or',
-    '**': 'power',
-    fun: 'function',
-    swt: 'switch statement',
-    col: 'column',
-    raw: 'raw statement',
-    '=': 'is equal',
-    '!=': 'is not equal',
-    '>': 'is greater than',
-    '>=': 'is greater-equal than',
-    '<': 'is less than',
-    '<=': 'is less-equal than',
-    lk: 'does like',
-    '@>': 'json-contain (@>)',
-    '<@': 'json-contain (<@)',
-    '?': 'json-exist (?)',
-    'j-': 'json-subtract (-)',
-    in: 'is inside of',
-    nin: 'is not inside of',
-    lka: 'does like all',
-    lks: 'does like some',
-    '?|': 'json-does some exist (?|)',
-    '?&': 'json-does all exist (?&)',
-    'j-a': 'json-subtract all (-)',
-    bt: 'is between',
-    qry: 'sub-query',
-    exists: 'row exists in sub-query'
-} as const;
-const toReservedExpressionKeyDescription = (key: ReservedExpressionKey) => ReservedExpressionKeyDescriptionDic[key];
+const toReservedExpressionKeyDescription = (
+    v: (typeof ReservedExpressionKeys)[Exclude<keyof typeof ReservedExpressionKeys, keyof unknown[]>]
+) => {
+    switch (v) {
+        case 'val':
+            return 'wrapped value';
+        case '=n':
+            return 'is null';
+        case '!=n':
+            return 'is not null';
+        case '=t':
+            return 'is true';
+        case '=f':
+            return 'is false';
+        case 'not':
+            return 'not of';
+        case '+':
+            return 'sum';
+        case '-':
+            return 'minus';
+        case '*':
+            return 'multiply';
+        case '/':
+            return 'divide';
+        case '||':
+            return 'concat';
+        case 'and':
+            return 'logical and';
+        case 'or':
+            return 'logical or';
+        case '**':
+            return 'power';
+        case 'fun':
+            return 'function';
+        case 'swt':
+            return 'switch statement';
+        case 'col':
+            return 'column';
+        case 'raw':
+            return 'raw statement';
+        case '=':
+            return 'is equal';
+        case '!=':
+            return 'is not equal';
+        case '>':
+            return 'is greater than';
+        case '>=':
+            return 'is greater-equal than';
+        case '<':
+            return 'is less than';
+        case '<=':
+            return 'is less-equal than';
+        case 'lk':
+            return 'does like';
+        case '@>':
+            return 'json-contain (@>)';
+        case '<@':
+            return 'json-contain (<@)';
+        case '?':
+            return 'json-exist (?)';
+        case 'j-':
+            return 'json-subtract (-)';
+        case 'in':
+            return 'is inside of';
+        case 'nin':
+            return 'is not inside of';
+        case 'lka':
+            return 'does like all';
+        case 'lks':
+            return 'does like some';
+        case '?|':
+            return 'json-does some exist (?|)';
+        case '?&':
+            return 'json-does all exist (?&)';
+        case 'j-a':
+            return 'json-subtract all (-)';
+        case 'bt':
+            return 'is between';
+        case 'qry':
+            return 'sub-query';
+        case 'exists':
+            return 'row exists in sub-query';
+    }
+};
 
 export {
-    type ReservedExpressionKey,
-    ReservedExpressionKeys,
-    TransactionIsolationLevelDic,
     toTransactionMode,
-    OrderDirectionDic,
     toOrderDirection,
-    JoinTypDic,
     toJoinType,
-    PostgresTypeDic,
     toPostgresType,
-    ReferenceActionDic,
     toReferenceAction,
-    ReservedExpressionKeyDescriptionDic,
     toReservedExpressionKeyDescription
 };

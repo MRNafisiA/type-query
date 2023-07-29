@@ -1,13 +1,9 @@
-import * as U from './utils';
-import { Table } from './types/Table';
-import { CustomTypeMap } from './types/TypeMapper';
-import { Context, ContextScope } from './types/Context';
+import { U } from './U';
+import { Table } from './types/table';
+import { Context, ContextScope } from './types/context';
 
-const createContext = <T extends Table, CTypeMap extends CustomTypeMap<T['columns']>>(
-    table: T,
-    alias: string = ''
-): Context<T['columns'], CTypeMap> => {
-    const contextScopeHelper = createContextScopeHelper<T, CTypeMap>(table);
+const createContext = <T extends Table>(table: T, alias: string = ''): Context<T['columns']> => {
+    const contextScopeHelper = createContextScopeHelper(table);
     return {
         col: (column, _alias = alias) => U.col(table, column, !!_alias, _alias),
         colNull: (column, op, _alias = alias) => U.nullOp(U.col(table, column, !!_alias, _alias) as any, op),
@@ -25,8 +21,8 @@ const createContext = <T extends Table, CTypeMap extends CustomTypeMap<T['column
 };
 
 const createContextScopeHelper =
-    <T extends Table, CTypeMap extends CustomTypeMap<T['columns']>>(table: T) =>
-    (rules: Parameters<ContextScope<T['columns'], CTypeMap>>[0], alias: string) =>
+    <T extends Table>(table: T) =>
+    (rules: Parameters<ContextScope<T['columns']>>[0], alias: string) =>
         Object.entries(rules).map(([key, value]: [keyof T['columns'] & string, any[]]) => {
             switch (value[0]) {
                 case '= null':
@@ -49,11 +45,11 @@ const createContextScopeHelper =
                 case 'like all':
                 case 'like some':
                     return U.likeOp(U.col(table, key, !!alias, alias) as any, value[0], value[1]);
-                case '?':
                 case '@>':
                 case '<@':
-                case '?|':
+                case '?':
                 case '?&':
+                case '?|':
                     return U.jsonOp(U.col(table, key, !!alias, alias) as any, value[0], value[1]);
             }
             throw `do not except this. first element must be a reserved key. ${JSON.stringify(value)}`;

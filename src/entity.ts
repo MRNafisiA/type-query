@@ -1,50 +1,51 @@
+import { U } from './U';
 import { ClientBase } from 'pg';
 import Decimal from 'decimal.js';
 import { createContext } from './context';
-import type { Table } from './types/Table';
-import type { Column } from './types/Table';
-import type { Context } from './types/Context';
-import { CustomTypeMap } from './types/TypeMapper';
+import type { Table } from './types/table';
+import type { Column } from './types/table';
+import type { Context } from './types/context';
 import { ok, err, type Result } from 'never-catch';
 import { OrderDirection, PostgresType } from './types/postgres';
-import {
-    ReservedExpressionKeys,
-    toJoinType,
-    toOrderDirection,
-    toReservedExpressionKeyDescription as toDescription
-} from './dictionary';
+import { toJoinType, toOrderDirection, toReservedExpressionKeyDescription as toDescription } from './dictionary';
 import type {
     Mode,
     Param,
     Expression,
+    ExpressionTypes,
     InsertValue,
     CustomColumn,
     NullableAndDefaultColumns,
     QueryData,
     Query,
     QueryResult,
+    PartialQuery,
     UpdateSets,
     JoinType,
     TablesColumnsKeys,
     TableWithAlias,
     JoinData,
     AliasedColumns
-} from './types/Entity';
+} from './types/entity';
 
 // entity
-const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns']>>(table: T) =>
+const createEntity = <T extends Table>(table: T) =>
     ({
         table: table,
-        context: createContext<T, CTypeMap>(table),
-        select: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression, string>)[]>(
-            returning: R | ((context: Context<T['columns'], CTypeMap>) => R),
-            where: boolean | ((context: Context<T['columns'], CTypeMap>) => boolean),
+        context: createContext(table),
+        select: function <
+            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
+        >(
+            returning: R | ((context: Context<T['columns']>) => R),
+            where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
             options?: {
                 ignoreInWhere?: boolean;
                 ignoreInReturning?: boolean;
                 ignoreInGroupBy?: boolean;
                 distinct?: boolean;
-                groupBy?: Expression[] | ((context: Context<T['columns'], CTypeMap>) => Expression[]);
+                groupBy?:
+                    | Expression<ExpressionTypes>[]
+                    | ((context: Context<T['columns']>) => Expression<ExpressionTypes>[]);
                 orders?: { by: keyof T['columns'] & string; direction: OrderDirection }[];
                 start?: bigint;
                 step?: number;
@@ -80,7 +81,7 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                     return err(`<select> -> ${resolvedReturning.error}`);
                 }
                 params.push(...resolvedReturning.value.params);
-                tokens.push(resolvedReturning.value.sql);
+                tokens.push(resolvedReturning.value.text);
 
                 // from
                 tokens.push(`FROM "${table.schema}"."${table.title}"`);
@@ -94,11 +95,11 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                 if (!resolvedWhereResult.ok) {
                     return err(`<select>[where] -> ${resolvedWhereResult.error}`);
                 }
-                if (resolvedWhereResult.value.sql === '' && !ignoreInWhere) {
+                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
                     return err(`<select>[where] -> neutral`);
                 }
                 params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.sql === '' ? 'TRUE' : resolvedWhereResult.value.sql);
+                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'TRUE' : resolvedWhereResult.value.text);
 
                 // groupBy
                 const _groupBy = typeof groupBy === 'function' ? groupBy(this.context) : groupBy;
@@ -110,7 +111,7 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                             return err(`<select> -> ${resolvedGroupBy.error}`);
                         }
                         params.push(...resolvedGroupBy.value.params);
-                        groupByTextArray.push(resolvedGroupBy.value.sql);
+                        groupByTextArray.push(resolvedGroupBy.value.text);
                     }
                     tokens.push('GROUP BY', groupByTextArray.join(', '));
                 }
@@ -144,20 +145,18 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
 
                 return ok({ sql, params });
             };
-            return createQueryResult<T['columns'], R, CTypeMap>(
+            return createQueryResult<T['columns'], R>(
                 column => [table.columns[column].type, table.columns[column].nullable],
                 createQuery,
                 _returning
             );
         },
         insert: function <
-            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression, string>)[],
+            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[],
             N extends readonly (keyof NullableAndDefaultColumns<T['columns']>)[] = []
         >(
-            rows:
-                | InsertValue<T['columns'], N, CTypeMap>[]
-                | ((context: Context<T['columns'], CTypeMap>) => InsertValue<T['columns'], N, CTypeMap>[]),
-            returning: R | ((context: Context<T['columns'], CTypeMap>) => R),
+            rows: InsertValue<T['columns'], N>[] | ((context: Context<T['columns']>) => InsertValue<T['columns'], N>[]),
+            returning: R | ((context: Context<T['columns']>) => R),
             options?: {
                 nullableDefaultColumns?: N;
                 ignoreInValues?: boolean;
@@ -197,7 +196,7 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                             const column = table.columns[insertingColumn];
                             switch (column.default) {
                                 case 'value':
-                                    rowTokens.push(stringify((column as any).value, true));
+                                    rowTokens.push(U.stringify((column as any).value, true));
                                     continue;
                                 case true:
                                 case 'auto-increment':
@@ -205,11 +204,11 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                                     continue;
                                 case 'created-at':
                                 case 'updated-at':
-                                    rowTokens.push(stringify(new Date(), true));
+                                    rowTokens.push(U.stringify(new Date(), true));
                                     continue;
                             }
                             if (column.nullable) {
-                                rowTokens.push(stringify(null));
+                                rowTokens.push(U.stringify(null));
                                 continue;
                             }
                             // never going to happen!
@@ -227,11 +226,11 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                                     }`
                                 );
                             }
-                            if (resolvedExpressionResult.value.sql === '') {
+                            if (resolvedExpressionResult.value.text === '') {
                                 return err(`<insert>[rows][${_rows.indexOf(_row)}][${insertingColumn}] -> neutral`);
                             }
                             params.push(...resolvedExpressionResult.value.params);
-                            rowTokens.push(resolvedExpressionResult.value.sql);
+                            rowTokens.push(resolvedExpressionResult.value.text);
                         }
                     }
                     valuesTextArray.push(`( ${rowTokens.join(', ')} )`);
@@ -250,7 +249,7 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                         return err(`<insert> -> ${resolvedReturning.error}`);
                     }
                     params.push(...resolvedReturning.value.params);
-                    tokens.push('RETURNING', resolvedReturning.value.sql);
+                    tokens.push('RETURNING', resolvedReturning.value.text);
                 }
 
                 tokens.push(';');
@@ -258,18 +257,18 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
 
                 return ok({ sql, params });
             };
-            return createQueryResult<T['columns'], R, CTypeMap>(
+            return createQueryResult<T['columns'], R>(
                 column => [table.columns[column].type, table.columns[column].nullable],
                 createQuery,
                 _returning
             );
         },
-        update: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression, string>)[]>(
-            sets:
-                | UpdateSets<T['columns'], CTypeMap>
-                | ((context: Context<T['columns'], CTypeMap>) => UpdateSets<T['columns'], CTypeMap>),
-            where: boolean | ((context: Context<T['columns'], CTypeMap>) => boolean),
-            returning: R | ((context: Context<T['columns'], CTypeMap>) => R),
+        update: function <
+            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
+        >(
+            sets: UpdateSets<T['columns']> | ((context: Context<T['columns']>) => UpdateSets<T['columns']>),
+            where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
+            returning: R | ((context: Context<T['columns']>) => R),
             options?: {
                 ignoreInSets?: boolean;
                 ignoreInWhere?: boolean;
@@ -290,11 +289,11 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                 const setsTextArray = [];
                 let key: keyof typeof _set & string;
                 for (key in _set) {
-                    const setExpressionResult = resolveExpression(_set[key]!, params.length + 1, ignoreInSets);
+                    const setExpressionResult = resolveExpression(_set[key], params.length + 1, ignoreInSets);
                     if (!setExpressionResult.ok) {
                         return err(`<update>[sets][${key}] -> ${setExpressionResult.error}`);
                     }
-                    if (setExpressionResult.value.sql === '') {
+                    if (setExpressionResult.value.text === '') {
                         if (ignoreInSets) {
                             continue;
                         } else {
@@ -302,13 +301,13 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                         }
                     }
                     params.push(...setExpressionResult.value.params);
-                    setsTextArray.push(`${resolveColumn(table, key, false)} = ${setExpressionResult.value.sql}`);
+                    setsTextArray.push(`${resolveColumn(table, key, false)} = ${setExpressionResult.value.text}`);
                 }
                 for (const column in table.columns) {
                     switch (table.columns[column].default) {
                         case 'updated-at':
                             setsTextArray.push(
-                                `${resolveColumn(table, column, false)} = ${stringify(new Date(), true)}`
+                                `${resolveColumn(table, column, false)} = ${U.stringify(new Date(), true)}`
                             );
                             break;
                     }
@@ -327,11 +326,11 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                 if (!resolvedWhereResult.ok) {
                     return err(`<update>[where] -> ${resolvedWhereResult.error}`);
                 }
-                if (resolvedWhereResult.value.sql === '' && !ignoreInWhere) {
+                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
                     return err(`<update>[where] -> neutral`);
                 }
                 params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.sql === '' ? 'FALSE' : resolvedWhereResult.value.sql);
+                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
 
                 // returning
                 if (_returning.length !== 0) {
@@ -345,7 +344,7 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                         return err(`<update> -> ${resolvedReturning.error}`);
                     }
                     params.push(...resolvedReturning.value.params);
-                    tokens.push('RETURNING', resolvedReturning.value.sql);
+                    tokens.push('RETURNING', resolvedReturning.value.text);
                 }
 
                 tokens.push(';');
@@ -353,15 +352,17 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
 
                 return ok({ sql, params });
             };
-            return createQueryResult<T['columns'], R, CTypeMap>(
+            return createQueryResult<T['columns'], R>(
                 column => [table.columns[column].type, table.columns[column].nullable],
                 createQuery,
                 _returning
             );
         },
-        delete: function <R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression, string>)[]>(
-            where: boolean | ((context: Context<T['columns'], CTypeMap>) => boolean),
-            returning: R | ((context: Context<T['columns'], CTypeMap>) => R),
+        delete: function <
+            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
+        >(
+            where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
+            returning: R | ((context: Context<T['columns']>) => R),
             options?: {
                 ignoreInWhere?: boolean;
                 ignoreInReturning?: boolean;
@@ -384,11 +385,11 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                 if (!resolvedWhereResult.ok) {
                     return err(`<delete>[where] -> ${resolvedWhereResult.error}`);
                 }
-                if (resolvedWhereResult.value.sql === '' && !ignoreInWhere) {
+                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
                     return err(`<delete>[where] -> neutral`);
                 }
                 params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.sql === '' ? 'FALSE' : resolvedWhereResult.value.sql);
+                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
 
                 // returning
                 if (_returning.length !== 0) {
@@ -402,7 +403,7 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
                         return err(`<delete> -> ${resolvedReturning.error}`);
                     }
                     params.push(...resolvedReturning.value.params);
-                    tokens.push('RETURNING', resolvedReturning.value.sql);
+                    tokens.push('RETURNING', resolvedReturning.value.text);
                 }
 
                 tokens.push(';');
@@ -410,34 +411,26 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
 
                 return ok({ sql, params });
             };
-            return createQueryResult<T['columns'], R, CTypeMap>(
+            return createQueryResult<T['columns'], R>(
                 column => [table.columns[column].type, table.columns[column].nullable],
                 createQuery,
                 _returning
             );
         },
-        join: <
-            MainAlias extends string,
-            JTable extends Table,
-            JAlias extends string,
-            JCTypeMap extends CustomTypeMap<JTable['columns']>
-        >(
+        join: <MainAlias extends string, JTable extends Table, JAlias extends string>(
             mainAlias: MainAlias,
             joinType: JoinType,
             joinTable: JTable,
             joinAlias: JAlias,
             on:
-                | boolean
+                | Expression<boolean>
                 | ((
-                      contexts: Record<MainAlias, Context<T['columns'], CTypeMap>> &
-                          Record<JAlias, Context<JTable['columns'], JCTypeMap>>
-                  ) => boolean)
+                contexts: Record<MainAlias, Context<T['columns']>> & Record<JAlias, Context<JTable['columns']>>
+            ) => Expression<boolean>)
         ) =>
             createJoinSelectEntity<
                 Record<MainAlias, T> & Record<JAlias, JTable>,
-                Record<MainAlias, CTypeMap> & Record<JAlias, JCTypeMap>,
-                AliasedColumns<T['columns'], MainAlias> & AliasedColumns<JTable['columns'], JAlias>,
-                CustomTypeMap<AliasedColumns<T['columns'], MainAlias> & AliasedColumns<JTable['columns'], JAlias>>
+                AliasedColumns<T['columns'], MainAlias> & AliasedColumns<JTable['columns'], JAlias>
             >({ table, alias: mainAlias }, [{ table: joinTable, joinType, alias: joinAlias, on: on as any }], {
                 [mainAlias]: createContext(table, mainAlias),
                 [joinAlias]: createContext(joinTable, joinAlias)
@@ -445,26 +438,22 @@ const createEntity = <T extends Table, CTypeMap extends CustomTypeMap<T['columns
     } as const);
 
 const createJoinSelectEntity = <
-    TablesData extends Record<string, Table>,
-    CTypeMapData extends Record<keyof TablesData, CustomTypeMap<any>>,
-    AllColumns extends Record<string, Column>,
-    AllCTypeMapData extends CustomTypeMap<AllColumns>
+    TablesData extends { [key: string]: Table },
+    AllColumns extends { [key: string]: Column }
 >(
     main: TableWithAlias,
     joinTables: (TableWithAlias & JoinData)[],
-    contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns'], CTypeMapData[t]> }
+    contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }
 ) =>
     ({
-        contexts,
-        select: function <R extends readonly (TablesColumnsKeys<TablesData> | CustomColumn<Expression, string>)[]>(
-            returning:
-                | R
-                | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns'], CTypeMapData[t]> }) => R),
+        contexts: contexts,
+        select: function <
+            R extends readonly (TablesColumnsKeys<TablesData> | CustomColumn<Expression<ExpressionTypes>, string>)[]
+        >(
+            returning: R | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }) => R),
             where:
-                | boolean
-                | ((contexts: {
-                      [t in keyof TablesData]: Context<TablesData[t]['columns'], CTypeMapData[t]>;
-                  }) => boolean),
+                | Expression<boolean>
+                | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }) => Expression<boolean>),
             options?: {
                 ignoreInWhere?: boolean;
                 ignoreInReturning?: boolean;
@@ -472,13 +461,10 @@ const createJoinSelectEntity = <
                 ignoreInGroupBy?: boolean;
                 distinct?: boolean;
                 groupBy?:
-                    | Expression[]
+                    | Expression<ExpressionTypes>[]
                     | ((contexts: {
-                          [t in keyof TablesData]: Context<
-                              TablesData[t]['columns'],
-                              CTypeMapData[t & keyof CTypeMapData]
-                          >;
-                      }) => Expression[]);
+                    [t in keyof TablesData]: Context<TablesData[t]['columns']>;
+                }) => Expression<ExpressionTypes>[]);
                 orders?: { by: TablesColumnsKeys<TablesData>; direction: OrderDirection }[];
                 start?: bigint;
                 step?: number;
@@ -521,14 +507,14 @@ const createJoinSelectEntity = <
                 }
                 params.push(...resolvedReturning.value.params);
                 tokens.push(
-                    resolvedReturning.value.sql,
+                    resolvedReturning.value.text,
                     `FROM "${main.table.schema}"."${main.table.title}" "${main.alias}"`
                 );
 
                 // join
                 for (const joinTable of joinTables) {
                     const onExpressionResult = resolveExpression(
-                        typeof joinTable.on === 'function' ? joinTable.on(this.contexts as any) : joinTable.on,
+                        typeof joinTable.on === 'function' ? joinTable.on(this.contexts) : joinTable.on,
                         params.length + 1,
                         ignoreInJoin
                     );
@@ -537,14 +523,14 @@ const createJoinSelectEntity = <
                             `<join-select>[join][${joinTables.indexOf(joinTable)}] -> ${onExpressionResult.error}`
                         );
                     }
-                    if (onExpressionResult.value.sql === '' && !ignoreInJoin) {
+                    if (onExpressionResult.value.text === '' && !ignoreInJoin) {
                         return err(`<join-select>[join][${joinTables.indexOf(joinTable)}] -> neutral`);
                     }
                     params.push(...onExpressionResult.value.params);
                     tokens.push(
                         `${toJoinType(joinTable.joinType)} "${joinTable.table.schema}"."${joinTable.table.title}" "${
                             joinTable.alias
-                        }" ON ${onExpressionResult.value.sql}`
+                        }" ON ${onExpressionResult.value.text}`
                     );
                 }
 
@@ -557,11 +543,11 @@ const createJoinSelectEntity = <
                 if (!resolvedWhereResult.ok) {
                     return err(`<join-select>[where] -> ${resolvedWhereResult.error}`);
                 }
-                if (resolvedWhereResult.value.sql === '' && !ignoreInWhere) {
+                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
                     return err(`<join-select>[where] -> neutral`);
                 }
                 params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.sql === '' ? 'FALSE' : resolvedWhereResult.value.sql);
+                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
 
                 // groupBy
                 const _groupBy = typeof groupBy === 'function' ? groupBy(this.contexts) : groupBy;
@@ -573,7 +559,7 @@ const createJoinSelectEntity = <
                             return err(`<join-select> -> ${resolvedGroupBy.error}`);
                         }
                         params.push(...resolvedGroupBy.value.params);
-                        groupByTextArray.push(resolvedGroupBy.value.sql);
+                        groupByTextArray.push(resolvedGroupBy.value.text);
                     }
                     tokens.push('GROUP BY', groupByTextArray.join(', '));
                 }
@@ -607,7 +593,7 @@ const createJoinSelectEntity = <
 
                 return ok({ sql, params });
             };
-            return createQueryResult<AllColumns, R, AllCTypeMapData>(
+            return createQueryResult<AllColumns, R>(
                 column => {
                     const {
                         alias,
@@ -620,45 +606,81 @@ const createJoinSelectEntity = <
                 _returning
             );
         },
-        join: function <
-            JTable extends Table,
-            JAlias extends string,
-            JCTypeMap extends CustomTypeMap<JTable['columns']>
-        >(
+        join: function <JTable extends Table, JAlias extends string>(
             joinType: JoinType,
             joinTable: JTable,
             joinAlias: JAlias,
             on:
-                | boolean
+                | Expression<boolean>
                 | ((
-                      contexts: {
-                          [t in keyof TablesData]: Context<TablesData[t]['columns'], CTypeMapData[t]>;
-                      } & Record<JAlias, Context<JTable['columns'], JCTypeMap>>
-                  ) => boolean)
+                contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> } & Record<
+                    JAlias,
+                    Context<JTable['columns']>
+                >
+            ) => Expression<boolean>)
         ) {
             joinTables.push({ table: joinTable, on: on as any, joinType, alias: joinAlias });
             return createJoinSelectEntity<
                 TablesData & Record<JAlias, JTable>,
-                CTypeMapData & Record<JAlias, JCTypeMap>,
-                AllColumns & AliasedColumns<JTable['columns'], JAlias>,
-                CustomTypeMap<AllColumns & AliasedColumns<JTable['columns'], JAlias>>
+                AllColumns & AliasedColumns<JTable['columns'], JAlias>
             >(main, joinTables, {
                 ...contexts,
-                [joinAlias]: createContext(joinTable, joinAlias) as any
+                [joinAlias]: createContext(joinTable, joinAlias)
             });
         }
     } as const);
 
 // utils
+const ReservedExpressionKeys = [
+    'val',
+    '=n',
+    '!=n',
+    '=t',
+    '=f',
+    'not',
+    '+',
+    '-',
+    '*',
+    '/',
+    '||',
+    'and',
+    'or',
+    '**',
+    'fun',
+    'swt',
+    'col',
+    'raw',
+    '=',
+    '!=',
+    '>',
+    '>=',
+    '<',
+    '<=',
+    'lk',
+    '@>',
+    '<@',
+    '?',
+    'j-',
+    'in',
+    'nin',
+    'lka',
+    'lks',
+    '?|',
+    '?&',
+    'j-a',
+    'bt',
+    'qry',
+    'exists'
+] as const;
+
 const createQueryResult = <
     Columns extends Table['columns'],
-    R extends readonly ((keyof Columns & string) | CustomColumn<Expression, string>)[],
-    CTypeMap extends CustomTypeMap<Columns>
+    R extends readonly ((keyof Columns & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
 >(
     getColumnType: (column: keyof Columns & string) => [type: PostgresType, nullable: boolean],
     createQuery: (params: Param[]) => Result<QueryData, string>,
     returning: R
-): Query<Columns, R, CTypeMap> => {
+): Query<Columns, R> => {
     let query: { sql: string; params: Param[] } | undefined = undefined;
     return {
         getData: (params = []) => {
@@ -683,7 +705,7 @@ const createQueryResult = <
             }
             return client
                 .query(query.sql, query.params)
-                .then(({ rows }) => resolveResult<Columns, R, M, CTypeMap>(getColumnType, returning, rows, mode))
+                .then(({ rows }) => resolveResult<Columns, R, M>(getColumnType, returning, rows, mode))
                 .catch(e => err(e));
         }
     };
@@ -695,15 +717,14 @@ const createQueryResult = <
  */
 const resolveResult = <
     Columns extends Table['columns'],
-    C extends readonly ((keyof Columns & string) | CustomColumn<Expression, string>)[],
-    M extends Mode,
-    CTypeMap extends CustomTypeMap<Columns>
+    C extends readonly ((keyof Columns & string) | CustomColumn<Expression<ExpressionTypes>, string>)[],
+    M extends Mode
 >(
     getColumnType: (column: keyof Columns & string) => [type: PostgresType, nullable: boolean],
     columns: C,
     rows: any[],
     mode: M
-): Result<QueryResult<Columns, C, CTypeMap, M>, false> => {
+): Result<QueryResult<Columns, C, M>, false> => {
     // check size in count and get mode
     if (mode[0] === 'count') {
         return rows.length === mode[1] ? (ok(undefined) as any) : err(false);
@@ -716,7 +737,7 @@ const resolveResult = <
     rows.forEach((_, i) => {
         columns.forEach(column => {
             if (typeof column !== 'object') {
-                rows[i][column] = cast(rows[i][column], getColumnType(column));
+                rows[i][column] = U.cast(rows[i][column], getColumnType(column));
             }
         });
     });
@@ -739,10 +760,10 @@ const resolveReturning = <C extends string>(
         title?: string | undefined;
         alias?: string | undefined;
     },
-    columns: readonly (C | CustomColumn<Expression, string>)[],
+    columns: readonly (C | CustomColumn<Expression<ExpressionTypes>, string>)[],
     paramsStart: number,
     ignore: boolean
-): Result<QueryData, string> => {
+): Result<PartialQuery, string> => {
     const tokens = [];
     const params: Param[] = [];
     for (const column of columns) {
@@ -751,13 +772,13 @@ const resolveReturning = <C extends string>(
             if (!resolvedExpResult.ok) {
                 return err(`<returning>[${column.as}] -> ${resolvedExpResult.error}`);
             }
-            if (resolvedExpResult.value.sql === '') {
+            if (resolvedExpResult.value.text === '') {
                 return err(`<returning>[${column.as}] -> neutral`);
             }
             params.push(...resolvedExpResult.value.params);
             paramsStart += resolvedExpResult.value.params.length;
 
-            tokens.push(`( ${resolvedExpResult.value.sql} ) AS "${column.as}"`);
+            tokens.push(`( ${resolvedExpResult.value.text} ) AS "${column.as}"`);
         } else {
             const { type: _type, title, alias } = getColumnTypeTitleAlias(column);
             // TODO cast time with/without timezone to custom object
@@ -790,10 +811,10 @@ const resolveReturning = <C extends string>(
  * but they exist in case new errors with dynamic check added.
  */
 const resolveExpression = (
-    expression: Expression,
+    expression: Expression<ExpressionTypes>,
     paramsStart: number,
     ignore: boolean = false
-): Result<QueryData, string> => {
+): Result<PartialQuery, string> => {
     // primitive expression
     if (expression === undefined) {
         return ignore ? ok(partialQuery()) : err('undefined');
@@ -806,13 +827,13 @@ const resolveExpression = (
         typeof expression === 'number' ||
         typeof expression === 'bigint'
     ) {
-        return ok(partialQuery(`${stringify(expression, true)}`));
+        return ok(partialQuery(`${U.stringify(expression, true)}`));
     }
     if (typeof expression === 'string') {
-        return ok(partialQuery(`$${paramsStart++}`, [stringify(expression as any, false)]));
+        return ok(partialQuery(`$${paramsStart++}`, [U.stringify(expression as any, false)]));
     }
     if (!(Array.isArray(expression) && ReservedExpressionKeys.includes((expression as any[])[0]))) {
-        return ok(partialQuery(`$${paramsStart++}::jsonb`, [stringify(expression as any, false)]));
+        return ok(partialQuery(`$${paramsStart++}::jsonb`, [U.stringify(expression as any, false)]));
     }
 
     // wrapped expression
@@ -824,7 +845,7 @@ const resolveExpression = (
             if (expression[1] === undefined) {
                 return ignore ? ok(partialQuery()) : err(`<${toDescription('val')}> -> undefined`);
             }
-            params.push(stringify(expression[1], false));
+            params.push(U.stringify(expression[1], false));
             return ok(partialQuery(`$${paramsStart++}`, params));
         case '=n':
         case '!=n':
@@ -835,7 +856,7 @@ const resolveExpression = (
             if (!e1Result.ok) {
                 return err(`<${toDescription(expression[0])}> -> ${e1Result.error}`);
             }
-            if (e1Result.value.sql === '') {
+            if (e1Result.value.text === '') {
                 return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}> -> neutral`);
             }
             params.push(...e1Result.value.params);
@@ -843,14 +864,14 @@ const resolveExpression = (
 
             switch (expression[0]) {
                 case '=n':
-                    return ok(partialQuery(`${e1Result.value.sql} IS NULL`, params));
+                    return ok(partialQuery(`${e1Result.value.text} IS NULL`, params));
                 case '!=n':
-                    return ok(partialQuery(`${e1Result.value.sql} IS NOT NULL`, params));
+                    return ok(partialQuery(`${e1Result.value.text} IS NOT NULL`, params));
                 case '=t':
-                    return ok(partialQuery(`${e1Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text}`, params));
                 case '=f':
                 case 'not':
-                    return ok(partialQuery(`NOT ${e1Result.value.sql}`, params));
+                    return ok(partialQuery(`NOT ${e1Result.value.text}`, params));
             }
         case '+':
         case '-':
@@ -860,6 +881,9 @@ const resolveExpression = (
         case 'and':
         case 'or':
         case '**':
+            if (expression[1] === undefined) {
+                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}> -> undefined`);
+            }
             for (const v1 of expression[1] as any[]) {
                 const v1Result = resolveExpression(v1, paramsStart, ignore);
                 if (!v1Result.ok) {
@@ -869,7 +893,7 @@ const resolveExpression = (
                         }`
                     );
                 }
-                if (v1Result.value.sql === '') {
+                if (v1Result.value.text === '') {
                     if (ignore) {
                         continue;
                     } else {
@@ -881,7 +905,7 @@ const resolveExpression = (
                 params.push(...v1Result.value.params);
                 paramsStart += v1Result.value.params.length;
 
-                tokens.push(v1Result.value.sql);
+                tokens.push(v1Result.value.text);
             }
             switch (tokens.length) {
                 case 0:
@@ -907,15 +931,20 @@ const resolveExpression = (
                         case '**':
                             const tmp = tokens.pop();
                             tokens.splice(0, 0, 'a');
-                            return ok(
-                                partialQuery(
+                            return ok({
+                                text:
                                     tokens.join(', power( ').substring(3) + ', ' + tmp + ' )'.repeat(tokens.length - 1),
-                                    params
-                                )
-                            );
+                                params
+                            });
                     }
             }
         case 'fun':
+            if (expression[1] === undefined) {
+                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[name] -> undefined`);
+            }
+            if (expression[2] === undefined) {
+                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[parameters] -> undefined`);
+            }
             for (const v2 of expression[2] as any[]) {
                 const v2Result = resolveExpression(v2, paramsStart, ignore);
                 if (!v2Result.ok) {
@@ -925,84 +954,94 @@ const resolveExpression = (
                         }`
                     );
                 }
-                if (v2Result.value.sql === '') {
+                if (v2Result.value.text === '') {
                     return ignore
                         ? ok(partialQuery())
                         : err(
-                              `<${toDescription(expression[0])}>[parameters][${(expression[2] as any[]).indexOf(
-                                  v2
-                              )}] -> neutral`
-                          );
+                            `<${toDescription(expression[0])}>[parameters][${(expression[2] as any[]).indexOf(
+                                v2
+                            )}] -> neutral`
+                        );
                 }
                 params.push(...v2Result.value.params);
                 paramsStart += v2Result.value.params.length;
 
-                tokens.push(v2Result.value.sql);
+                tokens.push(v2Result.value.text);
             }
             return ok(partialQuery(`${expression[1]}( ${tokens.join(', ')} )${expression[3]}`, params));
         case 'swt':
-            const cases = expression[1] as any[];
+            const cases = expression[1] as any[] | undefined;
             const otherwise = expression[2] as any;
-            for (const caseElement of cases) {
-                if (caseElement === undefined) {
-                    if (ignore) {
-                        continue;
-                    } else {
+            if (cases === undefined) {
+                if (!ignore) {
+                    return err(`<${toDescription(expression[0])}>[cases] -> undefined`);
+                }
+            } else {
+                for (const caseElement of cases) {
+                    if (caseElement === undefined) {
+                        if (ignore) {
+                            continue;
+                        } else {
+                            return err(
+                                `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}] -> undefined`
+                            );
+                        }
+                    }
+
+                    const whenResult = resolveExpression(caseElement.when, paramsStart, ignore);
+                    if (!whenResult.ok) {
                         return err(
-                            `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}] -> undefined`
+                            `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][when] -> ${
+                                whenResult.error
+                            }`
                         );
                     }
-                }
+                    if (whenResult.value.text === '') {
+                        if (ignore) {
+                            continue;
+                        } else {
+                            return err(
+                                `<${toDescription(expression[0])}>[cases][${cases.indexOf(
+                                    caseElement
+                                )}][when] -> neutral`
+                            );
+                        }
+                    }
+                    params.push(...whenResult.value.params);
+                    paramsStart += whenResult.value.params.length;
 
-                const whenResult = resolveExpression(caseElement.when, paramsStart, ignore);
-                if (!whenResult.ok) {
-                    return err(
-                        `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][when] -> ${
-                            whenResult.error
-                        }`
-                    );
-                }
-                if (whenResult.value.sql === '') {
-                    if (ignore) {
-                        continue;
-                    } else {
+                    const thenResult = resolveExpression(caseElement.then, paramsStart, ignore);
+                    if (!thenResult.ok) {
                         return err(
-                            `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][when] -> neutral`
+                            `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][then] -> ${
+                                thenResult.error
+                            }`
                         );
                     }
-                }
-                params.push(...whenResult.value.params);
-                paramsStart += whenResult.value.params.length;
-
-                const thenResult = resolveExpression(caseElement.then, paramsStart, ignore);
-                if (!thenResult.ok) {
-                    return err(
-                        `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][then] -> ${
-                            thenResult.error
-                        }`
-                    );
-                }
-                if (thenResult.value.sql === '') {
-                    if (ignore) {
-                        continue;
-                    } else {
-                        return err(
-                            `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][then] -> neutral`
-                        );
+                    if (thenResult.value.text === '') {
+                        if (ignore) {
+                            continue;
+                        } else {
+                            return err(
+                                `<${toDescription(expression[0])}>[cases][${cases.indexOf(
+                                    caseElement
+                                )}][then] -> neutral`
+                            );
+                        }
                     }
-                }
-                params.push(...thenResult.value.params);
-                paramsStart += thenResult.value.params.length;
+                    params.push(...thenResult.value.params);
+                    paramsStart += thenResult.value.params.length;
 
-                if (tokens.length === 0) {
-                    tokens.push('CASE');
+                    if (tokens.length === 0) {
+                        tokens.push('CASE');
+                    }
+                    tokens.push(`WHEN ${whenResult.value.text} THEN ${thenResult.value.text}`);
                 }
-                tokens.push(`WHEN ${whenResult.value.sql} THEN ${thenResult.value.sql}`);
+            }
+            if (tokens.length === 0 && !ignore) {
+                return err(`<${toDescription(expression[0])}>[cases] -> empty`);
             }
             if (otherwise === undefined) {
-                if (!ignore) {
-                    return err(`<${toDescription(expression[0])}>[otherwise] -> undefined`);
-                }
                 if (tokens.length === 0) {
                     return ok(partialQuery());
                 } else {
@@ -1015,7 +1054,7 @@ const resolveExpression = (
                 if (!otherwiseResult.ok) {
                     return err(`<${toDescription(expression[0])}>[otherwise] -> ${otherwiseResult.error}`);
                 }
-                if (otherwiseResult.value.sql === '') {
+                if (otherwiseResult.value.text === '') {
                     if (ignore) {
                         isOtherwiseNeutral = true;
                     } else {
@@ -1029,11 +1068,11 @@ const resolveExpression = (
                     if (isOtherwiseNeutral) {
                         return ok(partialQuery());
                     } else {
-                        tokens.push(otherwiseResult.value.sql);
+                        tokens.push(otherwiseResult.value.text);
                     }
                 } else {
                     if (!isOtherwiseNeutral) {
-                        tokens.push('ELSE', otherwiseResult.value.sql);
+                        tokens.push('ELSE', otherwiseResult.value.text);
                     }
                     tokens.push('END');
                 }
@@ -1044,11 +1083,12 @@ const resolveExpression = (
             return ok(partialQuery(`${expression[1]}`));
         case 'qry':
         case 'exists':
-            const subQueryDataResult = (expression[1] as unknown as Query<any, any, any>).getData(params);
+            const subQueryDataResult = (expression[1] as unknown as Query<any, any>).getData(params);
             if (!subQueryDataResult.ok) {
                 return err(`<${toDescription(expression[0])}> -> ${subQueryDataResult.error}`);
             }
             paramsStart += subQueryDataResult.value.params.length;
+            subQueryDataResult.value.sql = subQueryDataResult.value.sql.substring(0, subQueryDataResult.value.sql.length - 1);
 
             switch (expression[0]) {
                 case 'qry':
@@ -1071,7 +1111,7 @@ const resolveExpression = (
             if (!e1Result.ok) {
                 return err(`<${toDescription(expression[0])}>[first operand] -> ${e1Result.error}`);
             }
-            if (e1Result.value.sql === '') {
+            if (e1Result.value.text === '') {
                 return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[first operand] -> netural`);
             }
             params.push(...e1Result.value.params);
@@ -1081,7 +1121,7 @@ const resolveExpression = (
             if (!e2Result.ok) {
                 return err(`<${toDescription(expression[0])}>[second operand] -> ${e2Result.error}`);
             }
-            if (e2Result.value.sql === '') {
+            if (e2Result.value.text === '') {
                 return ignore
                     ? ok(partialQuery())
                     : err(`<${toDescription(expression[0])}>[second operand] -> netural`);
@@ -1091,27 +1131,27 @@ const resolveExpression = (
 
             switch (expression[0]) {
                 case '=':
-                    return ok(partialQuery(`${e1Result.value.sql} = ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} = ${e2Result.value.text}`, params));
                 case '!=':
-                    return ok(partialQuery(`${e1Result.value.sql} <> ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} <> ${e2Result.value.text}`, params));
                 case '>':
-                    return ok(partialQuery(`${e1Result.value.sql} > ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} > ${e2Result.value.text}`, params));
                 case '>=':
-                    return ok(partialQuery(`${e1Result.value.sql} >= ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} >= ${e2Result.value.text}`, params));
                 case '<':
-                    return ok(partialQuery(`${e1Result.value.sql} < ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} < ${e2Result.value.text}`, params));
                 case '<=':
-                    return ok(partialQuery(`${e1Result.value.sql} <= ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} <= ${e2Result.value.text}`, params));
                 case 'lk':
-                    return ok(partialQuery(`${e1Result.value.sql} LIKE ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} LIKE ${e2Result.value.text}`, params));
                 case '@>':
-                    return ok(partialQuery(`${e1Result.value.sql} @> ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} @> ${e2Result.value.text}`, params));
                 case '<@':
-                    return ok(partialQuery(`${e1Result.value.sql} <@ ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} <@ ${e2Result.value.text}`, params));
                 case '?':
-                    return ok(partialQuery(`${e1Result.value.sql} ? ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} ? ${e2Result.value.text}`, params));
                 case 'j-':
-                    return ok(partialQuery(`${e1Result.value.sql} - ${e2Result.value.sql}`, params));
+                    return ok(partialQuery(`${e1Result.value.text} - ${e2Result.value.text}`, params));
             }
         case 'in':
         case 'nin':
@@ -1124,12 +1164,17 @@ const resolveExpression = (
             if (!e1Result.ok) {
                 return err(`<${toDescription(expression[0])}>[first operand] -> ${e1Result.error}`);
             }
-            if (e1Result.value.sql === '') {
+            if (e1Result.value.text === '') {
                 return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[first operand] -> netural`);
             }
             params.push(...e1Result.value.params);
             paramsStart += e1Result.value.params.length;
 
+            if (expression[2] === undefined) {
+                return ignore
+                    ? ok(partialQuery())
+                    : err(`<${toDescription(expression[0])}>[second operand] -> undefined`);
+            }
             for (const v2 of expression[2] as any[]) {
                 const v2Result = resolveExpression(v2, paramsStart, ignore);
                 if (!v2Result.ok) {
@@ -1139,7 +1184,7 @@ const resolveExpression = (
                         )}] -> ${v2Result.error}`
                     );
                 }
-                if (v2Result.value.sql === '') {
+                if (v2Result.value.text === '') {
                     if (ignore) {
                         continue;
                     } else {
@@ -1153,7 +1198,7 @@ const resolveExpression = (
                 params.push(...v2Result.value.params);
                 paramsStart += v2Result.value.params.length;
 
-                tokens.push(v2Result.value.sql);
+                tokens.push(v2Result.value.text);
             }
 
             switch (tokens.length) {
@@ -1164,40 +1209,43 @@ const resolveExpression = (
                 case 1:
                     switch (expression[0]) {
                         case 'in':
-                            return ok(partialQuery(`${e1Result.value.sql} = ${tokens[0]}`, params));
+                            return ok(partialQuery(`${e1Result.value.text} = ${tokens[0]}`, params));
                         case 'nin':
-                            return ok(partialQuery(`${e1Result.value.sql} <> ${tokens[0]}`, params));
+                            return ok(partialQuery(`${e1Result.value.text} <> ${tokens[0]}`, params));
                         case 'lka':
-                            return ok(partialQuery(`${e1Result.value.sql} LIKE ${tokens[0]}`, params));
+                            return ok(partialQuery(`${e1Result.value.text} LIKE ${tokens[0]}`, params));
                         case 'lks':
-                            return ok(partialQuery(`${e1Result.value.sql} LIKE ${tokens[0]}`, params));
+                            return ok(partialQuery(`${e1Result.value.text} LIKE ${tokens[0]}`, params));
                         case '?|':
-                            return ok(partialQuery(`${e1Result.value.sql} ? ${tokens[0]}`, params));
+                            return ok(partialQuery(`${e1Result.value.text} ? ${tokens[0]}`, params));
                         case '?&':
-                            return ok(partialQuery(`${e1Result.value.sql} ? ${tokens[0]}`, params));
+                            return ok(partialQuery(`${e1Result.value.text} ? ${tokens[0]}`, params));
                         case 'j-a':
-                            return ok(partialQuery(`${e1Result.value.sql} - ${tokens[0]}`, params));
+                            return ok(partialQuery(`${e1Result.value.text} - ${tokens[0]}`, params));
                     }
                 default:
                     switch (expression[0]) {
                         case 'in':
-                            return ok(partialQuery(`${e1Result.value.sql} IN ( ${tokens.join(', ')} )`, params));
+                            return ok(partialQuery(`${e1Result.value.text} IN ( ${tokens.join(', ')} )`, params));
                         case 'nin':
-                            return ok(partialQuery(`${e1Result.value.sql} NOT IN ( ${tokens.join(', ')} )`, params));
+                            return ok(partialQuery(`${e1Result.value.text} NOT IN ( ${tokens.join(', ')} )`, params));
                         case 'lka':
                             return ok(
-                                partialQuery(`${e1Result.value.sql} LIKE ALL( ARRAY[ ${tokens.join(', ')} ] )`, params)
+                                partialQuery(`${e1Result.value.text} LIKE ALL( ARRAY[ ${tokens.join(', ')} ] )`, params)
                             );
                         case 'lks':
                             return ok(
-                                partialQuery(`${e1Result.value.sql} LIKE SOME( ARRAY[ ${tokens.join(', ')} ] )`, params)
+                                partialQuery(
+                                    `${e1Result.value.text} LIKE SOME( ARRAY[ ${tokens.join(', ')} ] )`,
+                                    params
+                                )
                             );
                         case '?|':
-                            return ok(partialQuery(`${e1Result.value.sql} ?| ARRAY[ ${tokens.join(', ')} ]`, params));
+                            return ok(partialQuery(`${e1Result.value.text} ?| ARRAY[ ${tokens.join(', ')} ]`, params));
                         case '?&':
-                            return ok(partialQuery(`${e1Result.value.sql} ?& ARRAY[ ${tokens.join(', ')} ]`, params));
+                            return ok(partialQuery(`${e1Result.value.text} ?& ARRAY[ ${tokens.join(', ')} ]`, params));
                         case 'j-a':
-                            return ok(partialQuery(`${e1Result.value.sql} - ARRAY[ ${tokens.join(', ')} ]`, params));
+                            return ok(partialQuery(`${e1Result.value.text} - ARRAY[ ${tokens.join(', ')} ]`, params));
                     }
             }
         case 'bt':
@@ -1205,7 +1253,7 @@ const resolveExpression = (
             if (!e1Result.ok) {
                 return err(`<${toDescription(expression[0])}>[first operand] -> ${e1Result.error}`);
             }
-            if (e1Result.value.sql === '') {
+            if (e1Result.value.text === '') {
                 return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[first operand] -> netural`);
             }
             params.push(...e1Result.value.params);
@@ -1215,7 +1263,7 @@ const resolveExpression = (
             if (!e2Result.ok) {
                 return err(`<${toDescription(expression[0])}>[second operand] -> ${e2Result.error}`);
             }
-            if (e2Result.value.sql === '') {
+            if (e2Result.value.text === '') {
                 return ignore
                     ? ok(partialQuery())
                     : err(`<${toDescription(expression[0])}>[second operand] -> netural`);
@@ -1227,14 +1275,14 @@ const resolveExpression = (
             if (!e3Result.ok) {
                 return err(`<${toDescription(expression[0])}>[third operand] -> ${e3Result.error}`);
             }
-            if (e3Result.value.sql === '') {
+            if (e3Result.value.text === '') {
                 return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[third operand] -> netural`);
             }
             params.push(...e3Result.value.params);
             paramsStart += e3Result.value.params.length;
 
             return ok(
-                partialQuery(`${e1Result.value.sql} BETWEEN ${e2Result.value.sql} AND ${e3Result.value.sql}`, params)
+                partialQuery(`${e1Result.value.text} BETWEEN ${e2Result.value.text} AND ${e3Result.value.text}`, params)
             );
         default:
             throw 'unexpected error. expect first element to be reserved key.';
@@ -1286,54 +1334,16 @@ const resolveColumn = <T extends Table, C extends keyof T['columns'] & string>(
     return prefix + `"${table.columns[column].title ?? column}"`;
 };
 
-const partialQuery = (sql = '', params: Param[] = []): QueryData => ({ sql, params });
-
-const stringify = <T extends Expression>(
-    v: T,
-    inline: boolean = false
-): T extends number ? number : T extends bigint ? bigint : string => {
-    let result: number | bigint | string;
-    if (v === null) {
-        result = 'NULL';
-    } else if (typeof v === 'boolean') {
-        result = v ? 'TRUE' : 'FALSE';
-    } else if (typeof v === 'number' || typeof v === 'bigint') {
-        result = v;
-    } else if (v instanceof Decimal) {
-        result = `${v}`;
-    } else if (v instanceof Date) {
-        result = inline ? `'${v.toISOString()}'` : v.toISOString();
-    } else if (typeof v === 'object') {
-        result = inline ? `'${JSON.stringify(v)}'::JSONB` : JSON.stringify(v);
-    } else {
-        result = inline ? `'${v}'` : `${v}`;
-    }
-    return result as any;
-};
-
-const cast = (v: unknown, [type, nullable]: [type: PostgresType, nullable: boolean]): Expression => {
-    if (nullable && v === null) {
-        return null;
-    }
-    switch (type) {
-        case 'bigint':
-            return BigInt(v as string);
-        case 'numeric':
-            return new Decimal(v as string);
-        default:
-            return v as any;
-    }
-};
+const partialQuery = (text: string = '', params: Param[] = []): PartialQuery => ({ text, params });
 
 export { createEntity, createJoinSelectEntity };
 export {
+    ReservedExpressionKeys,
     createQueryResult,
     resolveResult,
     resolveReturning,
     resolveExpression,
     getTableDataOfJoinSelectColumn,
     resolveColumn,
-    partialQuery,
-    stringify,
-    cast
+    partialQuery
 };
