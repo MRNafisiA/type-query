@@ -15,11 +15,16 @@ type Base = {
 type Primary = { primary?: true; nullable: false } | { nullable: true };
 
 type Types =
-    | { type: 'boolean' | 'text' | 'uuid' | 'date' | 'json' | 'jsonb' }
+    | { type: 'boolean' | 'date' | 'json' | 'jsonb' }
     | { type: 'smallint' | 'integer' | 'real' | 'double precision'; min?: number; max?: number }
     | { type: 'bigint'; min?: bigint; max?: bigint }
     | { type: 'numeric'; precision: number; scale: number; min?: Decimal; max?: Decimal }
-    | { type: 'character' | 'character varying' | 'uuid'; minLength?: number; maxLength?: number; regex?: RegExp }
+    | {
+          type: 'character' | 'character varying' | 'text' | 'uuid';
+          minLength?: number;
+          maxLength?: number;
+          regex?: RegExp;
+      }
     | { type: 'timestamp without time zone' | 'timestamp with time zone'; length?: number };
 
 type ReferenceCheck<T extends Table, C extends keyof T['columns']> =
