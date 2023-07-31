@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js';
-import type { Table } from './table';
-import type { JSON } from './json';
+import type { Table } from './Table';
+import type { JSON } from './Json';
 
 type OrderDirection = 'asc' | 'desc';
 

@@ -2,9 +2,9 @@ import { U } from './U';
 import { ClientBase } from 'pg';
 import Decimal from 'decimal.js';
 import { createContext } from './context';
-import type { Table } from './types/table';
-import type { Column } from './types/table';
-import type { Context } from './types/context';
+import type { Table } from './types/Table';
+import type { Column } from './types/Table';
+import type { Context } from './types/Context';
 import { ok, err, type Result } from 'never-catch';
 import { OrderDirection, PostgresType } from './types/postgres';
 import { toJoinType, toOrderDirection, toReservedExpressionKeyDescription as toDescription } from './dictionary';
@@ -26,7 +26,7 @@ import type {
     TableWithAlias,
     JoinData,
     AliasedColumns
-} from './types/entity';
+} from './types/Entity';
 
 // entity
 const createEntity = <T extends Table>(table: T) =>

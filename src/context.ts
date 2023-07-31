@@ -1,6 +1,6 @@
 import { U } from './U';
-import { Table } from './types/table';
-import { Context, ContextScope } from './types/context';
+import { Table } from './types/Table';
+import { Context, ContextScope } from './types/Context';
 
 const createContext = <T extends Table>(table: T, alias: string = ''): Context<T['columns']> => {
     const contextScopeHelper = createContextScopeHelper(table);

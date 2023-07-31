@@ -1,9 +1,9 @@
 import Decimal from 'decimal.js';
-import { JSON as Json } from './types/json';
+import { JSON as Json } from './types/Json';
 import { resolveColumn } from './entity';
-import type { Table } from './types/table';
+import type { Table } from './types/Table';
 import type { ColumnTypeByTable, PostgresType } from './types/postgres';
-import type { ExpressionTypes, ValueExpression, Expression, QueryExpression, Query } from './types/entity';
+import type { ExpressionTypes, ValueExpression, Expression, QueryExpression, Query } from './types/Entity';
 import type {
     ArithmeticOperator,
     NullOperator,
@@ -12,7 +12,7 @@ import type {
     ListOperator,
     LikeOperator,
     JsonOperator
-} from './types/context';
+} from './types/Context';
 
 function val(v: null | undefined): ValueExpression<null>;
 function val(v: boolean | undefined): ValueExpression<boolean>;

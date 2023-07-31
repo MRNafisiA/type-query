@@ -1,6 +1,6 @@
-import type { JoinType } from './types/entity';
+import type { JoinType } from './types/Entity';
 import { ReservedExpressionKeys } from './entity';
-import type { ReferenceActions } from './types/table';
+import type { ReferenceActions } from './types/Table';
 import type { TransactionIsolationLevel } from './types/pool';
 import type { OrderDirection, PostgresType } from './types/postgres';
 

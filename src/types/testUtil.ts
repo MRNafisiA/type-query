@@ -1,9 +1,9 @@
-import { Table } from './table';
+import { Table } from './Table';
 import { PoolClient } from 'pg';
 import { Result } from 'never-catch';
-import { SimpleModel } from './model';
+import { SimpleModel } from './Model';
 import { ColumnTypeByColumns } from './postgres';
-import { NullableAndDefaultColumns } from './entity';
+import { NullableAndDefaultColumns } from './Entity';
 import { Pool, TransactionIsolationLevel } from './pool';
 
 type TestTableData<T extends Table> = {

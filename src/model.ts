@@ -1,8 +1,8 @@
 import Decimal from 'decimal.js';
-import { Table } from './types/table';
+import { Table } from './types/Table';
 import * as Parser from './parser';
 import { err, ok } from 'never-catch';
-import { ModelUtils } from './types/model';
+import { ModelUtils } from './types/Model';
 import { ColumnTypeByColumns } from './types/postgres';
 
 const smallIntRange = { min: -32768, max: 32767 };

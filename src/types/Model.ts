@@ -1,4 +1,4 @@
-import type { Table } from './table';
+import type { Table } from './Table';
 import type { ColumnTypeByColumns } from './postgres';
 import { Result } from 'never-catch';
 

@@ -1,5 +1,5 @@
 import type { ClientBase } from 'pg';
-import type { Table } from './types/table';
+import type { Table } from './types/Table';
 import { err, ok, type Result } from 'never-catch';
 import { toPostgresType, toReferenceAction } from './dictionary';
 

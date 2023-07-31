@@ -1,4 +1,4 @@
-import { Param } from './entity';
+import { Param } from './Entity';
 import { Result } from 'never-catch';
 import type { Pool as PgPool, PoolClient } from 'pg';
 

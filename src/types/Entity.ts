@@ -1,7 +1,7 @@
-import { JSON } from './json';
+import { JSON } from './Json';
 import Decimal from 'decimal.js';
-import type { Table } from './table';
-import { Context } from './context';
+import type { Table } from './Table';
+import { Context } from './Context';
 import type { ClientBase } from 'pg';
 import type { Result } from 'never-catch';
 import type { ColumnTypeByColumns } from './postgres';

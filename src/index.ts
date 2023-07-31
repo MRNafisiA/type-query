@@ -3,14 +3,14 @@ export { PostgresErrors } from './error';
 export type { Pool } from './types/pool';
 export { createContext } from './context';
 export { createModelUtils } from './model';
-export type { Context } from './types/context';
+export type { Context } from './types/Context';
 export type { ClientBase, PoolClient } from 'pg';
 export type { TestTableData } from './types/testUtil';
-export type { Table, TableCheck } from './types/table';
-export type { SimpleModel, Model } from './types/model';
+export type { Table, TableCheck } from './types/Table';
+export type { SimpleModel, Model } from './types/Model';
 export { createPool, addHook, removeHook } from './pool';
 export { testTransaction, createTestTableData } from './testUtil';
-export type { JSON, JsonObject, JsonArray, BaseJsonValue } from './types/json';
+export type { JSON, JsonObject, JsonArray, BaseJsonValue } from './types/Json';
 export { createEntity, resolveResult, resolveReturning, resolveExpression } from './entity';
 export type {
     OrderDirection,
@@ -48,4 +48,4 @@ export type {
     QueryResult,
     QueryResultRow,
     PartialQuery
-} from './types/entity';
+} from './types/Entity';

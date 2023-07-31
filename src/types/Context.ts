@@ -1,8 +1,8 @@
 import Decimal from 'decimal.js';
-import type { JSON } from './json';
-import type { Table } from './table';
+import type { JSON } from './Json';
+import type { Table } from './Table';
 import type { ColumnTypeByColumns } from './postgres';
-import type { Expression, ValueExpression } from './entity';
+import type { Expression, ValueExpression } from './Entity';
 
 type Context<Columns extends Table['columns']> = {
     col: <columnKey extends keyof Columns & string>(

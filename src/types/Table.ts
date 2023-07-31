@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import type { JSON } from './json';
+import type { JSON } from './Json';
 import { PostgresType } from './postgres';
 
 type ReferenceActions = 'no-action' | 'restrict' | 'set-null' | 'set-Default' | 'cascade';
@@ -19,7 +19,7 @@ type Types =
     | { type: 'smallint' | 'integer' | 'real' | 'double precision'; min?: number; max?: number }
     | { type: 'bigint'; min?: bigint; max?: bigint }
     | { type: 'numeric'; precision: number; scale: number; min?: Decimal; max?: Decimal }
-    | { type: 'character' | 'character varying'; minLength?: number; maxLength?: number; regex?: RegExp }
+    | { type: 'character' | 'character varying' | 'uuid'; minLength?: number; maxLength?: number; regex?: RegExp }
     | { type: 'timestamp without time zone' | 'timestamp with time zone'; length?: number };
 
 type ReferenceCheck<T extends Table, C extends keyof T['columns']> =

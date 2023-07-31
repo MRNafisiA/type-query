@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { JSON as Json } from './types/json';
+import { JSON as Json } from './types/Json';
 
 const boolean = (v: unknown): boolean | undefined => {
     switch (typeof v) {
