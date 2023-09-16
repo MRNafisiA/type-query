@@ -1,6 +1,6 @@
 {
   "name": "@mrnafisia/type-query",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "mini-orm with full type support for postgres.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
