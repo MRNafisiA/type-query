@@ -1,6 +1,6 @@
+import { Cast } from './cast';
 import Decimal from 'decimal.js';
 import { Table } from './types/Table';
-import * as Parser from './parser';
 import { err, ok } from 'never-catch';
 import { ModelUtils } from './types/Model';
 import { ColumnTypeByColumns } from './types/postgres';
@@ -90,123 +90,121 @@ const validateStringGenerator = ({
 const createModelUtils = <Columns extends Table['columns']>(
     columns: Columns,
     custom?: {
-        parse?: { [key in keyof Columns]?: (v: unknown | undefined) => ColumnTypeByColumns<Columns, key> | undefined };
+        cast?: { [key in keyof Columns]?: (v: unknown | undefined) => ColumnTypeByColumns<Columns, key> | undefined };
         validate?: { [key in keyof Columns]?: (v: ColumnTypeByColumns<Columns, key>) => boolean };
     }
 ): ModelUtils<Columns> => {
-    const columnsParseAndValidate = Object.fromEntries(
+    const columnsParser = Object.fromEntries(
         Object.entries(columns).map(([key, val]) => {
-            let parseFun = custom?.parse?.[key];
-            if (parseFun === undefined) {
+            let castFun = custom?.cast?.[key];
+            if (castFun === undefined) {
                 switch (val.type) {
                     case 'boolean':
-                        parseFun = Parser.boolean as any;
+                        castFun = Cast.boolean as any;
                         break;
                     case 'smallint':
                     case 'integer':
-                        parseFun = Parser.integer as any;
+                        castFun = Cast.integer as any;
                         break;
                     case 'real':
                     case 'double precision':
-                        parseFun = Parser.number as any;
+                        castFun = Cast.number as any;
                         break;
                     case 'bigint':
-                        parseFun = Parser.bigInt as any;
+                        castFun = Cast.bigInt as any;
                         break;
                     case 'numeric':
-                        parseFun = Parser.decimal as any;
+                        castFun = Cast.decimal as any;
                         break;
                     case 'character':
                     case 'character varying':
                     case 'text':
                     case 'uuid':
-                        parseFun = Parser.string as any;
+                        castFun = Cast.string as any;
                         break;
                     case 'date':
                     case 'timestamp without time zone':
                     case 'timestamp with time zone':
-                        parseFun = Parser.date as any;
+                        castFun = Cast.date as any;
                         break;
                     case 'json':
                     case 'jsonb':
-                        parseFun = Parser.json as any;
+                        castFun = Cast.json as any;
                         break;
                 }
             }
 
             let validateFun = custom?.validate?.[key];
-            if (validateFun === undefined) {
-                switch (val.type) {
-                    case 'smallint':
-                        validateFun = validateNumberGenerator({
-                            min: val.min ?? smallIntRange.min,
-                            max: val.max ?? smallIntRange.max
-                        }) as any;
-                        break;
-                    case 'integer':
-                        validateFun = validateNumberGenerator({
-                            min: val.min ?? integerRange.min,
-                            max: val.max ?? integerRange.max
-                        }) as any;
-                        break;
-                    case 'bigint':
-                        validateFun = validateNumberGenerator({
-                            min: val.min ?? bigIntRange.min,
-                            max: val.max ?? bigIntRange.max
-                        }) as any;
-                        break;
-                    case 'real':
-                    case 'double precision':
-                        if (val.min !== undefined || val.max !== undefined) {
-                            validateFun = validateNumberGenerator({ min: val.min, max: val.max }) as any;
-                        } else {
-                            validateFun = () => true;
-                        }
-                        break;
-                    case 'numeric':
-                        if (val.min !== undefined || val.max !== undefined) {
-                            validateFun = validateDecimalGenerator({ min: val.min, max: val.max }) as any;
-                        } else {
-                            validateFun = () => true;
-                        }
-                        break;
-                    case 'character':
-                    case 'character varying':
-                        if (val.minLength !== undefined || val.maxLength !== undefined || val.regex !== undefined) {
-                            validateFun = validateStringGenerator({
-                                regex: val.regex,
-                                min: val.minLength,
-                                max: val.maxLength
-                            }) as any;
-                        } else {
-                            validateFun = () => true;
-                        }
-                        break;
-                    case 'boolean':
-                    case 'text':
-                    case 'uuid':
-                    case 'date':
-                    case 'timestamp without time zone':
-                    case 'timestamp with time zone':
-                    case 'json':
-                    case 'jsonb':
+            switch (val.type) {
+                case 'smallint':
+                    validateFun = validateNumberGenerator({
+                        min: val.min ?? smallIntRange.min,
+                        max: val.max ?? smallIntRange.max
+                    }) as any;
+                    break;
+                case 'integer':
+                    validateFun = validateNumberGenerator({
+                        min: val.min ?? integerRange.min,
+                        max: val.max ?? integerRange.max
+                    }) as any;
+                    break;
+                case 'bigint':
+                    validateFun = validateNumberGenerator({
+                        min: val.min ?? bigIntRange.min,
+                        max: val.max ?? bigIntRange.max
+                    }) as any;
+                    break;
+                case 'real':
+                case 'double precision':
+                    if (val.min !== undefined || val.max !== undefined) {
+                        validateFun = validateNumberGenerator({ min: val.min, max: val.max }) as any;
+                    } else {
                         validateFun = () => true;
-                        break;
-                }
+                    }
+                    break;
+                case 'numeric':
+                    if (val.min !== undefined || val.max !== undefined) {
+                        validateFun = validateDecimalGenerator({ min: val.min, max: val.max }) as any;
+                    } else {
+                        validateFun = () => true;
+                    }
+                    break;
+                case 'character':
+                case 'character varying':
+                    if (val.minLength !== undefined || val.maxLength !== undefined || val.regex !== undefined) {
+                        validateFun = validateStringGenerator({
+                            regex: val.regex,
+                            min: val.minLength,
+                            max: val.maxLength
+                        }) as any;
+                    } else {
+                        validateFun = () => true;
+                    }
+                    break;
+                case 'boolean':
+                case 'text':
+                case 'uuid':
+                case 'date':
+                case 'timestamp without time zone':
+                case 'timestamp with time zone':
+                case 'json':
+                case 'jsonb':
+                    validateFun = () => true;
+                    break;
             }
 
-            const parseWithValidate = (v: string | undefined, validate: boolean = false) => {
-                const parsedValue = parseFun!(v);
-                if (validate && parsedValue !== undefined && !validateFun!(parsedValue)) {
+            const parse = (v: string | undefined) => {
+                const castedValue = castFun!(v);
+                if (castedValue !== undefined && !validateFun!(castedValue)) {
                     return undefined;
                 }
-                return parsedValue;
+                return castedValue;
             };
-            return [key, { Parse: parseWithValidate, Validate: validateFun }];
+            return [key, { Parse: parse }];
         })
     );
     return {
-        Parse: (data, requires, optionals, validate = false) => {
+        Parse: (data, requires, optionals) => {
             const result = {} as { [key: string]: any };
 
             let require: any;
@@ -214,11 +212,8 @@ const createModelUtils = <Columns extends Table['columns']>(
                 if (data[require] === undefined) {
                     return err(require);
                 }
-                result[require] = columnsParseAndValidate[require].Parse!(data[require] as any);
+                result[require] = columnsParser[require].Parse!(data[require] as any);
                 if (result[require] === undefined) {
-                    return err(require);
-                }
-                if (validate && !columnsParseAndValidate[require].Validate!(result[require] as any)) {
                     return err(require);
                 }
             }
@@ -228,27 +223,15 @@ const createModelUtils = <Columns extends Table['columns']>(
                 if (data[optional] === undefined) {
                     continue;
                 }
-                result[optional] = columnsParseAndValidate[optional].Parse!(data[optional] as any);
+                result[optional] = columnsParser[optional].Parse!(data[optional] as any);
                 if (result[optional] === undefined) {
-                    return err(optional);
-                }
-                if (validate && !columnsParseAndValidate[optional].Validate!(result[optional] as any)) {
                     return err(optional);
                 }
             }
 
             return ok(result as any);
         },
-        Validate: data => {
-            let dataKey: any;
-            for (dataKey in data) {
-                if (!columnsParseAndValidate[dataKey].Validate!(data[dataKey] as any)) {
-                    return err(dataKey);
-                }
-            }
-            return ok(undefined);
-        },
-        ...(columnsParseAndValidate as any)
+        ...(columnsParser as any)
     };
 };
 

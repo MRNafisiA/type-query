@@ -41,7 +41,7 @@ type TestTableData<T extends Table> = {
 };
 type TestTransaction = (
     data: TestTableData<any>[],
-    callback: (client: PoolClient) => void,
+    callback: (client: PoolClient) => Promise<void>,
     pool: Pool,
     isolationLevel?: TransactionIsolationLevel,
     rollback?: boolean

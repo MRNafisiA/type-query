@@ -26,17 +26,14 @@ type ModelUtils<Columns extends Table['columns']> = {
     Parse: <Requires extends readonly (keyof Columns)[], Optionals extends readonly (keyof Columns)[]>(
         data: { [key: string]: unknown },
         requires: Requires,
-        optional: Optionals,
-        validate?: boolean
+        optional: Optionals
     ) => Result<
         Model<Columns, Requires, Optionals>,
         Requires[Exclude<keyof Requires, keyof unknown[]>] | Optionals[Exclude<keyof Optionals, keyof unknown[]>]
     >;
-    Validate: <D extends Partial<SimpleModel<Columns>>>(data: D) => Result<undefined, keyof D>;
 } & {
     [key in keyof Columns]: {
-        Parse: (v: unknown, validate?: boolean) => ColumnTypeByColumns<Columns, key> | undefined;
-        Validate: (v: ColumnTypeByColumns<Columns, key>) => boolean;
+        Parse: (v: unknown) => ColumnTypeByColumns<Columns, key> | undefined;
     };
 };
 

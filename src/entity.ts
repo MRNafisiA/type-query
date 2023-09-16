@@ -425,8 +425,8 @@ const createEntity = <T extends Table>(table: T) =>
             on:
                 | Expression<boolean>
                 | ((
-                contexts: Record<MainAlias, Context<T['columns']>> & Record<JAlias, Context<JTable['columns']>>
-            ) => Expression<boolean>)
+                      contexts: Record<MainAlias, Context<T['columns']>> & Record<JAlias, Context<JTable['columns']>>
+                  ) => Expression<boolean>)
         ) =>
             createJoinSelectEntity<
                 Record<MainAlias, T> & Record<JAlias, JTable>,
@@ -463,8 +463,8 @@ const createJoinSelectEntity = <
                 groupBy?:
                     | Expression<ExpressionTypes>[]
                     | ((contexts: {
-                    [t in keyof TablesData]: Context<TablesData[t]['columns']>;
-                }) => Expression<ExpressionTypes>[]);
+                          [t in keyof TablesData]: Context<TablesData[t]['columns']>;
+                      }) => Expression<ExpressionTypes>[]);
                 orders?: { by: TablesColumnsKeys<TablesData>; direction: OrderDirection }[];
                 start?: bigint;
                 step?: number;
@@ -569,7 +569,15 @@ const createJoinSelectEntity = <
                     const ordersTextArray = [];
                     for (const order of orders) {
                         const { by, direction } = order;
-                        ordersTextArray.push(`"${by}" ${direction}`);
+                        const { table, alias } = getTableDataOfJoinSelectColumn(allTables, by);
+                        ordersTextArray.push(
+                            `${resolveColumn(
+                                table,
+                                by.substring((alias + '_').length),
+                                true,
+                                alias
+                            )} ${toOrderDirection(direction)}`
+                        );
                     }
                     tokens.push('ORDER BY', ordersTextArray.join(', '));
                 }
@@ -613,11 +621,11 @@ const createJoinSelectEntity = <
             on:
                 | Expression<boolean>
                 | ((
-                contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> } & Record<
-                    JAlias,
-                    Context<JTable['columns']>
-                >
-            ) => Expression<boolean>)
+                      contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> } & Record<
+                          JAlias,
+                          Context<JTable['columns']>
+                      >
+                  ) => Expression<boolean>)
         ) {
             joinTables.push({ table: joinTable, on: on as any, joinType, alias: joinAlias });
             return createJoinSelectEntity<
@@ -958,10 +966,10 @@ const resolveExpression = (
                     return ignore
                         ? ok(partialQuery())
                         : err(
-                            `<${toDescription(expression[0])}>[parameters][${(expression[2] as any[]).indexOf(
-                                v2
-                            )}] -> neutral`
-                        );
+                              `<${toDescription(expression[0])}>[parameters][${(expression[2] as any[]).indexOf(
+                                  v2
+                              )}] -> neutral`
+                          );
                 }
                 params.push(...v2Result.value.params);
                 paramsStart += v2Result.value.params.length;
@@ -1088,7 +1096,10 @@ const resolveExpression = (
                 return err(`<${toDescription(expression[0])}> -> ${subQueryDataResult.error}`);
             }
             paramsStart += subQueryDataResult.value.params.length;
-            subQueryDataResult.value.sql = subQueryDataResult.value.sql.substring(0, subQueryDataResult.value.sql.length - 1);
+            subQueryDataResult.value.sql = subQueryDataResult.value.sql.substring(
+                0,
+                subQueryDataResult.value.sql.length - 1
+            );
 
             switch (expression[0]) {
                 case 'qry':

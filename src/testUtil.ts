@@ -51,7 +51,9 @@ const testTransaction: TestTransaction = async (
         }
 
         // callback
-        await callback(client);
+        await callback(client).catch(e => {
+            error = e;
+        });
 
         // check db
         const differences: any[] = [];
@@ -97,7 +99,7 @@ const testTransaction: TestTransaction = async (
                                     dbRow,
                                     finalRow,
                                     key,
-                                    message: `->${JSON.stringify(dbRow[key])}<- did not accepted by match function`
+                                    message: `match function rejected (${JSON.stringify(dbRow[key])})`
                                 });
                                 found = false;
                             }
@@ -107,9 +109,9 @@ const testTransaction: TestTransaction = async (
                                     dbRow,
                                     finalRow,
                                     key,
-                                    message: `->${JSON.stringify(dbRow[key])}<- is not equal to ->${JSON.stringify(
-                                        value
-                                    )}<-`
+                                    message: `expected(${JSON.stringify(value)}) received(${JSON.stringify(
+                                        dbRow[key]
+                                    )})`
                                 });
                                 found = false;
                             }
@@ -199,7 +201,7 @@ const testTransaction: TestTransaction = async (
     if (error === undefined) {
         return undefined;
     } else {
-        throw error;
+        throw JSON.stringify(error, null, 4);
     }
 };
 

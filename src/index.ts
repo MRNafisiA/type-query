@@ -29,7 +29,7 @@ export {
     dropTableSQL,
     getSequenceName
 } from './schema';
-export * as Parser from './parser';
+export { Cast } from './cast';
 export type {
     JoinType,
     Param,
