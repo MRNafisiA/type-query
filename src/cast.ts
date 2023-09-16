@@ -4,7 +4,7 @@ import { JSON as Json } from './types/Json';
 type NullableType<V extends boolean, T> = V extends true ? T | null : T;
 
 const Cast = {
-    boolean: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, boolean> | undefined => {
+    boolean: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, boolean> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, boolean>;
         }
@@ -24,7 +24,7 @@ const Cast = {
                 return undefined;
         }
     },
-    number: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, number> | undefined => {
+    number: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, number> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, number>;
         }
@@ -38,14 +38,14 @@ const Cast = {
                 return undefined;
         }
     },
-    integer: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, number> | undefined => {
+    integer: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, number> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, number>;
         }
         const _v = Cast.number(v, false);
         return _v === undefined ? undefined : Math.trunc(_v);
     },
-    bigInt: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, bigint> | undefined => {
+    bigInt: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, bigint> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, bigint>;
         }
@@ -64,7 +64,7 @@ const Cast = {
                 return undefined;
         }
     },
-    decimal: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, Decimal> | undefined => {
+    decimal: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, Decimal> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, Decimal>;
         }
@@ -84,7 +84,7 @@ const Cast = {
                 return undefined;
         }
     },
-    string: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, string> | undefined => {
+    string: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, string> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, string>;
         }
@@ -99,7 +99,7 @@ const Cast = {
                 return undefined;
         }
     },
-    date: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, Date> | undefined => {
+    date: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, Date> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, Date>;
         }
@@ -115,7 +115,7 @@ const Cast = {
                 return undefined;
         }
     },
-    json: <N extends boolean>(v: unknown, nullable = false as N): NullableType<N, Json> | undefined => {
+    json: <N extends boolean = false>(v: unknown, nullable = false as N): NullableType<N, Json> | undefined => {
         if (nullable && (v === null || (typeof v === 'string' && v.toLowerCase() === 'null'))) {
             return null as NullableType<N, Json>;
         }
