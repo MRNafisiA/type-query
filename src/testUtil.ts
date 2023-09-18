@@ -1,8 +1,8 @@
-import { isEqual } from 'lodash';
-import { createEntity } from './entity';
-import { Err, err, ok } from 'never-catch';
-import { createTables, resolveTablesDependency } from './schema';
-import { CreateTestTableData, TestTransaction } from './types/testUtil';
+import {isEqual} from 'lodash';
+import {createEntity} from './entity';
+import {Err, err, ok} from 'never-catch';
+import {createTables, resolveTablesDependency} from './schema';
+import {CreateTestTableData, TestTransaction} from './types/testUtil';
 
 const testTransaction: TestTransaction = async (
     tablesWithData,
@@ -37,7 +37,7 @@ const testTransaction: TestTransaction = async (
         for (const tableWithData of sortedTablesWithData) {
             if (tableWithData.startData.length !== 0) {
                 const insertResult = await createEntity(tableWithData.table)
-                    .insert(tableWithData.startData, [{ exp: true, as: 'confirm' }], {
+                    .insert(tableWithData.startData, [{exp: true, as: 'confirm'}], {
                         nullableDefaultColumns: Object.entries(tableWithData.table.columns)
                             .filter(([_, value]) => (value as any).nullable || (value as any).default !== false)
                             .map(([key, _]) => key)
@@ -57,7 +57,7 @@ const testTransaction: TestTransaction = async (
 
         // check db
         const differences: any[] = [];
-        for (const { table, finalData, skipIt, lengthCheck } of sortedTablesWithData) {
+        for (const {table, finalData, skipIt, lengthCheck} of sortedTablesWithData) {
             const primaryKeys = Object.entries(table.columns)
                 .filter(([_, value]) => !(value as any).nullable && (value as any).primary)
                 .map(([key, _]) => key);
@@ -79,7 +79,7 @@ const testTransaction: TestTransaction = async (
             for (const dbRow of selectResult.value) {
                 let found = false;
                 const tempDifferences: typeof differences = [];
-                const candidateFinalData = finalData.filter(({ row: finalRow }) => {
+                const candidateFinalData = finalData.filter(({row: finalRow}) => {
                     for (const primaryKey of primaryKeys) {
                         if (!isEqual(finalRow[primaryKey], dbRow[primaryKey])) {
                             return false;
@@ -89,7 +89,7 @@ const testTransaction: TestTransaction = async (
                 });
                 for (let i = 0; i < candidateFinalData.length; i++) {
                     found = true;
-                    const { row: finalRow } = candidateFinalData[i];
+                    const {row: finalRow} = candidateFinalData[i];
                     for (const key in dbRow) {
                         const value = finalRow[key];
                         if (typeof value === 'function') {
@@ -201,7 +201,11 @@ const testTransaction: TestTransaction = async (
     if (error === undefined) {
         return undefined;
     } else {
-        throw JSON.stringify(error, null, 4);
+        if (Object.keys(error).length === 2 && 'ok' in error && 'error' in error) {
+            throw JSON.stringify(error, null, 4);
+        } else {
+            throw error;
+        }
     }
 };
 
@@ -213,4 +217,4 @@ const createTestTableData: CreateTestTableData = (table, startData, finalData, s
     lengthCheck
 });
 
-export { testTransaction, createTestTableData };
+export {testTransaction, createTestTableData};
