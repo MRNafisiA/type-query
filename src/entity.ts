@@ -42,7 +42,7 @@ const createEntity = <T extends Table>(table: T) =>
                 ignoreInWhere?: boolean;
                 ignoreInReturning?: boolean;
                 ignoreInGroupBy?: boolean;
-                distinct?: boolean;
+                distinct?: true | (keyof T['columns'] & string)[];
                 groupBy?:
                     | Expression<ExpressionTypes>[]
                     | ((context: Context<T['columns']>) => Expression<ExpressionTypes>[]);
@@ -66,8 +66,12 @@ const createEntity = <T extends Table>(table: T) =>
                 const tokens = ['SELECT'];
 
                 // distinct
-                if (distinct) {
+                if (distinct === true) {
                     tokens.push('DISTINCT');
+                } else if (Array.isArray(distinct)) {
+                    tokens.push(
+                        `DISTINCT ON ( ${distinct.map(column => resolveColumn(table, column, false)).join(', ')} )`
+                    );
                 }
 
                 // select
@@ -459,7 +463,7 @@ const createJoinSelectEntity = <
                 ignoreInReturning?: boolean;
                 ignoreInJoin?: boolean;
                 ignoreInGroupBy?: boolean;
-                distinct?: boolean;
+                distinct?: true | TablesColumnsKeys<TablesData>[];
                 groupBy?:
                     | Expression<ExpressionTypes>[]
                     | ((contexts: {
@@ -487,8 +491,17 @@ const createJoinSelectEntity = <
                 const tokens = ['SELECT'];
 
                 // distinct
-                if (distinct) {
+                if (distinct === true) {
                     tokens.push('DISTINCT');
+                } else if (Array.isArray(distinct)) {
+                    tokens.push(
+                        `DISTINCT ON ( ${distinct
+                            .map(column => {
+                                const { table, alias } = getTableDataOfJoinSelectColumn(allTables, column);
+                                return resolveColumn(table, column.substring((alias + '_').length), true, alias);
+                            })
+                            .join(', ')} )`
+                    );
                 }
 
                 // select
