@@ -45,7 +45,7 @@ type TestTransaction = (
     pool: Pool,
     isolationLevel?: TransactionIsolationLevel,
     rollback?: boolean
-) => Promise<undefined>;
+) => Promise<void>;
 type CreateTestTableData = <T extends Table>(
     table: T,
     startData: TestTableData<T>['startData'],
