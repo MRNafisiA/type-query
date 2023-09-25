@@ -197,7 +197,7 @@ const testTransaction: TestTransaction = async (
             }
         }, isolationLevel)
         .then(result => {
-            if (!result.ok) {
+            if (!result.ok && result.error !== undefined) {
                 throw JSON.stringify(result.error, null, 4);
             }
         });
