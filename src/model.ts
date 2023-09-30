@@ -135,62 +135,64 @@ const createModelUtils = <Columns extends Table['columns']>(
             }
 
             let validateFun = custom?.validate?.[key];
-            switch (val.type) {
-                case 'smallint':
-                    validateFun = validateNumberGenerator({
-                        min: val.min ?? smallIntRange.min,
-                        max: val.max ?? smallIntRange.max
-                    }) as any;
-                    break;
-                case 'integer':
-                    validateFun = validateNumberGenerator({
-                        min: val.min ?? integerRange.min,
-                        max: val.max ?? integerRange.max
-                    }) as any;
-                    break;
-                case 'bigint':
-                    validateFun = validateNumberGenerator({
-                        min: val.min ?? bigIntRange.min,
-                        max: val.max ?? bigIntRange.max
-                    }) as any;
-                    break;
-                case 'real':
-                case 'double precision':
-                    if (val.min !== undefined || val.max !== undefined) {
-                        validateFun = validateNumberGenerator({ min: val.min, max: val.max }) as any;
-                    } else {
-                        validateFun = () => true;
-                    }
-                    break;
-                case 'numeric':
-                    if (val.min !== undefined || val.max !== undefined) {
-                        validateFun = validateDecimalGenerator({ min: val.min, max: val.max }) as any;
-                    } else {
-                        validateFun = () => true;
-                    }
-                    break;
-                case 'character':
-                case 'character varying':
-                    if (val.minLength !== undefined || val.maxLength !== undefined || val.regex !== undefined) {
-                        validateFun = validateStringGenerator({
-                            regex: val.regex,
-                            min: val.minLength,
-                            max: val.maxLength
+            if (validateFun === undefined) {
+                switch (val.type) {
+                    case 'smallint':
+                        validateFun = validateNumberGenerator({
+                            min: val.min ?? smallIntRange.min,
+                            max: val.max ?? smallIntRange.max
                         }) as any;
-                    } else {
+                        break;
+                    case 'integer':
+                        validateFun = validateNumberGenerator({
+                            min: val.min ?? integerRange.min,
+                            max: val.max ?? integerRange.max
+                        }) as any;
+                        break;
+                    case 'bigint':
+                        validateFun = validateNumberGenerator({
+                            min: val.min ?? bigIntRange.min,
+                            max: val.max ?? bigIntRange.max
+                        }) as any;
+                        break;
+                    case 'real':
+                    case 'double precision':
+                        if (val.min !== undefined || val.max !== undefined) {
+                            validateFun = validateNumberGenerator({ min: val.min, max: val.max }) as any;
+                        } else {
+                            validateFun = () => true;
+                        }
+                        break;
+                    case 'numeric':
+                        if (val.min !== undefined || val.max !== undefined) {
+                            validateFun = validateDecimalGenerator({ min: val.min, max: val.max }) as any;
+                        } else {
+                            validateFun = () => true;
+                        }
+                        break;
+                    case 'character':
+                    case 'character varying':
+                        if (val.minLength !== undefined || val.maxLength !== undefined || val.regex !== undefined) {
+                            validateFun = validateStringGenerator({
+                                regex: val.regex,
+                                min: val.minLength,
+                                max: val.maxLength
+                            }) as any;
+                        } else {
+                            validateFun = () => true;
+                        }
+                        break;
+                    case 'boolean':
+                    case 'text':
+                    case 'uuid':
+                    case 'date':
+                    case 'timestamp without time zone':
+                    case 'timestamp with time zone':
+                    case 'json':
+                    case 'jsonb':
                         validateFun = () => true;
-                    }
-                    break;
-                case 'boolean':
-                case 'text':
-                case 'uuid':
-                case 'date':
-                case 'timestamp without time zone':
-                case 'timestamp with time zone':
-                case 'json':
-                case 'jsonb':
-                    validateFun = () => true;
-                    break;
+                        break;
+                }
             }
 
             const parse = (v: string | undefined) => {
