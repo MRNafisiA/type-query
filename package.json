@@ -1,40 +1,40 @@
 {
-    "name": "@mrnafisia/type-query",
-    "version": "1.2.10",
-    "description": "mini-orm with full type support for postgres.",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "build": "tsc",
-        "test": "jest ./tests"
-    },
-    "keywords": [
-        "orm",
-        "query-builder",
-        "postgres",
-        "sql",
-        "type-safe"
-    ],
-    "repository": "https://github.com/MRNafisiA/type-query.git",
-    "author": "MRNafisiA <mnafisiasl@gmail.com>",
-    "license": "MIT",
-    "devDependencies": {
-        "@types/jest": "^29.5.2",
-        "@types/lodash": "^4.14.195",
-        "@types/node": "^20.2.5",
-        "@types/pg": "^8.10.1",
-        "jest": "^29.5.0",
-        "prettier": "^2.8.8",
-        "ts-jest": "^29.1.0",
-        "typescript": "^4.9.5"
-    },
-    "dependencies": {
-        "decimal.js": "^10.4.3",
-        "lodash": "^4.17.21",
-        "never-catch": "^1.0.9",
-        "pg": "^8.11.0"
-    }
+  "name": "@mrnafisia/type-query",
+  "version": "1.2.11",
+  "description": "mini-orm with full type support for postgres.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest ./tests"
+  },
+  "keywords": [
+    "orm",
+    "query-builder",
+    "postgres",
+    "sql",
+    "type-safe"
+  ],
+  "repository": "https://github.com/MRNafisiA/type-query.git",
+  "author": "MRNafisiA <mnafisiasl@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.2",
+    "@types/lodash": "^4.14.195",
+    "@types/node": "^20.2.5",
+    "@types/pg": "^8.10.1",
+    "jest": "^29.5.0",
+    "prettier": "^2.8.8",
+    "ts-jest": "^29.1.0",
+    "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "lodash": "^4.17.21",
+    "never-catch": "^1.0.9",
+    "pg": "^8.11.0"
+  }
 }

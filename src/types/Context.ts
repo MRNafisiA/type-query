@@ -65,7 +65,7 @@ type ContextScope<Columns extends Table['columns']> = (
     rules: {
         [columnKey in keyof Columns]?:
             | [op: null extends ColumnTypeByColumns<Columns, columnKey> ? NullOperator : never]
-            | [op: ColumnTypeByColumns<Columns, columnKey> extends boolean ? BooleanOperator : never]
+            | [op: boolean extends ColumnTypeByColumns<Columns, columnKey> ? BooleanOperator : never]
             | [
                   op: CompareOperatorCompatible<ColumnTypeByColumns<Columns, columnKey>, CompareOperator, never>,
                   v: Expression<ColumnTypeByColumns<Columns, columnKey>>
@@ -76,29 +76,29 @@ type ContextScope<Columns extends Table['columns']> = (
               ]
             | [
                   op: Extract<LikeOperator, 'like'>,
-                  v: ColumnTypeByColumns<Columns, columnKey> extends string
+                  v: string extends ColumnTypeByColumns<Columns, columnKey>
                       ? Expression<ColumnTypeByColumns<Columns, columnKey>>
                       : never
               ]
             | [
                   op: Extract<LikeOperator, 'like some' | 'like all'>,
-                  v: ColumnTypeByColumns<Columns, columnKey> extends string
+                  v: string extends ColumnTypeByColumns<Columns, columnKey>
                       ? readonly Expression<ColumnTypeByColumns<Columns, columnKey>>[] | undefined
                       : never
               ]
             | [
                   op: Extract<JsonOperator, '@>' | '<@'>,
-                  v: ColumnTypeByColumns<Columns, columnKey> extends JSON
+                  v: JSON extends ColumnTypeByColumns<Columns, columnKey>
                       ? Expression<ColumnTypeByColumns<Columns, columnKey>>
                       : never
               ]
             | [
                   op: Extract<JsonOperator, '?'>,
-                  v: ColumnTypeByColumns<Columns, columnKey> extends JSON ? Expression<string> : never
+                  v: JSON extends ColumnTypeByColumns<Columns, columnKey> ? Expression<string> : never
               ]
             | [
                   op: Extract<JsonOperator, '?&' | '?|'>,
-                  v: ColumnTypeByColumns<Columns, columnKey> extends JSON
+                  v: JSON extends ColumnTypeByColumns<Columns, columnKey>
                       ? readonly Expression<string>[] | undefined
                       : never
               ];
