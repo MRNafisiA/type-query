@@ -68,7 +68,7 @@ function json<T extends undefined | Json, K extends undefined | null | string>(
 function json<
     T extends undefined | Json,
     K extends undefined | null | string,
-    C extends undefined | string
+    C extends undefined | string = undefined
 >(
     expression: T,
     operator: '->>',
