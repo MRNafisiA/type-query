@@ -1,1373 +1,1002 @@
-import { U } from './U';
+import * as U from './utils';
 import { ClientBase } from 'pg';
-import Decimal from 'decimal.js';
-import { createContext } from './context';
-import type { Table } from './types/Table';
-import type { Column } from './types/Table';
-import type { Context } from './types/Context';
-import { ok, err, type Result } from 'never-catch';
-import { OrderDirection, PostgresType } from './types/postgres';
-import { toJoinType, toOrderDirection, toReservedExpressionKeyDescription as toDescription } from './dictionary';
-import type {
-    Mode,
-    Param,
-    Expression,
-    ExpressionTypes,
-    InsertValue,
-    CustomColumn,
-    NullableAndDefaultColumns,
-    QueryData,
-    Query,
-    QueryResult,
-    PartialQuery,
-    UpdateSets,
-    JoinType,
-    TablesColumnsKeys,
-    TableWithAlias,
-    JoinData,
-    AliasedColumns
-} from './types/Entity';
+import { Dictionary } from './keywords';
+import { err, ok, Result } from 'never-catch';
+import { Context, createContext } from './context';
+import { NullableType, Schema, Table } from './Table';
+import {
+    resolveColumn,
+    resolveExpression,
+    resolveResult,
+    resolveReturning
+} from './resolve';
 
-// entity
-const createEntity = <T extends Table>(table: T) =>
-    ({
-        table: table,
-        context: createContext(table),
-        select: function <
-            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
+const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
+    table,
+    context: createContext(table),
+    select: function <
+        R extends readonly (
+            | (keyof S & string)
+            | CustomColumn<unknown, string>
+        )[]
+    >(
+        returning: R | ((context: Context<S>) => R),
+        where: boolean | ((context: Context<S>) => boolean),
+        options = {} as SelectOptions<S>
+    ): Query<S, R> {
+        return createQuery(params =>
+            createSelectQuery(
+                this.context,
+                table as Table,
+                returning as
+                    | ReturningRows
+                    | ((context: Context) => ReturningRows),
+                where as boolean | ((context: Context) => boolean),
+                options as SelectOptions,
+                params
+            )
+        );
+    },
+    insert: function <
+        R extends readonly (
+            | (keyof S & string)
+            | CustomColumn<unknown, string>
+        )[],
+        N extends readonly (keyof NullableAndDefaultColumns<S>)[] = []
+    >(
+        rows:
+            | InsertingRow<S, N>[]
+            | ((context: Context<S>) => InsertingRow<S, N>[]),
+        returning: R | ((context: Context<S>) => R),
+        options = {} as InsertOptions<S, N>
+    ): Query<S, R> {
+        return createQuery(params =>
+            createInsertQuery(
+                this.context,
+                table as Table,
+                rows as
+                    | Record<string, unknown>[]
+                    | ((context: Context) => Record<string, unknown>[]),
+                returning as
+                    | ReturningRows
+                    | ((context: Context) => ReturningRows),
+                options as InsertOptions<Schema, readonly string[]>,
+                params
+            )
+        );
+    },
+    update: function <
+        R extends readonly (
+            | (keyof S & string)
+            | CustomColumn<unknown, string>
+        )[]
+    >(
+        sets: UpdateSets<S> | ((context: Context<S>) => UpdateSets<S>),
+        where: boolean | ((context: Context<S>) => boolean),
+        returning: R | ((context: Context<S>) => R)
+    ): Query<S, R> {
+        return createQuery(params =>
+            createUpdateQuery(
+                this.context,
+                table as Table,
+                sets as UpdateSets | ((context: Context) => UpdateSets),
+                where as boolean | ((context: Context) => boolean),
+                returning as
+                    | ReturningRows
+                    | ((context: Context) => ReturningRows),
+                params
+            )
+        );
+    },
+    delete: function <
+        R extends readonly (
+            | (keyof S & string)
+            | CustomColumn<unknown, string>
+        )[]
+    >(
+        where: boolean | ((context: Context<S>) => boolean),
+        returning: R | ((context: Context<S>) => R)
+    ): Query<S, R> {
+        return createQuery(params =>
+            createDeleteQuery(
+                this.context,
+                table as Table,
+                returning as
+                    | ReturningRows
+                    | ((context: Context) => ReturningRows),
+                where as boolean | ((context: Context) => boolean),
+                params
+            )
+        );
+    },
+    join: function <MA extends string, JS extends Schema, JA extends string>(
+        mainAlias: MA,
+        joinType: JoinType,
+        joinTable: Table<JS>,
+        joinAlias: JA,
+        on:
+            | boolean
+            | ((
+                  contexts: SchemaMapContexts<Record<MA, S> & Record<JA, JS>>
+              ) => boolean)
+    ): JoinEntity<
+        Record<MA, S> & Record<JA, JS>,
+        PrefixAliasOnSchema<S, MA> & PrefixAliasOnSchema<JS, JA>
+    > {
+        return createJoinSelectEntity<
+            Record<MA, S> & Record<JA, JS>,
+            PrefixAliasOnSchema<S, MA> & PrefixAliasOnSchema<JS, JA>
         >(
-            returning: R | ((context: Context<T['columns']>) => R),
-            where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
-            options?: {
-                ignoreInWhere?: boolean;
-                ignoreInReturning?: boolean;
-                ignoreInGroupBy?: boolean;
-                distinct?: true | (keyof T['columns'] & string)[];
-                groupBy?:
-                    | Expression<ExpressionTypes>[]
-                    | ((context: Context<T['columns']>) => Expression<ExpressionTypes>[]);
-                orders?: { by: keyof T['columns'] & string; direction: OrderDirection }[];
-                start?: bigint;
-                step?: number;
-            }
-        ) {
-            const ignoreInWhere = options?.ignoreInWhere ?? false;
-            const ignoreInReturning = options?.ignoreInReturning ?? false;
-            const ignoreInGroupBy = options?.ignoreInGroupBy ?? false;
-            const distinct = options?.distinct ?? false;
-            const groupBy = options?.groupBy ?? [];
-            const orders = options?.orders ?? [];
-            const start = options?.start;
-            const step = options?.step;
-
-            const _returning = typeof returning === 'function' ? returning(this.context) : returning;
-
-            const createQuery = (params: Param[]) => {
-                const tokens = ['SELECT'];
-
-                // distinct
-                if (distinct === true) {
-                    tokens.push('DISTINCT');
-                } else if (Array.isArray(distinct)) {
-                    tokens.push(
-                        `DISTINCT ON ( ${distinct.map(column => resolveColumn(table, column, false)).join(', ')} )`
-                    );
+            { table: table as Table, alias: mainAlias },
+            [
+                {
+                    table: joinTable as Table,
+                    joinType,
+                    alias: joinAlias,
+                    on: on as
+                        | boolean
+                        | ((contexts: Record<string, Context>) => boolean)
                 }
+            ],
+            {
+                [`${mainAlias}Context`]: createContext(table, mainAlias),
+                [`${joinAlias}Context`]: createContext(joinTable, joinAlias)
+            } as unknown as SchemaMapContexts<Record<MA, S> & Record<JA, JS>>
+        );
+    }
+});
 
-                // select
-                const resolvedReturning = resolveReturning(
-                    column => ({ type: table.columns[column].type, title: table.columns[column].title }),
-                    _returning,
-                    params.length + 1,
-                    ignoreInReturning
-                );
-                if (!resolvedReturning.ok) {
-                    return err(`<select> -> ${resolvedReturning.error}`);
-                }
-                params.push(...resolvedReturning.value.params);
-                tokens.push(resolvedReturning.value.text);
+// select
+type SelectOptions<S extends Schema = Schema> = {
+    distinct?: true | (keyof S & string)[];
+    groupBy?: unknown[] | ((context: Context<S>) => unknown[]);
+    orders?: {
+        by: keyof S & string;
+        direction: OrderDirection;
+    }[];
+    start?: bigint;
+    step?: number;
+};
 
-                // from
-                tokens.push(`FROM "${table.schema}"."${table.title}"`);
+const createSelectQuery = (
+    context: Context,
+    table: Table,
+    returning: ReturningRows | ((context: Context) => ReturningRows),
+    where: boolean | ((context: Context) => boolean),
+    options: SelectOptions,
+    params: string[]
+): Result<QueryData, string> => {
+    const errorPrefix = `select("${table.schemaName}"."${table.tableName}")`;
+    const {
+        distinct = false,
+        groupBy = [],
+        orders = [],
+        start,
+        step
+    } = options;
+    const tokens = ['SELECT'];
 
-                // where
-                const resolvedWhereResult = resolveExpression(
-                    typeof where === 'function' ? where(this.context) : where,
-                    params.length + 1,
-                    ignoreInWhere
-                );
-                if (!resolvedWhereResult.ok) {
-                    return err(`<select>[where] -> ${resolvedWhereResult.error}`);
-                }
-                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
-                    return err(`<select>[where] -> neutral`);
-                }
-                params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'TRUE' : resolvedWhereResult.value.text);
+    // distinct
+    if (distinct === true) {
+        tokens.push('DISTINCT');
+    } else if (Array.isArray(distinct)) {
+        tokens.push(
+            `DISTINCT ON(${distinct.map(column => resolveColumn(table, column, false)).join(', ')})`
+        );
+    }
 
-                // groupBy
-                const _groupBy = typeof groupBy === 'function' ? groupBy(this.context) : groupBy;
-                if (_groupBy.length !== 0) {
-                    const groupByTextArray = [];
-                    for (const aGroupBy of _groupBy) {
-                        const resolvedGroupBy = resolveExpression(aGroupBy, params.length + 1, ignoreInGroupBy);
-                        if (!resolvedGroupBy.ok) {
-                            return err(`<select> -> ${resolvedGroupBy.error}`);
-                        }
-                        params.push(...resolvedGroupBy.value.params);
-                        groupByTextArray.push(resolvedGroupBy.value.text);
-                    }
-                    tokens.push('GROUP BY', groupByTextArray.join(', '));
-                }
+    // select
+    const _returning =
+        typeof returning === 'function' ? returning(context) : returning;
+    const resolvedReturning = resolveReturning(
+        column => [table.columns[column].title, undefined],
+        _returning,
+        params.length + 1
+    );
+    if (!resolvedReturning.ok) {
+        return err(`${errorPrefix} -> ${resolvedReturning.error}`);
+    }
+    params.push(...resolvedReturning.value.params);
+    tokens.push(resolvedReturning.value.text);
 
-                // orders
-                if (orders.length !== 0) {
-                    const ordersTextArray = [];
-                    for (const order of orders) {
-                        const { by, direction } = order;
-                        ordersTextArray.push(`${resolveColumn(table, by, false)} ${toOrderDirection(direction)}`);
-                    }
-                    tokens.push('ORDER BY', ordersTextArray.join(', '));
-                }
+    // from
+    tokens.push(`FROM "${table.schemaName}"."${table.tableName}"`);
 
-                // pagination
-                if (start !== undefined) {
-                    if (start < 0) {
-                        return err(`<select>[start] -> invalid`);
-                    }
-                    tokens.push('OFFSET', start.toString());
-                }
-                if (step !== undefined) {
-                    if (step <= 0) {
-                        return err(`<select>[step] -> invalid`);
-                    }
-                    tokens.push('LIMIT', step.toString());
-                }
+    // where
+    const resolvedWhereResult = resolveExpression(
+        typeof where === 'function' ? where(context) : where,
+        params.length + 1,
+        false
+    );
+    if (!resolvedWhereResult.ok) {
+        return err(`${errorPrefix} -> where -> ${resolvedWhereResult.error}`);
+    }
+    if (resolvedWhereResult.value.text === '') {
+        return err(`${errorPrefix} -> where -> neutral`);
+    }
+    params.push(...resolvedWhereResult.value.params);
+    tokens.push('WHERE', resolvedWhereResult.value.text);
 
-                tokens.push(';');
-                const sql = tokens.join(' ');
-
-                return ok({ sql, params });
-            };
-            return createQueryResult<T['columns'], R>(
-                column => [table.columns[column].type, table.columns[column].nullable],
-                createQuery,
-                _returning
+    // groupBy
+    const _groupBy = typeof groupBy === 'function' ? groupBy(context) : groupBy;
+    if (_groupBy.length !== 0) {
+        const groupByTextArray = [];
+        for (const aGroupBy of _groupBy) {
+            const resolvedGroupBy = resolveExpression(
+                aGroupBy,
+                params.length + 1,
+                false
             );
-        },
-        insert: function <
-            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[],
-            N extends readonly (keyof NullableAndDefaultColumns<T['columns']>)[] = []
-        >(
-            rows: InsertValue<T['columns'], N>[] | ((context: Context<T['columns']>) => InsertValue<T['columns'], N>[]),
-            returning: R | ((context: Context<T['columns']>) => R),
-            options?: {
-                nullableDefaultColumns?: N;
-                ignoreInValues?: boolean;
-                ignoreInReturning?: boolean;
+            if (!resolvedGroupBy.ok) {
+                return err(
+                    `${errorPrefix} -> groupBy -> ${_groupBy.indexOf(aGroupBy)} -> ${resolvedGroupBy.error}`
+                );
             }
-        ) {
-            const nullableDefaultColumns = options?.nullableDefaultColumns ?? ([] as string[]);
-            const ignoreInValues = options?.ignoreInValues ?? false;
-            const ignoreInReturning = options?.ignoreInValues ?? false;
+            params.push(...resolvedGroupBy.value.params);
+            groupByTextArray.push(resolvedGroupBy.value.text);
+        }
+        tokens.push('GROUP BY', groupByTextArray.join(', '));
+    }
 
-            const _returning = typeof returning === 'function' ? returning(this.context) : returning;
-
-            const createQuery = (params: Param[]) => {
-                const tokens = [`INSERT INTO "${table.schema}"."${table.title}"`];
-
-                // columns
-                const insertingColumns: (keyof T['columns'] & string)[] = [];
-                const columnsTextArray = [];
-                for (const column in table.columns) {
-                    if (nullableDefaultColumns.includes(column as any) || !table.columns[column].nullable) {
-                        insertingColumns.push(column);
-                        columnsTextArray.push(resolveColumn(table, column, false));
-                    }
-                }
-                tokens.push(`( ${columnsTextArray.join(', ')} )`, 'VALUES');
-
-                // values
-                const valuesTextArray: string[] = [];
-                const _rows = typeof rows === 'function' ? rows(this.context) : rows;
-                if (_rows.length === 0) {
-                    return err('<insert>[values] -> empty');
-                }
-                for (const _row of _rows) {
-                    const rowTokens = [];
-                    for (const insertingColumn of insertingColumns) {
-                        if (_row[insertingColumn] === undefined) {
-                            const column = table.columns[insertingColumn];
-                            switch (column.default) {
-                                case 'value':
-                                    rowTokens.push(U.stringify((column as any).value, true));
-                                    continue;
-                                case true:
-                                case 'auto-increment':
-                                    rowTokens.push('DEFAULT');
-                                    continue;
-                                case 'created-at':
-                                case 'updated-at':
-                                    rowTokens.push(U.stringify(new Date(), true));
-                                    continue;
-                            }
-                            if (column.nullable) {
-                                rowTokens.push(U.stringify(null));
-                                continue;
-                            }
-                            // never going to happen!
-                            return err(`<insert>[rows][${_rows.indexOf(_row)}][${insertingColumn}] -> no-value`);
-                        } else {
-                            const resolvedExpressionResult = resolveExpression(
-                                _row[insertingColumn],
-                                params.length + 1,
-                                ignoreInValues
-                            );
-                            if (!resolvedExpressionResult.ok) {
-                                return err(
-                                    `<insert>[rows][${_rows.indexOf(_row)}][${insertingColumn}] -> ${
-                                        resolvedExpressionResult.error
-                                    }`
-                                );
-                            }
-                            if (resolvedExpressionResult.value.text === '') {
-                                return err(`<insert>[rows][${_rows.indexOf(_row)}][${insertingColumn}] -> neutral`);
-                            }
-                            params.push(...resolvedExpressionResult.value.params);
-                            rowTokens.push(resolvedExpressionResult.value.text);
-                        }
-                    }
-                    valuesTextArray.push(`( ${rowTokens.join(', ')} )`);
-                }
-                tokens.push(valuesTextArray.join(', '));
-
-                // returning
-                if (_returning.length !== 0) {
-                    const resolvedReturning = resolveReturning(
-                        column => ({ type: table.columns[column].type, title: table.columns[column].title }),
-                        _returning,
-                        params.length + 1,
-                        ignoreInReturning
-                    );
-                    if (!resolvedReturning.ok) {
-                        return err(`<insert> -> ${resolvedReturning.error}`);
-                    }
-                    params.push(...resolvedReturning.value.params);
-                    tokens.push('RETURNING', resolvedReturning.value.text);
-                }
-
-                tokens.push(';');
-                const sql = tokens.join(' ');
-
-                return ok({ sql, params });
-            };
-            return createQueryResult<T['columns'], R>(
-                column => [table.columns[column].type, table.columns[column].nullable],
-                createQuery,
-                _returning
+    // orders
+    if (orders.length !== 0) {
+        const ordersTextArray = [];
+        for (const order of orders) {
+            const { by, direction } = order;
+            ordersTextArray.push(
+                `${resolveColumn(table, by, false)} ${Dictionary.OrderDirection[direction]}`
             );
-        },
-        update: function <
-            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
-        >(
-            sets: UpdateSets<T['columns']> | ((context: Context<T['columns']>) => UpdateSets<T['columns']>),
-            where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
-            returning: R | ((context: Context<T['columns']>) => R),
-            options?: {
-                ignoreInSets?: boolean;
-                ignoreInWhere?: boolean;
-                ignoreInReturning?: boolean;
-            }
+        }
+        tokens.push('ORDER BY', ordersTextArray.join(', '));
+    }
+
+    // pagination
+    if (start !== undefined) {
+        if (start < 0) {
+            return err(`${errorPrefix} -> start -> invalid`);
+        }
+        tokens.push('OFFSET', start.toString());
+    }
+    if (step !== undefined) {
+        if (step <= 0) {
+            return err(`${errorPrefix} -> step -> invalid`);
+        }
+        tokens.push('LIMIT', step.toString());
+    }
+
+    return ok({ sql: tokens.join(' '), params });
+};
+
+// insert
+type InsertOptions<
+    S extends Schema,
+    N extends readonly (keyof NullableAndDefaultColumns<S>)[]
+> = {
+    nullableDefaultColumns?: N;
+};
+type InsertingRow<
+    S extends Schema,
+    N extends readonly (keyof NullableAndDefaultColumns<S>)[]
+> = {
+    [key in Exclude<
+        keyof S,
+        keyof NullableAndDefaultColumns<S>
+    >]: S[key]['type'];
+} & {
+    [key in Exclude<keyof N, keyof never[]> as N[key] & string]?: NullableType<
+        S[N[key] & string]['type'],
+        S[N[key] & string]['nullable']
+    >;
+};
+
+const createInsertQuery = (
+    context: Context,
+    table: Table,
+    rows:
+        | Record<string, unknown>[]
+        | ((context: Context) => Record<string, unknown>[]),
+    returning: ReturningRows | ((context: Context) => ReturningRows),
+    options: InsertOptions<Schema, readonly string[]>,
+    params: string[]
+): Result<QueryData, string> => {
+    const errorPrefix = `insert("${table.schemaName}"."${table.tableName}")`;
+    const { nullableDefaultColumns = [] } = options;
+    const tokens = [`INSERT INTO "${table.schemaName}"."${table.tableName}"`];
+
+    // columns
+    const insertingColumns: string[] = [];
+    const columnsTextArray = [];
+    for (const column in table.columns) {
+        if (
+            nullableDefaultColumns.includes(column) ||
+            !table.columns[column].nullable ||
+            table.columns[column].default
         ) {
-            const ignoreInSets = options?.ignoreInSets ?? false;
-            const ignoreInWhere = options?.ignoreInWhere ?? false;
-            const ignoreInReturning = options?.ignoreInReturning ?? false;
+            insertingColumns.push(column);
+            columnsTextArray.push(resolveColumn(table, column, false));
+        }
+    }
+    tokens.push(`(${columnsTextArray.join(', ')})`, 'VALUES');
 
-            const _returning = typeof returning === 'function' ? returning(this.context) : returning;
-
-            const createQuery = (params: Param[]) => {
-                const tokens = [`UPDATE "${table.schema}"."${table.title}" SET`];
-
-                // set
-                const _set = typeof sets === 'function' ? sets(this.context) : sets;
-                const setsTextArray = [];
-                let key: keyof typeof _set & string;
-                for (key in _set) {
-                    const setExpressionResult = resolveExpression(_set[key], params.length + 1, ignoreInSets);
-                    if (!setExpressionResult.ok) {
-                        return err(`<update>[sets][${key}] -> ${setExpressionResult.error}`);
-                    }
-                    if (setExpressionResult.value.text === '') {
-                        if (ignoreInSets) {
+    // rows
+    const rowsTextArray: string[] = [];
+    const _rows = typeof rows === 'function' ? rows(context) : rows;
+    if (_rows.length === 0) {
+        return err(`${errorPrefix} -> rows -> empty`);
+    }
+    for (const _row of _rows) {
+        const rowTokens = [];
+        for (const insertingColumn of insertingColumns) {
+            if (_row[insertingColumn] === undefined) {
+                const column = table.columns[insertingColumn] as unknown as {
+                    nullable: boolean;
+                    defaultValue:
+                        | undefined
+                        | ['auto-increment']
+                        | ['created-at']
+                        | ['updated-at']
+                        | ['sql', string]
+                        | ['js', unknown];
+                };
+                if (column.defaultValue !== undefined) {
+                    switch (column.defaultValue[0]) {
+                        case 'auto-increment':
+                            rowTokens.push('DEFAULT');
                             continue;
-                        } else {
-                            return err(`<update>[sets][${key}] -> neutral`);
-                        }
-                    }
-                    params.push(...setExpressionResult.value.params);
-                    setsTextArray.push(`${resolveColumn(table, key, false)} = ${setExpressionResult.value.text}`);
-                }
-                for (const column in table.columns) {
-                    switch (table.columns[column].default) {
+                        case 'created-at':
                         case 'updated-at':
-                            setsTextArray.push(
-                                `${resolveColumn(table, column, false)} = ${U.stringify(new Date(), true)}`
+                            rowTokens.push(U.stringify(new Date(), true));
+                            continue;
+                        case 'sql':
+                            rowTokens.push(column.defaultValue[1]);
+                            continue;
+                        case 'js':
+                            rowTokens.push(
+                                U.stringify(column.defaultValue[1], true)
                             );
-                            break;
+                            continue;
                     }
                 }
-                if (setsTextArray.length === 0) {
-                    return err('<update>[sets] -> empty');
+                if (column.nullable) {
+                    rowTokens.push(U.stringify(null, true));
+                    continue;
                 }
-                tokens.push(setsTextArray.join(', '));
-
-                // where
-                const resolvedWhereResult = resolveExpression(
-                    typeof where === 'function' ? where(this.context) : where,
-                    params.length + 1,
-                    ignoreInWhere
+                return err(
+                    `${errorPrefix} -> rows -> ${_rows.indexOf(_row)} -> ${insertingColumn} -> no-value`
                 );
-                if (!resolvedWhereResult.ok) {
-                    return err(`<update>[where] -> ${resolvedWhereResult.error}`);
-                }
-                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
-                    return err(`<update>[where] -> neutral`);
-                }
-                params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
-
-                // returning
-                if (_returning.length !== 0) {
-                    const resolvedReturning = resolveReturning(
-                        column => ({ type: table.columns[column].type, title: table.columns[column].title }),
-                        _returning,
-                        params.length + 1,
-                        ignoreInReturning
+            } else {
+                const resolvedExpressionResult = resolveExpression(
+                    _row[insertingColumn],
+                    params.length + 1,
+                    false
+                );
+                if (!resolvedExpressionResult.ok) {
+                    return err(
+                        `${errorPrefix} -> rows -> ${_rows.indexOf(_row)}][${insertingColumn} -> ${
+                            resolvedExpressionResult.error
+                        }`
                     );
-                    if (!resolvedReturning.ok) {
-                        return err(`<update> -> ${resolvedReturning.error}`);
-                    }
-                    params.push(...resolvedReturning.value.params);
-                    tokens.push('RETURNING', resolvedReturning.value.text);
                 }
-
-                tokens.push(';');
-                const sql = tokens.join(' ');
-
-                return ok({ sql, params });
-            };
-            return createQueryResult<T['columns'], R>(
-                column => [table.columns[column].type, table.columns[column].nullable],
-                createQuery,
-                _returning
-            );
-        },
-        delete: function <
-            R extends readonly ((keyof T['columns'] & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
-        >(
-            where: Expression<boolean> | ((context: Context<T['columns']>) => Expression<boolean>),
-            returning: R | ((context: Context<T['columns']>) => R),
-            options?: {
-                ignoreInWhere?: boolean;
-                ignoreInReturning?: boolean;
+                if (resolvedExpressionResult.value.text === '') {
+                    return err(
+                        `${errorPrefix} -> rows -> ${_rows.indexOf(_row)}][${insertingColumn} -> neutral`
+                    );
+                }
+                params.push(...resolvedExpressionResult.value.params);
+                rowTokens.push(resolvedExpressionResult.value.text);
             }
-        ) {
-            const ignoreInWhere = options?.ignoreInWhere ?? false;
-            const ignoreInReturning = options?.ignoreInReturning ?? false;
+        }
+        rowsTextArray.push(`(${rowTokens.join(', ')})`);
+    }
+    tokens.push(rowsTextArray.join(', '));
 
-            const _returning = typeof returning === 'function' ? returning(this.context) : returning;
+    // returning
+    const _returning =
+        typeof returning === 'function' ? returning(context) : returning;
+    if (_returning.length !== 0) {
+        const resolvedReturning = resolveReturning(
+            column => [table.columns[column].title, undefined],
+            _returning,
+            params.length + 1
+        );
+        if (!resolvedReturning.ok) {
+            return err(`${errorPrefix} -> ${resolvedReturning.error}`);
+        }
+        params.push(...resolvedReturning.value.params);
+        tokens.push('RETURNING', resolvedReturning.value.text);
+    }
 
-            const createQuery = (params: Param[]) => {
-                const tokens = [`DELETE FROM "${table.schema}"."${table.title}"`];
+    return ok({ sql: tokens.join(' '), params });
+};
 
-                // where
-                const resolvedWhereResult = resolveExpression(
-                    typeof where === 'function' ? where(this.context) : where,
-                    params.length + 1,
-                    ignoreInWhere
-                );
-                if (!resolvedWhereResult.ok) {
-                    return err(`<delete>[where] -> ${resolvedWhereResult.error}`);
-                }
-                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
-                    return err(`<delete>[where] -> neutral`);
-                }
-                params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
+// update
+type UpdateSets<S extends Schema = Schema> = {
+    [key in keyof S]?: NullableType<S[key]['type'], S[key]['nullable']>;
+};
 
-                // returning
-                if (_returning.length !== 0) {
-                    const resolvedReturning = resolveReturning(
-                        column => ({ type: table.columns[column].type, title: table.columns[column].title }),
-                        _returning,
-                        params.length + 1,
-                        ignoreInReturning
-                    );
-                    if (!resolvedReturning.ok) {
-                        return err(`<delete> -> ${resolvedReturning.error}`);
-                    }
-                    params.push(...resolvedReturning.value.params);
-                    tokens.push('RETURNING', resolvedReturning.value.text);
-                }
+const createUpdateQuery = (
+    context: Context,
+    table: Table,
+    sets: UpdateSets | ((context: Context) => UpdateSets),
+    where: boolean | ((context: Context) => boolean),
+    returning: ReturningRows | ((context: Context) => ReturningRows),
+    params: string[]
+): Result<QueryData, string> => {
+    const errorPrefix = `update("${table.schemaName}"."${table.tableName}")`;
+    const tokens = [`UPDATE "${table.schemaName}"."${table.tableName}" SET`];
 
-                tokens.push(';');
-                const sql = tokens.join(' ');
-
-                return ok({ sql, params });
-            };
-            return createQueryResult<T['columns'], R>(
-                column => [table.columns[column].type, table.columns[column].nullable],
-                createQuery,
-                _returning
+    // set
+    const _set = typeof sets === 'function' ? sets(context) : sets;
+    const setsTextArray = [];
+    let key: keyof typeof _set & string;
+    for (key in _set) {
+        if (_set[key] === undefined) {
+            continue;
+        }
+        const setExpressionResult = resolveExpression(
+            _set[key],
+            params.length + 1,
+            false
+        );
+        if (!setExpressionResult.ok) {
+            return err(
+                `${errorPrefix} -> sets -> ${key} -> ${setExpressionResult.error}`
             );
-        },
-        join: <MainAlias extends string, JTable extends Table, JAlias extends string>(
-            mainAlias: MainAlias,
-            joinType: JoinType,
-            joinTable: JTable,
-            joinAlias: JAlias,
-            on:
-                | Expression<boolean>
-                | ((
-                      contexts: Record<MainAlias, Context<T['columns']>> & Record<JAlias, Context<JTable['columns']>>
-                  ) => Expression<boolean>)
-        ) =>
-            createJoinSelectEntity<
-                Record<MainAlias, T> & Record<JAlias, JTable>,
-                AliasedColumns<T['columns'], MainAlias> & AliasedColumns<JTable['columns'], JAlias>
-            >({ table, alias: mainAlias }, [{ table: joinTable, joinType, alias: joinAlias, on: on as any }], {
-                [mainAlias]: createContext(table, mainAlias),
-                [joinAlias]: createContext(joinTable, joinAlias)
-            } as any)
-    } as const);
+        }
+        if (setExpressionResult.value.text === '') {
+            return err(`${errorPrefix} -> sets -> ${key} -> neutral`);
+        }
+        params.push(...setExpressionResult.value.params);
+        setsTextArray.push(
+            `${resolveColumn(table, key, false)} = ${setExpressionResult.value.text}`
+        );
+    }
+    for (const column in table.columns) {
+        switch (
+            (
+                table.columns[column] as unknown as {
+                    defaultValue: undefined | ['updated-at'];
+                }
+            ).defaultValue?.[0]
+        ) {
+            case 'updated-at':
+                setsTextArray.push(
+                    `${resolveColumn(table, column, false)} = ${U.stringify(new Date(), true)}`
+                );
+                break;
+        }
+    }
+    if (setsTextArray.length === 0) {
+        return err(`${errorPrefix} -> sets -> empty`);
+    }
+    tokens.push(setsTextArray.join(', '));
+
+    // where
+    const resolvedWhereResult = resolveExpression(
+        typeof where === 'function' ? where(context) : where,
+        params.length + 1,
+        false
+    );
+    if (!resolvedWhereResult.ok) {
+        return err(`${errorPrefix} -> where -> ${resolvedWhereResult.error}`);
+    }
+    if (resolvedWhereResult.value.text === '') {
+        return err(`${errorPrefix} -> where -> neutral`);
+    }
+    params.push(...resolvedWhereResult.value.params);
+    tokens.push('WHERE', resolvedWhereResult.value.text);
+
+    // returning
+    const _returning =
+        typeof returning === 'function' ? returning(context) : returning;
+    if (_returning.length !== 0) {
+        const resolvedReturning = resolveReturning(
+            column => [table.columns[column].title, undefined],
+            _returning,
+            params.length + 1
+        );
+        if (!resolvedReturning.ok) {
+            return err(`${errorPrefix} -> ${resolvedReturning.error}`);
+        }
+        params.push(...resolvedReturning.value.params);
+        tokens.push('RETURNING', resolvedReturning.value.text);
+    }
+
+    return ok({ sql: tokens.join(' '), params });
+};
+
+// delete
+const createDeleteQuery = (
+    context: Context,
+    table: Table,
+    returning: ReturningRows | ((context: Context) => ReturningRows),
+    where: boolean | ((context: Context) => boolean),
+    params: string[]
+): Result<QueryData, string> => {
+    const tokens = [`DELETE FROM "${table.schemaName}"."${table.tableName}"`];
+
+    // where
+    const resolvedWhereResult = resolveExpression(
+        typeof where === 'function' ? where(context) : where,
+        params.length + 1,
+        false
+    );
+    if (!resolvedWhereResult.ok) {
+        return err(
+            `delete("${table.schemaName}"."${table.tableName}") -> where -> ${resolvedWhereResult.error}`
+        );
+    }
+    if (resolvedWhereResult.value.text === '') {
+        return err(
+            `delete("${table.schemaName}"."${table.tableName}") -> where -> neutral`
+        );
+    }
+    params.push(...resolvedWhereResult.value.params);
+    tokens.push('WHERE', resolvedWhereResult.value.text);
+
+    // returning
+    const _returning =
+        typeof returning === 'function' ? returning(context) : returning;
+    if (_returning.length !== 0) {
+        const resolvedReturning = resolveReturning(
+            column => [table.columns[column].title, undefined],
+            _returning,
+            params.length + 1
+        );
+        if (!resolvedReturning.ok) {
+            return err(
+                `delete("${table.schemaName}"."${table.tableName}") -> ${resolvedReturning.error}`
+            );
+        }
+        params.push(...resolvedReturning.value.params);
+        tokens.push('RETURNING', resolvedReturning.value.text);
+    }
+
+    return ok({ sql: tokens.join(' '), params });
+};
+
+// join
+type JoinType = 'inner' | 'left' | 'right' | 'full';
+type TableWithAlias = {
+    table: Table;
+    alias: string;
+};
+type JoinData = {
+    joinType: JoinType;
+    on: boolean | ((contexts: Record<string, Context>) => boolean);
+};
+type SchemaMapKeys<SMap extends Record<string, Schema>> = {
+    [key in keyof SMap & string]: `${key}_${keyof SMap[key] & string}`;
+}[keyof SMap & string];
+type SchemaMapContexts<SMap extends Record<string, Schema>> = {
+    [key in keyof SMap & string as `${key}Context`]: Context<SMap[key]>;
+};
+type PrefixAliasOnSchema<S extends Schema, A extends string> = {
+    [key in keyof S as `${A}_${key & string}`]: S[key];
+};
+type JoinEntity<SMap extends Record<string, Schema>, AllS extends Schema> = {
+    contexts: SchemaMapContexts<SMap>;
+    select: <
+        R extends readonly (
+            | (keyof AllS & string)
+            | CustomColumn<unknown, string>
+        )[]
+    >(
+        returning: R | ((contexts: SchemaMapContexts<SMap>) => R),
+        where: boolean | ((contexts: SchemaMapContexts<SMap>) => boolean),
+        options?: JoinSelectOptions<SMap>
+    ) => Query<AllS, R>;
+    join: <JS extends Schema, JA extends string>(
+        joinType: JoinType,
+        joinTable: Table<JS>,
+        joinAlias: JA,
+        on:
+            | boolean
+            | ((contexts: SchemaMapContexts<SMap & Record<JA, JS>>) => boolean)
+    ) => JoinEntity<SMap & Record<JA, JS>, AllS & PrefixAliasOnSchema<JS, JA>>;
+};
+type JoinSelectOptions<
+    Ss extends Record<string, Schema> = Record<string, Schema>
+> = {
+    distinct?: true | SchemaMapKeys<Ss>[];
+    groupBy?: unknown[] | ((contexts: SchemaMapContexts<Ss>) => unknown[]);
+    orders?: {
+        by: SchemaMapKeys<Ss>;
+        direction: OrderDirection;
+    }[];
+    start?: bigint;
+    step?: number;
+};
 
 const createJoinSelectEntity = <
-    TablesData extends { [key: string]: Table },
-    AllColumns extends { [key: string]: Column }
+    SMap extends Record<string, Schema>,
+    AllS extends Schema
 >(
     main: TableWithAlias,
     joinTables: (TableWithAlias & JoinData)[],
-    contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }
-) =>
-    ({
-        contexts: contexts,
-        select: function <
-            R extends readonly (TablesColumnsKeys<TablesData> | CustomColumn<Expression<ExpressionTypes>, string>)[]
-        >(
-            returning: R | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }) => R),
-            where:
-                | Expression<boolean>
-                | ((contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> }) => Expression<boolean>),
-            options?: {
-                ignoreInWhere?: boolean;
-                ignoreInReturning?: boolean;
-                ignoreInJoin?: boolean;
-                ignoreInGroupBy?: boolean;
-                distinct?: true | TablesColumnsKeys<TablesData>[];
-                groupBy?:
-                    | Expression<ExpressionTypes>[]
-                    | ((contexts: {
-                          [t in keyof TablesData]: Context<TablesData[t]['columns']>;
-                      }) => Expression<ExpressionTypes>[]);
-                orders?: { by: TablesColumnsKeys<TablesData>; direction: OrderDirection }[];
-                start?: bigint;
-                step?: number;
-            }
-        ) {
-            const ignoreInWhere = options?.ignoreInWhere ?? false;
-            const ignoreInReturning = options?.ignoreInReturning ?? false;
-            const ignoreInJoin = options?.ignoreInJoin ?? false;
-            const ignoreInGroupBy = options?.ignoreInGroupBy ?? false;
-            const distinct = options?.distinct ?? false;
-            const groupBy = options?.groupBy ?? [];
-            const orders = options?.orders ?? [];
-            const start = options?.start;
-            const step = options?.step;
-
-            const allTables = [main, ...joinTables] as (typeof main)[];
-            const _returning = typeof returning === 'function' ? returning(this.contexts) : returning;
-
-            const createQuery = (params: Param[]) => {
-                const tokens = ['SELECT'];
-
-                // distinct
-                if (distinct === true) {
-                    tokens.push('DISTINCT');
-                } else if (Array.isArray(distinct)) {
-                    tokens.push(
-                        `DISTINCT ON ( ${distinct
-                            .map(column => {
-                                const { table, alias } = getTableDataOfJoinSelectColumn(allTables, column);
-                                return resolveColumn(table, column.substring((alias + '_').length), true, alias);
-                            })
-                            .join(', ')} )`
-                    );
-                }
-
-                // select
-                const resolvedReturning = resolveReturning(
-                    column => {
-                        const { table, alias } = getTableDataOfJoinSelectColumn(allTables, column);
-                        const columnKey = column.substring((alias + '_').length);
-                        return { type: table.columns[columnKey].type, title: table.columns[columnKey].title, alias };
-                    },
-                    _returning,
-                    params.length + 1,
-                    ignoreInReturning
-                );
-                if (!resolvedReturning.ok) {
-                    return err(`<join-select>[columns] -> ${resolvedReturning.error}`);
-                }
-                params.push(...resolvedReturning.value.params);
-                tokens.push(
-                    resolvedReturning.value.text,
-                    `FROM "${main.table.schema}"."${main.table.title}" "${main.alias}"`
-                );
-
-                // join
-                for (const joinTable of joinTables) {
-                    const onExpressionResult = resolveExpression(
-                        typeof joinTable.on === 'function' ? joinTable.on(this.contexts) : joinTable.on,
-                        params.length + 1,
-                        ignoreInJoin
-                    );
-                    if (!onExpressionResult.ok) {
-                        return err(
-                            `<join-select>[join][${joinTables.indexOf(joinTable)}] -> ${onExpressionResult.error}`
-                        );
-                    }
-                    if (onExpressionResult.value.text === '' && !ignoreInJoin) {
-                        return err(`<join-select>[join][${joinTables.indexOf(joinTable)}] -> neutral`);
-                    }
-                    params.push(...onExpressionResult.value.params);
-                    tokens.push(
-                        `${toJoinType(joinTable.joinType)} "${joinTable.table.schema}"."${joinTable.table.title}" "${
-                            joinTable.alias
-                        }" ON ${onExpressionResult.value.text}`
-                    );
-                }
-
-                // where
-                const resolvedWhereResult = resolveExpression(
-                    typeof where === 'function' ? where(this.contexts) : where,
-                    params.length + 1,
-                    ignoreInWhere
-                );
-                if (!resolvedWhereResult.ok) {
-                    return err(`<join-select>[where] -> ${resolvedWhereResult.error}`);
-                }
-                if (resolvedWhereResult.value.text === '' && !ignoreInWhere) {
-                    return err(`<join-select>[where] -> neutral`);
-                }
-                params.push(...resolvedWhereResult.value.params);
-                tokens.push('WHERE', resolvedWhereResult.value.text === '' ? 'FALSE' : resolvedWhereResult.value.text);
-
-                // groupBy
-                const _groupBy = typeof groupBy === 'function' ? groupBy(this.contexts) : groupBy;
-                if (_groupBy.length !== 0) {
-                    const groupByTextArray = [];
-                    for (const aGroupBy of _groupBy) {
-                        const resolvedGroupBy = resolveExpression(aGroupBy, params.length + 1, ignoreInGroupBy);
-                        if (!resolvedGroupBy.ok) {
-                            return err(`<join-select> -> ${resolvedGroupBy.error}`);
-                        }
-                        params.push(...resolvedGroupBy.value.params);
-                        groupByTextArray.push(resolvedGroupBy.value.text);
-                    }
-                    tokens.push('GROUP BY', groupByTextArray.join(', '));
-                }
-
-                // orders
-                if (orders.length !== 0) {
-                    const ordersTextArray = [];
-                    for (const order of orders) {
-                        const { by, direction } = order;
-                        const { table, alias } = getTableDataOfJoinSelectColumn(allTables, by);
-                        ordersTextArray.push(
-                            `${resolveColumn(
-                                table,
-                                by.substring((alias + '_').length),
-                                true,
-                                alias
-                            )} ${toOrderDirection(direction)}`
-                        );
-                    }
-                    tokens.push('ORDER BY', ordersTextArray.join(', '));
-                }
-
-                // pagination
-                if (start !== undefined) {
-                    if (start < 0) {
-                        return err(`<join-select>[start] -> invalid`);
-                    }
-                    tokens.push('OFFSET', start.toString());
-                }
-                if (step !== undefined) {
-                    if (step <= 0) {
-                        return err(`<join-select>[step] -> invalid`);
-                    }
-                    tokens.push('LIMIT', step.toString());
-                }
-
-                tokens.push(';');
-                const sql = tokens.join(' ');
-
-                return ok({ sql, params });
-            };
-            return createQueryResult<AllColumns, R>(
-                column => {
-                    const {
-                        alias,
-                        table: { columns }
-                    } = getTableDataOfJoinSelectColumn(allTables, column as string);
-                    const targetCol = columns[column.substring((alias + '_').length)];
-                    return [targetCol.type, targetCol.nullable];
-                },
-                createQuery,
-                _returning
-            );
-        },
-        join: function <JTable extends Table, JAlias extends string>(
-            joinType: JoinType,
-            joinTable: JTable,
-            joinAlias: JAlias,
-            on:
-                | Expression<boolean>
-                | ((
-                      contexts: { [t in keyof TablesData]: Context<TablesData[t]['columns']> } & Record<
-                          JAlias,
-                          Context<JTable['columns']>
-                      >
-                  ) => Expression<boolean>)
-        ) {
-            joinTables.push({ table: joinTable, on: on as any, joinType, alias: joinAlias });
-            return createJoinSelectEntity<
-                TablesData & Record<JAlias, JTable>,
-                AllColumns & AliasedColumns<JTable['columns'], JAlias>
-            >(main, joinTables, {
-                ...contexts,
-                [joinAlias]: createContext(joinTable, joinAlias)
-            });
-        }
-    } as const);
-
-// utils
-const ReservedExpressionKeys = [
-    'val',
-    '=n',
-    '!=n',
-    '=t',
-    '=f',
-    'not',
-    '+',
-    '-',
-    '*',
-    '/',
-    '||',
-    'and',
-    'or',
-    '**',
-    'fun',
-    'swt',
-    'col',
-    'raw',
-    '=',
-    '!=',
-    '>',
-    '>=',
-    '<',
-    '<=',
-    'lk',
-    '@>',
-    '<@',
-    '?',
-    'j-',
-    'in',
-    'nin',
-    'lka',
-    'lks',
-    '?|',
-    '?&',
-    'j-a',
-    'bt',
-    'qry',
-    'exists'
-] as const;
-
-const createQueryResult = <
-    Columns extends Table['columns'],
-    R extends readonly ((keyof Columns & string) | CustomColumn<Expression<ExpressionTypes>, string>)[]
->(
-    getColumnType: (column: keyof Columns & string) => [type: PostgresType, nullable: boolean],
-    createQuery: (params: Param[]) => Result<QueryData, string>,
-    returning: R
-): Query<Columns, R> => {
-    let query: { sql: string; params: Param[] } | undefined = undefined;
-    return {
-        getData: (params = []) => {
-            if (query === undefined) {
-                const createQueryResult = createQuery(params);
-                if (createQueryResult.ok) {
-                    query = createQueryResult.value;
-                } else {
-                    return createQueryResult;
-                }
-            }
-            return ok(query);
-        },
-        exec: <M extends Mode>(client: ClientBase, mode: M, params: Param[] = []) => {
-            if (query === undefined) {
-                const createQueryResult = createQuery(params);
-                if (createQueryResult.ok) {
-                    query = createQueryResult.value;
-                } else {
-                    return Promise.resolve(createQueryResult);
-                }
-            }
-            return client
-                .query(query.sql, query.params)
-                .then(({ rows }) => resolveResult<Columns, R, M>(getColumnType, returning, rows, mode))
-                .catch(e => err(e));
-        }
-    };
-};
-
-/*
- * take getColumnType instead of table to support join-select too.
- * this cause hard to call this function directly, but it is only solution I could come up with.
- */
-const resolveResult = <
-    Columns extends Table['columns'],
-    C extends readonly ((keyof Columns & string) | CustomColumn<Expression<ExpressionTypes>, string>)[],
-    M extends Mode
->(
-    getColumnType: (column: keyof Columns & string) => [type: PostgresType, nullable: boolean],
-    columns: C,
-    rows: any[],
-    mode: M
-): Result<QueryResult<Columns, C, M>, false> => {
-    // check size in count and get mode
-    if (mode[0] === 'count') {
-        return rows.length === mode[1] ? (ok(undefined) as any) : err(false);
-    }
-    if (mode[0] === 'get' && rows.length !== (mode[1] === 'one' ? 1 : mode[1])) {
-        return err(false as false);
-    }
-
-    // parse result
-    rows.forEach((_, i) => {
-        columns.forEach(column => {
-            if (typeof column !== 'object') {
-                rows[i][column] = U.cast(rows[i][column], getColumnType(column));
-            }
-        });
-    });
-
-    // return first element for [get, one] mode and all for [get, number] and []
-    if (mode[0] === 'get' && mode[1] === 'one') {
-        return ok(rows[0]);
-    } else {
-        return ok(rows) as any;
-    }
-};
-
-/*
- * take getColumnTypeTitleAlias instead of table to support join-select too.
- * this cause hard to call this function directly, but it is only solution I could come up with.
- */
-const resolveReturning = <C extends string>(
-    getColumnTypeTitleAlias: (column: C) => {
-        type: PostgresType;
-        title?: string | undefined;
-        alias?: string | undefined;
+    contexts: SchemaMapContexts<SMap>
+): JoinEntity<SMap, AllS> => ({
+    contexts: contexts,
+    select: function <
+        R extends readonly (
+            | (keyof AllS & string)
+            | CustomColumn<unknown, string>
+        )[]
+    >(
+        returning: R | ((contexts: SchemaMapContexts<SMap>) => R),
+        where: boolean | ((contexts: SchemaMapContexts<SMap>) => boolean),
+        options = {} as JoinSelectOptions<SMap>
+    ): Query<AllS, R> {
+        return createQuery(params =>
+            createJoinSelectQuery(
+                this.contexts,
+                main,
+                joinTables,
+                returning as
+                    | ReturningRows
+                    | ((contexts: Record<string, Context>) => ReturningRows),
+                where as
+                    | boolean
+                    | ((contexts: Record<string, Context>) => boolean),
+                options as JoinSelectOptions,
+                params
+            )
+        );
     },
-    columns: readonly (C | CustomColumn<Expression<ExpressionTypes>, string>)[],
-    paramsStart: number,
-    ignore: boolean
-): Result<PartialQuery, string> => {
-    const tokens = [];
-    const params: Param[] = [];
-    for (const column of columns) {
-        if (typeof column === 'object') {
-            const resolvedExpResult = resolveExpression(column.exp, paramsStart, ignore);
-            if (!resolvedExpResult.ok) {
-                return err(`<returning>[${column.as}] -> ${resolvedExpResult.error}`);
-            }
-            if (resolvedExpResult.value.text === '') {
-                return err(`<returning>[${column.as}] -> neutral`);
-            }
-            params.push(...resolvedExpResult.value.params);
-            paramsStart += resolvedExpResult.value.params.length;
+    join: function <JS extends Schema, JA extends string>(
+        joinType: JoinType,
+        joinTable: Table<JS>,
+        joinAlias: JA,
+        on:
+            | boolean
+            | ((contexts: SchemaMapContexts<SMap & Record<JA, JS>>) => boolean)
+    ): JoinEntity<SMap & Record<JA, JS>, AllS & PrefixAliasOnSchema<JS, JA>> {
+        joinTables.push({
+            table: joinTable as Table,
+            on: on as
+                | boolean
+                | ((contexts: Record<string, Context>) => boolean),
+            joinType,
+            alias: joinAlias
+        });
+        return createJoinSelectEntity<
+            SMap & Record<JA, JS>,
+            AllS & PrefixAliasOnSchema<JS, JA>
+        >(main, joinTables, {
+            ...contexts,
+            [`${joinAlias}Context`]: createContext(joinTable, joinAlias)
+        } as SchemaMapContexts<SMap & Record<JA, JS>>);
+    }
+});
+const createJoinSelectQuery = (
+    contexts: Record<string, Context>,
+    main: TableWithAlias,
+    joinTables: (TableWithAlias & JoinData)[],
+    returning:
+        | ReturningRows
+        | ((contexts: Record<string, Context>) => ReturningRows),
+    where: boolean | ((contexts: Record<string, Context>) => boolean),
+    options: JoinSelectOptions,
+    params: string[]
+): Result<QueryData, string> => {
+    const errorPrefix = `join-select("${main.table.schemaName}"."${main.table.tableName}")`;
+    const allTables = [main, ...joinTables];
+    const {
+        distinct = false,
+        groupBy = [],
+        orders = [],
+        start,
+        step
+    } = options;
+    const tokens = ['SELECT'];
 
-            tokens.push(`( ${resolvedExpResult.value.text} ) AS "${column.as}"`);
-        } else {
-            const { type: _type, title, alias } = getColumnTypeTitleAlias(column);
-            // TODO cast time with/without timezone to custom object
-            if (title === undefined) {
-                if (alias !== undefined) {
-                    tokens.push(`"${alias}".` + `"${column.substring((alias + '_').length)}"` + ` AS "${column}"`);
-                } else {
-                    tokens.push(`"${column}"`);
-                }
-            } else {
-                tokens.push((alias !== undefined ? `"${alias}".` : '') + `"${title}"` + ` AS "${column}"`);
-            }
+    // distinct
+    if (distinct === true) {
+        tokens.push('DISTINCT');
+    } else if (Array.isArray(distinct)) {
+        tokens.push(
+            `DISTINCT ON(${distinct
+                .map(column => {
+                    const { table, alias } = getTableDataOfJoinSelectColumn(
+                        allTables,
+                        column
+                    );
+                    return resolveColumn(
+                        table,
+                        column.substring((alias + '_').length),
+                        true,
+                        alias
+                    );
+                })
+                .join(', ')})`
+        );
+    }
+
+    // select
+    const _returning =
+        typeof returning === 'function' ? returning(contexts) : returning;
+    const resolvedReturning = resolveReturning(
+        column => {
+            const { table, alias } = getTableDataOfJoinSelectColumn(
+                allTables,
+                column
+            );
+            const columnKey = column.substring((alias + '_').length);
+            return [table.columns[columnKey].title, alias];
+        },
+        _returning,
+        params.length + 1
+    );
+    if (!resolvedReturning.ok) {
+        return err(`${errorPrefix} -> ${resolvedReturning.error}`);
+    }
+    params.push(...resolvedReturning.value.params);
+    tokens.push(
+        resolvedReturning.value.text,
+        `FROM "${main.table.schemaName}"."${main.table.tableName}" "${main.alias}"`
+    );
+
+    // join
+    for (const joinTable of joinTables) {
+        const onExpressionResult = resolveExpression(
+            typeof joinTable.on === 'function'
+                ? joinTable.on(contexts)
+                : joinTable.on,
+            params.length + 1,
+            false
+        );
+        if (!onExpressionResult.ok) {
+            return err(
+                `${errorPrefix} -> join -> ${joinTables.indexOf(joinTable)} -> ${onExpressionResult.error}`
+            );
         }
-    }
-    if (tokens.length === 0) {
-        return err('<returning> -> empty');
-    }
-    return ok(partialQuery(tokens.join(', '), params));
-};
-
-/*
- ** currently all errors are handled with types and no dynamic check is required.
- ** errors return only when ignore is false and an expression needs ignorance.
- ** so, some errors written in function, but they will never be returned.
- ** e.g.
- ** if (e1Result.value.text === '') {
- **     return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}> -> neutral`);
- ** }
- * if result is neutral then ignore is true, so error in this example will never be returned.
- * but they exist in case new errors with dynamic check added.
- */
-const resolveExpression = (
-    expression: Expression<ExpressionTypes>,
-    paramsStart: number,
-    ignore: boolean = false
-): Result<PartialQuery, string> => {
-    // primitive expression
-    if (expression === undefined) {
-        return ignore ? ok(partialQuery()) : err('undefined');
-    }
-    if (
-        expression === null ||
-        typeof expression === 'boolean' ||
-        expression instanceof Decimal ||
-        expression instanceof Date ||
-        typeof expression === 'number' ||
-        typeof expression === 'bigint'
-    ) {
-        return ok(partialQuery(`${U.stringify(expression, true)}`));
-    }
-    if (typeof expression === 'string') {
-        return ok(partialQuery(`$${paramsStart++}`, [U.stringify(expression as any, false)]));
-    }
-    if (!(Array.isArray(expression) && ReservedExpressionKeys.includes((expression as any[])[0]))) {
-        return ok(partialQuery(`$${paramsStart++}::jsonb`, [U.stringify(expression as any, false)]));
-    }
-
-    // wrapped expression
-    const tokens = [];
-    const params: Param[] = [];
-    let e1Result, e2Result, e3Result;
-    switch (expression[0]) {
-        case 'val':
-            if (expression[1] === undefined) {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription('val')}> -> undefined`);
-            }
-            params.push(U.stringify(expression[1], false));
-            return ok(partialQuery(`$${paramsStart++}`, params));
-        case '=n':
-        case '!=n':
-        case '=t':
-        case '=f':
-        case 'not':
-            e1Result = resolveExpression(expression[1], paramsStart, ignore);
-            if (!e1Result.ok) {
-                return err(`<${toDescription(expression[0])}> -> ${e1Result.error}`);
-            }
-            if (e1Result.value.text === '') {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}> -> neutral`);
-            }
-            params.push(...e1Result.value.params);
-            paramsStart += e1Result.value.params.length;
-
-            switch (expression[0]) {
-                case '=n':
-                    return ok(partialQuery(`${e1Result.value.text} IS NULL`, params));
-                case '!=n':
-                    return ok(partialQuery(`${e1Result.value.text} IS NOT NULL`, params));
-                case '=t':
-                    return ok(partialQuery(`${e1Result.value.text}`, params));
-                case '=f':
-                case 'not':
-                    return ok(partialQuery(`NOT ${e1Result.value.text}`, params));
-            }
-        case '+':
-        case '-':
-        case '*':
-        case '/':
-        case '||':
-        case 'and':
-        case 'or':
-        case '**':
-            if (expression[1] === undefined) {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}> -> undefined`);
-            }
-            for (const v1 of expression[1] as any[]) {
-                const v1Result = resolveExpression(v1, paramsStart, ignore);
-                if (!v1Result.ok) {
-                    return err(
-                        `<${toDescription(expression[0])}>[${(expression[1] as any[]).indexOf(v1)}] -> ${
-                            v1Result.error
-                        }`
-                    );
-                }
-                if (v1Result.value.text === '') {
-                    if (ignore) {
-                        continue;
-                    } else {
-                        return err(
-                            `<${toDescription(expression[0])}>[${(expression[1] as any[]).indexOf(v1)}] -> neutral`
-                        );
-                    }
-                }
-                params.push(...v1Result.value.params);
-                paramsStart += v1Result.value.params.length;
-
-                tokens.push(v1Result.value.text);
-            }
-            switch (tokens.length) {
-                case 0:
-                    return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}> -> no operands given`);
-                case 1:
-                    return ok(partialQuery(tokens[0], params));
-                default:
-                    switch (expression[0]) {
-                        case '+':
-                            return ok(partialQuery(`( ${tokens.join(' + ')} )`, params));
-                        case '-':
-                            return ok(partialQuery(`( ${tokens.join(' - ')} )`, params));
-                        case '*':
-                            return ok(partialQuery(`( ${tokens.join(' * ')} )`, params));
-                        case '/':
-                            return ok(partialQuery(`( ${tokens.join(' / ')} )`, params));
-                        case '||':
-                            return ok(partialQuery(`( ${tokens.join(' || ')} )`, params));
-                        case 'and':
-                            return ok(partialQuery(`( ${tokens.join(' AND ')} )`, params));
-                        case 'or':
-                            return ok(partialQuery(`( ${tokens.join(' OR ')} )`, params));
-                        case '**':
-                            const tmp = tokens.pop();
-                            tokens.splice(0, 0, 'a');
-                            return ok({
-                                text:
-                                    tokens.join(', power( ').substring(3) + ', ' + tmp + ' )'.repeat(tokens.length - 1),
-                                params
-                            });
-                    }
-            }
-        case 'fun':
-            if (expression[1] === undefined) {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[name] -> undefined`);
-            }
-            if (expression[2] === undefined) {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[parameters] -> undefined`);
-            }
-            for (const v2 of expression[2] as any[]) {
-                const v2Result = resolveExpression(v2, paramsStart, ignore);
-                if (!v2Result.ok) {
-                    return err(
-                        `<${toDescription(expression[0])}>[parameters][${(expression[2] as any[]).indexOf(v2)}] -> ${
-                            v2Result.error
-                        }`
-                    );
-                }
-                if (v2Result.value.text === '') {
-                    return ignore
-                        ? ok(partialQuery())
-                        : err(
-                              `<${toDescription(expression[0])}>[parameters][${(expression[2] as any[]).indexOf(
-                                  v2
-                              )}] -> neutral`
-                          );
-                }
-                params.push(...v2Result.value.params);
-                paramsStart += v2Result.value.params.length;
-
-                tokens.push(v2Result.value.text);
-            }
-            return ok(partialQuery(`${expression[1]}( ${tokens.join(', ')} )${expression[3]}`, params));
-        case 'swt':
-            const cases = expression[1] as any[] | undefined;
-            const otherwise = expression[2] as any;
-            if (cases === undefined) {
-                if (!ignore) {
-                    return err(`<${toDescription(expression[0])}>[cases] -> undefined`);
-                }
-            } else {
-                for (const caseElement of cases) {
-                    if (caseElement === undefined) {
-                        if (ignore) {
-                            continue;
-                        } else {
-                            return err(
-                                `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}] -> undefined`
-                            );
-                        }
-                    }
-
-                    const whenResult = resolveExpression(caseElement.when, paramsStart, ignore);
-                    if (!whenResult.ok) {
-                        return err(
-                            `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][when] -> ${
-                                whenResult.error
-                            }`
-                        );
-                    }
-                    if (whenResult.value.text === '') {
-                        if (ignore) {
-                            continue;
-                        } else {
-                            return err(
-                                `<${toDescription(expression[0])}>[cases][${cases.indexOf(
-                                    caseElement
-                                )}][when] -> neutral`
-                            );
-                        }
-                    }
-                    params.push(...whenResult.value.params);
-                    paramsStart += whenResult.value.params.length;
-
-                    const thenResult = resolveExpression(caseElement.then, paramsStart, ignore);
-                    if (!thenResult.ok) {
-                        return err(
-                            `<${toDescription(expression[0])}>[cases][${cases.indexOf(caseElement)}][then] -> ${
-                                thenResult.error
-                            }`
-                        );
-                    }
-                    if (thenResult.value.text === '') {
-                        if (ignore) {
-                            continue;
-                        } else {
-                            return err(
-                                `<${toDescription(expression[0])}>[cases][${cases.indexOf(
-                                    caseElement
-                                )}][then] -> neutral`
-                            );
-                        }
-                    }
-                    params.push(...thenResult.value.params);
-                    paramsStart += thenResult.value.params.length;
-
-                    if (tokens.length === 0) {
-                        tokens.push('CASE');
-                    }
-                    tokens.push(`WHEN ${whenResult.value.text} THEN ${thenResult.value.text}`);
-                }
-            }
-            if (tokens.length === 0 && !ignore) {
-                return err(`<${toDescription(expression[0])}>[cases] -> empty`);
-            }
-            if (otherwise === undefined) {
-                if (tokens.length === 0) {
-                    return ok(partialQuery());
-                } else {
-                    tokens.push('END');
-                }
-            } else {
-                let isOtherwiseNeutral = false;
-
-                const otherwiseResult = resolveExpression(otherwise, paramsStart, ignore);
-                if (!otherwiseResult.ok) {
-                    return err(`<${toDescription(expression[0])}>[otherwise] -> ${otherwiseResult.error}`);
-                }
-                if (otherwiseResult.value.text === '') {
-                    if (ignore) {
-                        isOtherwiseNeutral = true;
-                    } else {
-                        return err(`<${toDescription(expression[0])}>[otherwise] -> neutral`);
-                    }
-                }
-                params.push(...otherwiseResult.value.params);
-                paramsStart += otherwiseResult.value.params.length;
-
-                if (tokens.length === 0) {
-                    if (isOtherwiseNeutral) {
-                        return ok(partialQuery());
-                    } else {
-                        tokens.push(otherwiseResult.value.text);
-                    }
-                } else {
-                    if (!isOtherwiseNeutral) {
-                        tokens.push('ELSE', otherwiseResult.value.text);
-                    }
-                    tokens.push('END');
-                }
-            }
-            return ok(partialQuery(tokens.join(' '), params));
-        case 'col':
-        case 'raw':
-            return ok(partialQuery(`${expression[1]}`));
-        case 'qry':
-        case 'exists':
-            const subQueryDataResult = (expression[1] as unknown as Query<any, any>).getData(params);
-            if (!subQueryDataResult.ok) {
-                return err(`<${toDescription(expression[0])}> -> ${subQueryDataResult.error}`);
-            }
-            paramsStart += subQueryDataResult.value.params.length;
-            subQueryDataResult.value.sql = subQueryDataResult.value.sql.substring(
-                0,
-                subQueryDataResult.value.sql.length - 1
+        if (onExpressionResult.value.text === '') {
+            return err(
+                `${errorPrefix} -> join -> ${joinTables.indexOf(joinTable)} -> neutral`
             );
-
-            switch (expression[0]) {
-                case 'qry':
-                    return ok(partialQuery(`( ${subQueryDataResult.value.sql} )`, params));
-                case 'exists':
-                    return ok(partialQuery(`EXISTS ( ${subQueryDataResult.value.sql} )`, params));
-            }
-        case '=':
-        case '!=':
-        case '>':
-        case '>=':
-        case '<':
-        case '<=':
-        case 'lk':
-        case '@>':
-        case '<@':
-        case '?':
-        case 'j-':
-            e1Result = resolveExpression(expression[1], paramsStart, ignore);
-            if (!e1Result.ok) {
-                return err(`<${toDescription(expression[0])}>[first operand] -> ${e1Result.error}`);
-            }
-            if (e1Result.value.text === '') {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[first operand] -> netural`);
-            }
-            params.push(...e1Result.value.params);
-            paramsStart += e1Result.value.params.length;
-
-            e2Result = resolveExpression(expression[2], paramsStart, ignore);
-            if (!e2Result.ok) {
-                return err(`<${toDescription(expression[0])}>[second operand] -> ${e2Result.error}`);
-            }
-            if (e2Result.value.text === '') {
-                return ignore
-                    ? ok(partialQuery())
-                    : err(`<${toDescription(expression[0])}>[second operand] -> netural`);
-            }
-            params.push(...e2Result.value.params);
-            paramsStart += e2Result.value.params.length;
-
-            switch (expression[0]) {
-                case '=':
-                    return ok(partialQuery(`${e1Result.value.text} = ${e2Result.value.text}`, params));
-                case '!=':
-                    return ok(partialQuery(`${e1Result.value.text} <> ${e2Result.value.text}`, params));
-                case '>':
-                    return ok(partialQuery(`${e1Result.value.text} > ${e2Result.value.text}`, params));
-                case '>=':
-                    return ok(partialQuery(`${e1Result.value.text} >= ${e2Result.value.text}`, params));
-                case '<':
-                    return ok(partialQuery(`${e1Result.value.text} < ${e2Result.value.text}`, params));
-                case '<=':
-                    return ok(partialQuery(`${e1Result.value.text} <= ${e2Result.value.text}`, params));
-                case 'lk':
-                    return ok(partialQuery(`${e1Result.value.text} LIKE ${e2Result.value.text}`, params));
-                case '@>':
-                    return ok(partialQuery(`${e1Result.value.text} @> ${e2Result.value.text}`, params));
-                case '<@':
-                    return ok(partialQuery(`${e1Result.value.text} <@ ${e2Result.value.text}`, params));
-                case '?':
-                    return ok(partialQuery(`${e1Result.value.text} ? ${e2Result.value.text}`, params));
-                case 'j-':
-                    return ok(partialQuery(`${e1Result.value.text} - ${e2Result.value.text}`, params));
-            }
-        case 'in':
-        case 'nin':
-        case 'lka':
-        case 'lks':
-        case '?|':
-        case '?&':
-        case 'j-a':
-            e1Result = resolveExpression(expression[1], paramsStart, ignore);
-            if (!e1Result.ok) {
-                return err(`<${toDescription(expression[0])}>[first operand] -> ${e1Result.error}`);
-            }
-            if (e1Result.value.text === '') {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[first operand] -> netural`);
-            }
-            params.push(...e1Result.value.params);
-            paramsStart += e1Result.value.params.length;
-
-            if (expression[2] === undefined) {
-                return ignore
-                    ? ok(partialQuery())
-                    : err(`<${toDescription(expression[0])}>[second operand] -> undefined`);
-            }
-            for (const v2 of expression[2] as any[]) {
-                const v2Result = resolveExpression(v2, paramsStart, ignore);
-                if (!v2Result.ok) {
-                    return err(
-                        `<${toDescription(expression[0])}>[second operand][${(expression[2] as any[]).indexOf(
-                            v2
-                        )}] -> ${v2Result.error}`
-                    );
-                }
-                if (v2Result.value.text === '') {
-                    if (ignore) {
-                        continue;
-                    } else {
-                        return err(
-                            `<${toDescription(expression[0])}>[second operand][${(expression[1] as any[]).indexOf(
-                                v2
-                            )}] -> neutral`
-                        );
-                    }
-                }
-                params.push(...v2Result.value.params);
-                paramsStart += v2Result.value.params.length;
-
-                tokens.push(v2Result.value.text);
-            }
-
-            switch (tokens.length) {
-                case 0:
-                    return ignore
-                        ? ok(partialQuery())
-                        : err(`<${toDescription(expression[0])}>[second operand] -> empty`);
-                case 1:
-                    switch (expression[0]) {
-                        case 'in':
-                            return ok(partialQuery(`${e1Result.value.text} = ${tokens[0]}`, params));
-                        case 'nin':
-                            return ok(partialQuery(`${e1Result.value.text} <> ${tokens[0]}`, params));
-                        case 'lka':
-                            return ok(partialQuery(`${e1Result.value.text} LIKE ${tokens[0]}`, params));
-                        case 'lks':
-                            return ok(partialQuery(`${e1Result.value.text} LIKE ${tokens[0]}`, params));
-                        case '?|':
-                            return ok(partialQuery(`${e1Result.value.text} ? ${tokens[0]}`, params));
-                        case '?&':
-                            return ok(partialQuery(`${e1Result.value.text} ? ${tokens[0]}`, params));
-                        case 'j-a':
-                            return ok(partialQuery(`${e1Result.value.text} - ${tokens[0]}`, params));
-                    }
-                default:
-                    switch (expression[0]) {
-                        case 'in':
-                            return ok(partialQuery(`${e1Result.value.text} IN ( ${tokens.join(', ')} )`, params));
-                        case 'nin':
-                            return ok(partialQuery(`${e1Result.value.text} NOT IN ( ${tokens.join(', ')} )`, params));
-                        case 'lka':
-                            return ok(
-                                partialQuery(`${e1Result.value.text} LIKE ALL( ARRAY[ ${tokens.join(', ')} ] )`, params)
-                            );
-                        case 'lks':
-                            return ok(
-                                partialQuery(
-                                    `${e1Result.value.text} LIKE SOME( ARRAY[ ${tokens.join(', ')} ] )`,
-                                    params
-                                )
-                            );
-                        case '?|':
-                            return ok(partialQuery(`${e1Result.value.text} ?| ARRAY[ ${tokens.join(', ')} ]`, params));
-                        case '?&':
-                            return ok(partialQuery(`${e1Result.value.text} ?& ARRAY[ ${tokens.join(', ')} ]`, params));
-                        case 'j-a':
-                            return ok(partialQuery(`${e1Result.value.text} - ARRAY[ ${tokens.join(', ')} ]`, params));
-                    }
-            }
-        case 'bt':
-            e1Result = resolveExpression(expression[1], paramsStart, ignore);
-            if (!e1Result.ok) {
-                return err(`<${toDescription(expression[0])}>[first operand] -> ${e1Result.error}`);
-            }
-            if (e1Result.value.text === '') {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[first operand] -> netural`);
-            }
-            params.push(...e1Result.value.params);
-            paramsStart += e1Result.value.params.length;
-
-            e2Result = resolveExpression(expression[2], paramsStart, ignore);
-            if (!e2Result.ok) {
-                return err(`<${toDescription(expression[0])}>[second operand] -> ${e2Result.error}`);
-            }
-            if (e2Result.value.text === '') {
-                return ignore
-                    ? ok(partialQuery())
-                    : err(`<${toDescription(expression[0])}>[second operand] -> netural`);
-            }
-            params.push(...e2Result.value.params);
-            paramsStart += e2Result.value.params.length;
-
-            e3Result = resolveExpression(expression[3], paramsStart, ignore);
-            if (!e3Result.ok) {
-                return err(`<${toDescription(expression[0])}>[third operand] -> ${e3Result.error}`);
-            }
-            if (e3Result.value.text === '') {
-                return ignore ? ok(partialQuery()) : err(`<${toDescription(expression[0])}>[third operand] -> netural`);
-            }
-            params.push(...e3Result.value.params);
-            paramsStart += e3Result.value.params.length;
-
-            return ok(
-                partialQuery(`${e1Result.value.text} BETWEEN ${e2Result.value.text} AND ${e3Result.value.text}`, params)
-            );
-        default:
-            throw 'unexpected error. expect first element to be reserved key.';
+        }
+        params.push(...onExpressionResult.value.params);
+        tokens.push(
+            `${Dictionary.JoinType[joinTable.joinType]} "${joinTable.table.schemaName}"."${joinTable.table.tableName}" "${
+                joinTable.alias
+            }" ON ${onExpressionResult.value.text}`
+        );
     }
-};
 
-const getTableDataOfJoinSelectColumn = (tablesData: TableWithAlias[], column: string): TableWithAlias => {
+    // where
+    const resolvedWhereResult = resolveExpression(
+        typeof where === 'function' ? where(contexts) : where,
+        params.length + 1,
+        false
+    );
+    if (!resolvedWhereResult.ok) {
+        return err(`${errorPrefix} -> where -> ${resolvedWhereResult.error}`);
+    }
+    if (resolvedWhereResult.value.text === '') {
+        return err(`${errorPrefix} -> where -> neutral`);
+    }
+    params.push(...resolvedWhereResult.value.params);
+    tokens.push('WHERE', resolvedWhereResult.value.text);
+
+    // groupBy
+    const _groupBy =
+        typeof groupBy === 'function' ? groupBy(contexts) : groupBy;
+    if (_groupBy.length !== 0) {
+        const groupByTextArray = [];
+        for (const aGroupBy of _groupBy) {
+            const resolvedGroupBy = resolveExpression(
+                aGroupBy,
+                params.length + 1,
+                false
+            );
+            if (!resolvedGroupBy.ok) {
+                return err(
+                    `${errorPrefix} -> groupBy -> ${_groupBy.indexOf(aGroupBy)} -> ${resolvedGroupBy.error}`
+                );
+            }
+            params.push(...resolvedGroupBy.value.params);
+            groupByTextArray.push(resolvedGroupBy.value.text);
+        }
+        tokens.push('GROUP BY', groupByTextArray.join(', '));
+    }
+
+    // orders
+    if (orders.length !== 0) {
+        const ordersTextArray = [];
+        for (const order of orders) {
+            const { by, direction } = order;
+            const { table, alias } = getTableDataOfJoinSelectColumn(
+                allTables,
+                by
+            );
+            ordersTextArray.push(
+                `${resolveColumn(
+                    table,
+                    by.substring((alias + '_').length),
+                    true,
+                    alias
+                )} ${Dictionary.OrderDirection[direction]}`
+            );
+        }
+        tokens.push('ORDER BY', ordersTextArray.join(', '));
+    }
+
+    // pagination
+    if (start !== undefined) {
+        if (start < 0) {
+            return err(`${errorPrefix} -> start -> invalid`);
+        }
+        tokens.push('OFFSET', start.toString());
+    }
+    if (step !== undefined) {
+        if (step <= 0) {
+            return err(`${errorPrefix} -> step -> invalid`);
+        }
+        tokens.push('LIMIT', step.toString());
+    }
+
+    return ok({ sql: tokens.join(' '), params });
+};
+const getTableDataOfJoinSelectColumn = (
+    tablesData: TableWithAlias[],
+    column: string
+): TableWithAlias => {
     const splitColumn = column.split('_');
     if (splitColumn.length < 2) {
         throw `no separator`;
     }
 
     // in case alias or column key have "_". iterate on all of them until a match.
-    let tableAliasUntilIndex = 1;
-    while (true) {
-        const tableAlias = splitColumn.slice(0, tableAliasUntilIndex).join('_');
+    for (let i = 1; i < splitColumn.length; i++) {
+        const tableAlias = splitColumn.slice(0, i).join('_');
         for (const tableData of tablesData) {
             if (
                 tableData.alias === tableAlias &&
-                tableData.table.columns[splitColumn.slice(tableAliasUntilIndex).join('_')] !== undefined
+                tableData.table.columns[splitColumn.slice(i).join('_')] !==
+                    undefined
             ) {
                 return tableData;
             }
         }
-        if (splitColumn.length > tableAliasUntilIndex + 1) {
-            tableAliasUntilIndex++;
-        } else {
-            throw `column not found`;
-        }
     }
+
+    throw `column not found`;
 };
 
-const resolveColumn = <T extends Table, C extends keyof T['columns'] & string>(
-    table: T,
-    column: C,
-    full: boolean = true,
-    alias?: string
-) => {
-    let prefix: string;
-    if (full) {
-        if (alias !== undefined) {
-            prefix = `"${alias}".`;
-        } else {
-            prefix = `"${table.schema}"."${table.title}".`;
-        }
-    } else {
-        prefix = '';
-    }
-    return prefix + `"${table.columns[column].title ?? column}"`;
+// util
+type OrderDirection = 'asc' | 'desc';
+type Mode = [] | ['count', number] | ['get', 'one' | number];
+type CustomColumn<T, N extends string> = {
+    expression: T;
+    name: N;
 };
 
-const partialQuery = (text: string = '', params: Param[] = []): PartialQuery => ({ text, params });
+type NullableAndDefaultColumns<S extends Schema> = {
+    [key in keyof S as true extends S[key]['nullable']
+        ? key
+        : true extends S[key]['default']
+          ? key
+          : never]: true extends S[key]['nullable']
+        ? S[key]
+        : true extends S[key]['default']
+          ? S[key]
+          : never;
+};
 
-export { createEntity, createJoinSelectEntity };
+type Query<
+    S extends Schema,
+    R extends readonly (keyof S | CustomColumn<unknown, string>)[]
+> = {
+    getData: (params?: string[]) => Result<QueryData, string>;
+    execute: <M extends Mode>(
+        client: ClientBase,
+        mode: M,
+        params?: string[]
+    ) => Promise<Result<QueryResult<S, R, M>, unknown>>;
+};
+type QueryData = {
+    sql: string;
+    params: string[];
+};
+type QueryResult<
+    S extends Schema,
+    R extends readonly (keyof S | CustomColumn<unknown, string>)[],
+    M extends Mode
+> = M extends ['get', 'one']
+    ? QueryResultRow<S, R>
+    : M extends ['get', number] | []
+      ? QueryResultRow<S, R>[]
+      : M extends ['count', number]
+        ? undefined
+        : never;
+type QueryResultRow<
+    S extends Schema,
+    R extends readonly (keyof S | CustomColumn<unknown, string>)[]
+> = {
+    [key in Exclude<keyof R, keyof never[]> as R[key] extends CustomColumn<
+        unknown,
+        infer N
+    >
+        ? N
+        : R[key] & string]: R[key] extends CustomColumn<infer T, string>
+        ? T
+        : NullableType<
+              S[R[key] & string]['type'],
+              S[R[key] & string]['nullable']
+          >;
+};
+type ReturningRows = readonly (string | CustomColumn<unknown, string>)[];
+
+const createQuery = <
+    S extends Schema,
+    R extends readonly (keyof S | CustomColumn<unknown, string>)[]
+>(
+    createQueryData: (params: string[]) => Result<QueryData, string>
+): Query<S, R> => {
+    let queryDataResult: Result<QueryData, string>;
+    return {
+        getData: (params = []) => {
+            if (queryDataResult === undefined) {
+                queryDataResult = createQueryData(params);
+            }
+            if (!queryDataResult.ok) {
+                return queryDataResult;
+            }
+            return queryDataResult;
+        },
+        execute: async <M extends Mode>(
+            client: ClientBase,
+            mode: M,
+            params: string[] = []
+        ) => {
+            if (queryDataResult === undefined) {
+                queryDataResult = createQueryData(params);
+            }
+            if (!queryDataResult.ok) {
+                return Promise.resolve(queryDataResult);
+            }
+            return client
+                .query(
+                    queryDataResult.value.sql + ';',
+                    queryDataResult.value.params
+                )
+                .then(({ rows }) => resolveResult<S, R, M>(rows, mode))
+                .catch(e => err(e));
+        }
+    };
+};
+
 export {
-    ReservedExpressionKeys,
-    createQueryResult,
-    resolveResult,
-    resolveReturning,
-    resolveExpression,
+    createEntity,
+    createSelectQuery,
+    createInsertQuery,
+    createUpdateQuery,
+    createDeleteQuery,
+    createJoinSelectEntity,
+    createJoinSelectQuery,
     getTableDataOfJoinSelectColumn,
-    resolveColumn,
-    partialQuery
+    createQuery
+};
+export type {
+    SelectOptions,
+    InsertOptions,
+    InsertingRow,
+    UpdateSets,
+    JoinType,
+    TableWithAlias,
+    JoinData,
+    SchemaMapKeys,
+    SchemaMapContexts,
+    PrefixAliasOnSchema,
+    JoinEntity,
+    JoinSelectOptions,
+    OrderDirection,
+    Mode,
+    CustomColumn,
+    NullableAndDefaultColumns,
+    Query,
+    QueryData,
+    QueryResult,
+    QueryResultRow,
+    ReturningRows
 };
