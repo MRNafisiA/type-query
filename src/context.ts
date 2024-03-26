@@ -2,13 +2,13 @@ import * as U from './utils';
 import Decimal from 'decimal.js';
 import { Json, NullableType, Schema, Table } from './Table';
 import {
-    LikeOperator,
-    ListOperator,
-    NullOperator,
     BetweenOperator,
     BooleanOperator,
     CompareOperator,
-    JsonCompareOperator
+    JsonCompareOperator,
+    LikeOperator,
+    ListOperator,
+    NullOperator
 } from './keywords';
 
 type Context<S extends Schema = Schema> = {
@@ -47,8 +47,8 @@ const createContext = <S extends Schema>(
             U.and(...contextHelper(rules, _alias)),
         columnsOr: (rules, _alias = alias) =>
             U.or(...contextHelper(rules, _alias)),
-        and: expressions => U.and(expressions),
-        or: expressions => U.or(expressions)
+        and: U.and,
+        or: U.or
     };
 };
 

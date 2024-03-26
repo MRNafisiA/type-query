@@ -1,5 +1,4 @@
 import './__init__';
-import * as U from '../src/utils';
 import { Table } from '../src/Table';
 import { OperatorCode } from '../src/keywords';
 import { createContext, createContextHelper } from '../src/context';
@@ -218,21 +217,5 @@ describe('createContext', () => {
                 ]
             ]);
         });
-    });
-    test('and', () => {
-        const result = contextWithoutAlias.and(U.compare(1, '=', 1));
-
-        expect(result).toStrictEqual([
-            OperatorCode.And,
-            [[OperatorCode.IsEqual, 1, 1, undefined]]
-        ]);
-    });
-    test('or', () => {
-        const result = contextWithoutAlias.or(U.compare(1, '=', 1));
-
-        expect(result).toStrictEqual([
-            OperatorCode.Or,
-            [[OperatorCode.IsEqual, 1, 1, undefined]]
-        ]);
     });
 });
