@@ -55,7 +55,10 @@ function arithmetic(a: unknown, b: unknown, c: unknown) {
         : [OperatorMap[b as ArithmeticOperator], [a, c]];
 }
 
-function json<T extends undefined | Json, K extends undefined | null | string>(
+function json<
+    T extends undefined | Json,
+    K extends undefined | null | number | string
+>(
     expression: T,
     operator: '->',
     key: K,
@@ -67,7 +70,7 @@ function json<T extends undefined | Json, K extends undefined | null | string>(
     | (T extends Json ? Json : never);
 function json<
     T extends undefined | Json,
-    K extends undefined | null | string,
+    K extends undefined | null | number | string,
     C extends undefined | string = undefined
 >(
     expression: T,
