@@ -310,6 +310,10 @@ const resolveExpression = (
             );
         }
 
+        if (expression[2] === undefined && tokens.length !== 0) {
+            tokens.push('END');
+            return ok(partialQuery(tokens.join(' '), params));
+        }
         const otherwiseResult = resolveExpression(
             expression[2],
             paramsStart,

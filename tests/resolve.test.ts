@@ -121,13 +121,18 @@ describe('resolveExpression', () => {
             });
             test('otherwise', () => {
                 const result = resolveExpression(
-                    U.switchCase([{ when: false, then: 1 }], undefined),
+                    U.switchCase(
+                        [{ when: false, then: 1 }],
+                        U.arithmetic('+', [])
+                    ),
                     1,
                     false
                 );
 
                 expect(result).toStrictEqual(
-                    err('switch statement -> otherwise -> undefined')
+                    err(
+                        'switch statement -> otherwise -> sum -> no operands given'
+                    )
                 );
             });
         });
@@ -404,19 +409,35 @@ describe('resolveExpression', () => {
                 ok({ text: 'a(1, $2)c', params: ['b'] })
             );
         });
-        test('SwitchCase', () => {
-            const result = resolveExpression(
-                U.switchCase([{ when: true, then: 'a' }], 'b'),
-                2,
-                randomBoolean
-            );
+        describe('SwitchCase', () => {
+            test('without otherwise', () => {
+                const result = resolveExpression(
+                    U.switchCase([{ when: true, then: 'a' }]),
+                    2,
+                    randomBoolean
+                );
 
-            expect(result).toStrictEqual(
-                ok({
-                    text: 'CASE WHEN TRUE THEN $2 ELSE $3 END',
-                    params: ['a', 'b']
-                })
-            );
+                expect(result).toStrictEqual(
+                    ok({
+                        text: 'CASE WHEN TRUE THEN $2 END',
+                        params: ['a']
+                    })
+                );
+            });
+            test('with otherwise', () => {
+                const result = resolveExpression(
+                    U.switchCase([{ when: true, then: 'a' }], 'b'),
+                    2,
+                    randomBoolean
+                );
+
+                expect(result).toStrictEqual(
+                    ok({
+                        text: 'CASE WHEN TRUE THEN $2 ELSE $3 END',
+                        params: ['a', 'b']
+                    })
+                );
+            });
         });
         test('Column', () => {
             const column = U.column(UserTable, 'id', false, undefined);
@@ -968,7 +989,7 @@ describe('resolveExpression', () => {
                                 then: undefined
                             }
                         ],
-                        undefined
+                        U.arithmetic('+', [])
                     ),
                     2,
                     true
