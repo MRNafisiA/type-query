@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { Table } from '../src';
 import {
     isEqual,
+    isRowEqual,
     testTransaction,
     createTestTableData
 } from '../src/testTransaction';
@@ -35,34 +36,6 @@ const UserTable: Table<UserSchema> = {
         }
     }
 };
-
-describe('isEqual', () => {
-    test('primitive equal', () => {
-        const result = isEqual(1, 1);
-
-        expect(result).toStrictEqual(true);
-    });
-    test('not object and null', () => {
-        const result = isEqual({}, null);
-
-        expect(result).toStrictEqual(false);
-    });
-    test('object and array', () => {
-        const result = isEqual({ 1: 'a' }, ['a']);
-
-        expect(result).toStrictEqual(false);
-    });
-    test('object and object', () => {
-        const result = isEqual({ a: 1 }, { a: 1, b: 2 });
-
-        expect(result).toStrictEqual(false);
-    });
-    test('object equal', () => {
-        const result = isEqual({ a: 1 }, { a: 1 });
-
-        expect(result).toStrictEqual(true);
-    });
-});
 
 describe('testTransaction', () => {
     test('init db fails', async () => {
@@ -317,5 +290,56 @@ test('createTestTableData', () => {
         table: UserTable,
         startData: [{ id: 1, username: 'a' }],
         finalData: [{ id: 2, username: 'b' }]
+    });
+});
+
+describe('isRowEqual', () => {
+    test('different keys', async () => {
+        const result = await isRowEqual({ a: 1 }, {}, [], 2);
+
+        expect(result).toStrictEqual(false);
+    });
+    test('function fail', async () => {
+        const result = await isRowEqual({ a: 1 }, { a: () => false }, [], 2);
+
+        expect(result).toStrictEqual(false);
+    });
+    test('value fail', async () => {
+        const result = await isRowEqual({ a: 1 }, { a: 2 }, [], 2);
+
+        expect(result).toStrictEqual(false);
+    });
+    test('ok', async () => {
+        const result = await isRowEqual({ a: 1 }, { a: 1 }, [], 2);
+
+        expect(result).toStrictEqual(true);
+    });
+});
+
+describe('isEqual', () => {
+    test('primitive equal', () => {
+        const result = isEqual(1, 1);
+
+        expect(result).toStrictEqual(true);
+    });
+    test('not object and null', () => {
+        const result = isEqual({}, null);
+
+        expect(result).toStrictEqual(false);
+    });
+    test('object and array', () => {
+        const result = isEqual({ 1: 'a' }, ['a']);
+
+        expect(result).toStrictEqual(false);
+    });
+    test('object and object', () => {
+        const result = isEqual({ a: 1 }, { a: 1, b: 2 });
+
+        expect(result).toStrictEqual(false);
+    });
+    test('object equal', () => {
+        const result = isEqual({ a: 1 }, { a: 1 });
+
+        expect(result).toStrictEqual(true);
     });
 });

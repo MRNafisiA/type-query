@@ -19,31 +19,19 @@ type TestTableData<S extends Schema = Schema> = {
         >;
     })[];
     finalData: {
-        [key in keyof S]: NullableType<S[key]['type'], S[key]['nullable']>;
+        [key in keyof S]:
+            | NullableType<S[key]['type'], S[key]['nullable']>
+            | ((
+                  cell: NullableType<S[key]['type'], S[key]['nullable']>,
+                  rows: {
+                      [key in keyof S]: NullableType<
+                          S[key]['type'],
+                          S[key]['nullable']
+                      >;
+                  }[],
+                  index: number
+              ) => boolean | Promise<boolean>);
     }[];
-};
-
-const isEqual = (a: unknown, b: unknown): boolean => {
-    if (a === b) {
-        return true;
-    }
-    if (
-        typeof a === 'object' &&
-        a !== null &&
-        typeof b === 'object' &&
-        b !== null
-    ) {
-        return (
-            Array.isArray(a) === Array.isArray(b) &&
-            Object.entries(a).every(([key, value]) =>
-                isEqual(value, b[key as keyof typeof b])
-            ) &&
-            Object.entries(b).every(([key, value]) =>
-                isEqual(value, a[key as keyof typeof a])
-            )
-        );
-    }
-    return false;
 };
 
 const testTransaction = async (
@@ -107,11 +95,23 @@ const testTransaction = async (
                 if (!selectResult.ok) {
                     return err([JSON.stringify(selectResult.error)]);
                 }
+                const alLRows = [...selectResult.value];
 
                 for (const finalRow of finalData) {
-                    const i = selectResult.value.findIndex(v =>
-                        isEqual(v, finalRow)
-                    );
+                    let i = -1;
+                    for (let j = 0; j < selectResult.value.length; j++) {
+                        if (
+                            await isRowEqual(
+                                selectResult.value[j],
+                                finalRow,
+                                alLRows,
+                                j
+                            )
+                        ) {
+                            i = j;
+                            break;
+                        }
+                    }
                     if (i === -1) {
                         differences.push(
                             '\nfinal row not found:\n' +
@@ -153,4 +153,72 @@ const createTestTableData = <S extends Schema>(
     finalData: TestTableData<S>['finalData']
 ): TestTableData<S> => ({ table, startData, finalData });
 
-export { type TestTableData, isEqual, testTransaction, createTestTableData };
+const isRowEqual = async (
+    a: Record<string, unknown>,
+    b: Record<
+        string,
+        | unknown
+        | ((
+              cell: unknown,
+              rows: Record<string, unknown>[],
+              index: number
+          ) => boolean | Promise<boolean>)
+    >,
+    rows: Record<string, unknown>[],
+    index: number
+): Promise<boolean> => {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (
+        aKeys.length !== bKeys.length ||
+        !aKeys.every((v, i) => bKeys[i] === v)
+    ) {
+        return false;
+    }
+
+    for (const key of aKeys) {
+        const valueOrFunction = b[key];
+        if (typeof valueOrFunction === 'function') {
+            if (!(await valueOrFunction(a[key], rows, index))) {
+                return false;
+            }
+        } else {
+            if (!isEqual(a[key], valueOrFunction)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+};
+
+const isEqual = (a: unknown, b: unknown): boolean => {
+    if (a === b) {
+        return true;
+    }
+    if (
+        typeof a === 'object' &&
+        a !== null &&
+        typeof b === 'object' &&
+        b !== null
+    ) {
+        return (
+            Array.isArray(a) === Array.isArray(b) &&
+            Object.entries(a).every(([key, value]) =>
+                isEqual(value, b[key as keyof typeof b])
+            ) &&
+            Object.entries(b).every(([key, value]) =>
+                isEqual(value, a[key as keyof typeof a])
+            )
+        );
+    }
+    return false;
+};
+
+export {
+    type TestTableData,
+    testTransaction,
+    createTestTableData,
+    isRowEqual,
+    isEqual
+};
