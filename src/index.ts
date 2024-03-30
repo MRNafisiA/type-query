@@ -42,8 +42,10 @@ export type {
 } from './Table';
 export {
     type TestTableData,
-    isEqual,
-    testTransaction
+    testTransaction,
+    createTestTableData,
+    isRowEqual,
+    isEqual
 } from './testTransaction';
 export { transaction } from './transaction';
 export * as U from './utils';

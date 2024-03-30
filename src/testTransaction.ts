@@ -167,8 +167,8 @@ const isRowEqual = async (
     rows: Record<string, unknown>[],
     index: number
 ): Promise<boolean> => {
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
+    const aKeys = Object.keys(a).sort();
+    const bKeys = Object.keys(b).sort();
     if (
         aKeys.length !== bKeys.length ||
         !aKeys.every((v, i) => bKeys[i] === v)
