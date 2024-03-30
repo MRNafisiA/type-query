@@ -1,4 +1,3 @@
-import './__init__';
 import * as U from '../src/utils';
 import { Query } from '../src/entity';
 import { err, ok } from 'never-catch';
@@ -6,9 +5,9 @@ import { Schema, Table } from '../src/Table';
 import {
     partialQuery,
     resolveColumn,
-    resolveExpression,
     resolveResult,
-    resolveReturning
+    resolveReturning,
+    resolveExpression
 } from '../src/resolve';
 
 type UserSchema = {

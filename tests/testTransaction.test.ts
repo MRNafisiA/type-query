@@ -1,7 +1,40 @@
-import './__init__';
 import { Pool } from 'pg';
 import { Table } from '../src';
-import { isEqual, testTransaction } from '../src/testTransaction';
+import {
+    isEqual,
+    testTransaction,
+    createTestTableData
+} from '../src/testTransaction';
+
+type UserSchema = {
+    id: {
+        type: number;
+        nullable: false;
+        default: true;
+    };
+    username: {
+        type: string;
+        nullable: true;
+        default: false;
+    };
+};
+const UserTable: Table<UserSchema> = {
+    schemaName: 'public',
+    tableName: 'user',
+    columns: {
+        id: {
+            type: 'int2',
+            nullable: false,
+            default: true,
+            defaultValue: ['auto-increment']
+        },
+        username: {
+            type: 'varchar',
+            nullable: true,
+            default: false
+        }
+    }
+};
 
 describe('isEqual', () => {
     test('primitive equal', () => {
@@ -32,36 +65,6 @@ describe('isEqual', () => {
 });
 
 describe('testTransaction', () => {
-    type UserSchema = {
-        id: {
-            type: number;
-            nullable: false;
-            default: true;
-        };
-        username: {
-            type: string;
-            nullable: true;
-            default: false;
-        };
-    };
-    const UserTable: Table<UserSchema> = {
-        schemaName: 'public',
-        tableName: 'user',
-        columns: {
-            id: {
-                type: 'int2',
-                nullable: false,
-                default: true,
-                defaultValue: ['auto-increment']
-            },
-            username: {
-                type: 'varchar',
-                nullable: true,
-                default: false
-            }
-        }
-    };
-
     test('init db fails', async () => {
         const mockClient = {
             query: jest
@@ -300,5 +303,19 @@ describe('testTransaction', () => {
             ['COMMIT;']
         ]);
         expect(mockClient.release.mock.calls).toStrictEqual([[]]);
+    });
+});
+
+test('createTestTableData', () => {
+    const result = createTestTableData(
+        UserTable,
+        [{ id: 1, username: 'a' }],
+        [{ id: 2, username: 'b' }]
+    );
+
+    expect(result).toStrictEqual({
+        table: UserTable,
+        startData: [{ id: 1, username: 'a' }],
+        finalData: [{ id: 2, username: 'b' }]
     });
 });

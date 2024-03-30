@@ -1,4 +1,5 @@
 import Decimal from 'decimal.js';
+import { Query } from './entity';
 import { resolveColumn } from './resolve';
 import { Json, NullableType, Schema, Table } from './Table';
 import {
@@ -14,7 +15,6 @@ import {
     ArithmeticOperator,
     JsonCompareOperator
 } from './keywords';
-import { Query } from './entity';
 
 const value = <T>(expression: T): T =>
     [OperatorCode.Value, expression] as unknown as T;

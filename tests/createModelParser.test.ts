@@ -1,4 +1,3 @@
-import './__init__';
 import Decimal from 'decimal.js';
 import { Json, Table } from '../src';
 import { err, ok } from 'never-catch';

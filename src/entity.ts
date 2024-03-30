@@ -6,9 +6,9 @@ import { Context, createContext } from './context';
 import { NullableType, Schema, Table } from './Table';
 import {
     resolveColumn,
-    resolveExpression,
     resolveResult,
-    resolveReturning
+    resolveReturning,
+    resolveExpression
 } from './resolve';
 
 const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({

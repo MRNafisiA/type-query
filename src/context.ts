@@ -2,13 +2,13 @@ import * as U from './utils';
 import Decimal from 'decimal.js';
 import { Json, NullableType, Schema, Table } from './Table';
 import {
+    LikeOperator,
+    ListOperator,
+    NullOperator,
     BetweenOperator,
     BooleanOperator,
     CompareOperator,
-    JsonCompareOperator,
-    LikeOperator,
-    ListOperator,
-    NullOperator
+    JsonCompareOperator
 } from './keywords';
 
 type Context<S extends Schema = Schema> = {

@@ -1,5 +1,5 @@
-import { Pool, PoolClient } from 'pg';
 import { Result } from 'never-catch';
+import { Pool, PoolClient } from 'pg';
 import { Dictionary } from './keywords';
 
 type TransactionIsolationLevel =

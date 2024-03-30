@@ -1,4 +1,3 @@
-import './__init__';
 import { Pool } from 'pg';
 import { err, ok } from 'never-catch';
 import { transaction } from '../src/transaction';

@@ -1,4 +1,3 @@
-import './__init__';
 import { Table } from '../src/Table';
 import { OperatorCode } from '../src/keywords';
 import { createContext, createContextHelper } from '../src/context';

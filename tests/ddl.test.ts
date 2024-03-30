@@ -1,4 +1,3 @@
-import './__init__';
 import { Table } from '../src';
 import {
     getSequenceName,

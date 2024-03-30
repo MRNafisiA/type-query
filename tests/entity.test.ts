@@ -1,4 +1,3 @@
-import './__init__';
 import { ClientBase } from 'pg';
 import * as U from '../src/utils';
 import { Table } from '../src/Table';

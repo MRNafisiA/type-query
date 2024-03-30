@@ -1,5 +1,5 @@
-import { Pool, PoolClient } from 'pg';
 import { err, ok } from 'never-catch';
+import { Pool, PoolClient } from 'pg';
 import { NullableType, Schema, Table } from './Table';
 import { createEntity, NullableAndDefaultColumns } from './entity';
 import { transaction, TransactionIsolationLevel } from './transaction';
@@ -147,4 +147,10 @@ const testTransaction = async (
         }
     });
 
-export { type TestTableData, isEqual, testTransaction };
+const createTestTableData = <S extends Schema>(
+    table: TestTableData<S>['table'],
+    startData: TestTableData<S>['startData'],
+    finalData: TestTableData<S>['finalData']
+): TestTableData<S> => ({ table, startData, finalData });
+
+export { type TestTableData, isEqual, testTransaction, createTestTableData };

@@ -1,4 +1,3 @@
-import './__init__';
 import Decimal from 'decimal.js';
 import { Query } from '../src/entity';
 import { Schema, Table } from '../src/Table';
