@@ -147,13 +147,12 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
 });
 
 // select
+type By<S extends Schema> = (keyof S & string) | { expression: unknown };
+type Order<S extends Schema> = { by: By<S>; direction: OrderDirection };
 type SelectOptions<S extends Schema = Schema> = {
     distinct?: true | (keyof S & string)[];
-    groupBy?: unknown[] | ((context: Context<S>) => unknown[]);
-    orders?: {
-        by: keyof S & string;
-        direction: OrderDirection;
-    }[];
+    groupBy?: By<S>[] | ((context: Context<S>) => By<S>[]);
+    orders?: Order<S>[] | ((context: Context<S>) => Order<S>[]);
     start?: bigint;
     step?: number;
 };
@@ -222,30 +221,52 @@ const createSelectQuery = (
     if (_groupBy.length !== 0) {
         const groupByTextArray = [];
         for (const aGroupBy of _groupBy) {
-            const resolvedGroupBy = resolveExpression(
-                aGroupBy,
-                params.length + 1,
-                false
-            );
-            if (!resolvedGroupBy.ok) {
-                return err(
-                    `${errorPrefix} -> groupBy -> ${_groupBy.indexOf(aGroupBy)} -> ${resolvedGroupBy.error}`
+            if (typeof aGroupBy === 'object') {
+                const resolvedExpression = resolveExpression(
+                    aGroupBy.expression,
+                    params.length + 1,
+                    false
                 );
+                if (!resolvedExpression.ok) {
+                    return err(
+                        `${errorPrefix} -> groupBy -> ${_groupBy.indexOf(aGroupBy)} -> ${resolvedExpression.error}`
+                    );
+                }
+                params.push(...resolvedExpression.value.params);
+                groupByTextArray.push(resolvedExpression.value.text);
+            } else {
+                groupByTextArray.push(resolveColumn(table, aGroupBy, false));
             }
-            params.push(...resolvedGroupBy.value.params);
-            groupByTextArray.push(resolvedGroupBy.value.text);
         }
         tokens.push('GROUP BY', groupByTextArray.join(', '));
     }
 
     // orders
-    if (orders.length !== 0) {
+    const _orders = typeof orders === 'function' ? orders(context) : orders;
+    if (_orders.length !== 0) {
         const ordersTextArray = [];
-        for (const order of orders) {
+        for (const order of _orders) {
             const { by, direction } = order;
-            ordersTextArray.push(
-                `${resolveColumn(table, by, false)} ${Dictionary.OrderDirection[direction]}`
-            );
+            if (typeof by === 'object') {
+                const resolvedExpression = resolveExpression(
+                    by.expression,
+                    params.length + 1,
+                    false
+                );
+                if (!resolvedExpression.ok) {
+                    return err(
+                        `${errorPrefix} -> orderBy -> ${_orders.indexOf(order)} -> by -> ${resolvedExpression.error}`
+                    );
+                }
+                params.push(...resolvedExpression.value.params);
+                ordersTextArray.push(
+                    `${resolvedExpression.value.text} ${Dictionary.OrderDirection[direction]}`
+                );
+            } else {
+                ordersTextArray.push(
+                    `${resolveColumn(table, by, false)} ${Dictionary.OrderDirection[direction]}`
+                );
+            }
         }
         tokens.push('ORDER BY', ordersTextArray.join(', '));
     }
@@ -595,15 +616,23 @@ type JoinEntity<SMap extends Record<string, Schema>, AllS extends Schema> = {
             | ((contexts: SchemaMapContexts<SMap & Record<JA, JS>>) => boolean)
     ) => JoinEntity<SMap & Record<JA, JS>, AllS & PrefixAliasOnSchema<JS, JA>>;
 };
+type JoinBy<SMap extends Record<string, Schema>> =
+    | SchemaMapKeys<SMap>
+    | { expression: unknown };
+type JoinOrder<SMap extends Record<string, Schema>> = {
+    by: JoinBy<SMap>;
+    direction: OrderDirection;
+};
 type JoinSelectOptions<
-    Ss extends Record<string, Schema> = Record<string, Schema>
+    SMap extends Record<string, Schema> = Record<string, Schema>
 > = {
-    distinct?: true | SchemaMapKeys<Ss>[];
-    groupBy?: unknown[] | ((contexts: SchemaMapContexts<Ss>) => unknown[]);
-    orders?: {
-        by: SchemaMapKeys<Ss>;
-        direction: OrderDirection;
-    }[];
+    distinct?: true | SchemaMapKeys<SMap>[];
+    groupBy?:
+        | JoinBy<SMap>[]
+        | ((contexts: SchemaMapContexts<SMap>) => JoinBy<SMap>[]);
+    orders?:
+        | JoinOrder<SMap>[]
+        | ((contexts: SchemaMapContexts<SMap>) => JoinOrder<SMap>[]);
     start?: bigint;
     step?: number;
 };
@@ -784,39 +813,72 @@ const createJoinSelectQuery = (
     if (_groupBy.length !== 0) {
         const groupByTextArray = [];
         for (const aGroupBy of _groupBy) {
-            const resolvedGroupBy = resolveExpression(
-                aGroupBy,
-                params.length + 1,
-                false
-            );
-            if (!resolvedGroupBy.ok) {
-                return err(
-                    `${errorPrefix} -> groupBy -> ${_groupBy.indexOf(aGroupBy)} -> ${resolvedGroupBy.error}`
+            if (typeof aGroupBy === 'object') {
+                const resolvedGroupBy = resolveExpression(
+                    aGroupBy.expression,
+                    params.length + 1,
+                    false
+                );
+                if (!resolvedGroupBy.ok) {
+                    return err(
+                        `${errorPrefix} -> groupBy -> ${_groupBy.indexOf(aGroupBy)} -> ${resolvedGroupBy.error}`
+                    );
+                }
+                params.push(...resolvedGroupBy.value.params);
+                groupByTextArray.push(resolvedGroupBy.value.text);
+            } else {
+                const { table, alias } = getTableDataOfJoinSelectColumn(
+                    allTables,
+                    aGroupBy
+                );
+                groupByTextArray.push(
+                    resolveColumn(
+                        table,
+                        aGroupBy.substring((alias + '_').length),
+                        true,
+                        alias
+                    )
                 );
             }
-            params.push(...resolvedGroupBy.value.params);
-            groupByTextArray.push(resolvedGroupBy.value.text);
         }
         tokens.push('GROUP BY', groupByTextArray.join(', '));
     }
 
     // orders
-    if (orders.length !== 0) {
+    const _orders = typeof orders === 'function' ? orders(contexts) : orders;
+    if (_orders.length !== 0) {
         const ordersTextArray = [];
-        for (const order of orders) {
+        for (const order of _orders) {
             const { by, direction } = order;
-            const { table, alias } = getTableDataOfJoinSelectColumn(
-                allTables,
-                by
-            );
-            ordersTextArray.push(
-                `${resolveColumn(
-                    table,
-                    by.substring((alias + '_').length),
-                    true,
-                    alias
-                )} ${Dictionary.OrderDirection[direction]}`
-            );
+            if (typeof by === 'object') {
+                const resolvedGroupBy = resolveExpression(
+                    by.expression,
+                    params.length + 1,
+                    false
+                );
+                if (!resolvedGroupBy.ok) {
+                    return err(
+                        `${errorPrefix} -> orderBy -> ${_orders.indexOf(order)} -> by -> ${resolvedGroupBy.error}`
+                    );
+                }
+                params.push(...resolvedGroupBy.value.params);
+                ordersTextArray.push(
+                    `${resolvedGroupBy.value.text} ${Dictionary.OrderDirection[direction]}`
+                );
+            } else {
+                const { table, alias } = getTableDataOfJoinSelectColumn(
+                    allTables,
+                    by
+                );
+                ordersTextArray.push(
+                    `${resolveColumn(
+                        table,
+                        by.substring((alias + '_').length),
+                        true,
+                        alias
+                    )} ${Dictionary.OrderDirection[direction]}`
+                );
+            }
         }
         tokens.push('ORDER BY', ordersTextArray.join(', '));
     }
@@ -978,6 +1040,8 @@ export {
     createQuery
 };
 export type {
+    By,
+    Order,
     SelectOptions,
     InsertOptions,
     InsertingRow,
@@ -989,6 +1053,8 @@ export type {
     SchemaMapContexts,
     PrefixAliasOnSchema,
     JoinEntity,
+    JoinBy,
+    JoinOrder,
     JoinSelectOptions,
     OrderDirection,
     Mode,

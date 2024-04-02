@@ -226,13 +226,33 @@ describe('createSelectQuery', () => {
                 ['id'],
                 true,
                 {
-                    groupBy: [undefined]
+                    groupBy: [{ expression: undefined }]
                 },
                 []
             );
 
             expect(result).toStrictEqual(
                 err('select("public"."user") -> groupBy -> 0 -> undefined')
+            );
+        });
+        test('orderBy', () => {
+            const result = createSelectQuery(
+                userContext,
+                UserTable,
+                ['id'],
+                true,
+                {
+                    orders: [
+                        { by: { expression: undefined }, direction: 'asc' }
+                    ]
+                },
+                []
+            );
+
+            expect(result).toStrictEqual(
+                err(
+                    'select("public"."user") -> orderBy -> 0 -> by -> undefined'
+                )
             );
         });
         test('start', () => {
@@ -317,17 +337,38 @@ describe('createSelectQuery', () => {
                         username: ['=', 'a']
                     }),
                 {
-                    groupBy: context => [context.column('id')],
-                    orders: [{ by: 'username', direction: 'asc' }],
-                    start: BigInt(1),
-                    step: 2
+                    groupBy: context => [
+                        'id',
+                        {
+                            expression: U.arithmetic(
+                                context.column('id') as number,
+                                '+',
+                                1
+                            )
+                        }
+                    ],
+                    orders: context => [
+                        { by: 'username', direction: 'asc' },
+                        {
+                            by: {
+                                expression: U.arithmetic(
+                                    context.column('id') as number,
+                                    '+',
+                                    2
+                                )
+                            },
+                            direction: 'desc'
+                        }
+                    ],
+                    start: BigInt(3),
+                    step: 4
                 },
                 ['b']
             );
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT "ID" AS "id" FROM "public"."user" WHERE "username" = $2 GROUP BY "ID" ORDER BY "username" ASC OFFSET 1 LIMIT 2',
+                    sql: 'SELECT "ID" AS "id" FROM "public"."user" WHERE "username" = $2 GROUP BY "ID", ("ID" + 1) ORDER BY "username" ASC, ("ID" + 2) DESC OFFSET 3 LIMIT 4',
                     params: ['b', 'a']
                 })
             );
@@ -684,13 +725,44 @@ describe('createJoinSelectQuery', () => {
                 ['u_id'],
                 true,
                 {
-                    groupBy: [undefined]
+                    groupBy: [{ expression: undefined }]
                 },
                 []
             );
 
             expect(result).toStrictEqual(
                 err('join-select("public"."user") -> groupBy -> 0 -> undefined')
+            );
+        });
+        test('orderBy', () => {
+            const result = createJoinSelectQuery(
+                { uContext, lContext },
+                {
+                    table: UserTable,
+                    alias: 'u'
+                },
+                [
+                    {
+                        table: LaptopTable,
+                        alias: 'laptop',
+                        joinType: 'inner',
+                        on: true
+                    }
+                ],
+                ['u_id'],
+                true,
+                {
+                    orders: [
+                        { by: { expression: undefined }, direction: 'asc' }
+                    ]
+                },
+                []
+            );
+
+            expect(result).toStrictEqual(
+                err(
+                    'join-select("public"."user") -> orderBy -> 0 -> by -> undefined'
+                )
             );
         });
         test('start', () => {
@@ -839,8 +911,32 @@ describe('createJoinSelectQuery', () => {
                         username: ['=', 'a']
                     }),
                 {
-                    groupBy: ({ uContext }) => [uContext.column('id')],
-                    orders: [{ by: 'u_username', direction: 'asc' }],
+                    groupBy: ({ uContext }) => [
+                        'u_id',
+                        {
+                            expression: U.arithmetic(
+                                uContext.column('id') as number,
+                                '+',
+                                1
+                            )
+                        }
+                    ],
+                    orders: ({ uContext }) => [
+                        {
+                            by: 'u_username',
+                            direction: 'asc'
+                        },
+                        {
+                            by: {
+                                expression: U.arithmetic(
+                                    uContext.column('id') as number,
+                                    '+',
+                                    2
+                                )
+                            },
+                            direction: 'desc'
+                        }
+                    ],
                     start: BigInt(1),
                     step: 2
                 },
@@ -849,7 +945,7 @@ describe('createJoinSelectQuery', () => {
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON "u"."ID" = "l"."userID" WHERE "u"."username" = $2 GROUP BY "u"."ID" ORDER BY "u"."username" ASC OFFSET 1 LIMIT 2',
+                    sql: 'SELECT "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON "u"."ID" = "l"."userID" WHERE "u"."username" = $2 GROUP BY "u"."ID", ("u"."ID" + 1) ORDER BY "u"."username" ASC, ("u"."ID" + 2) DESC OFFSET 1 LIMIT 2',
                     params: ['b', 'a']
                 })
             );
@@ -1043,16 +1139,4 @@ describe('createQuery', () => {
 
         expect(executeResult).toStrictEqual(err('c'));
     });
-});
-
-test('', () => {
-    const User = createEntity(UserTable);
-    User.insert(
-        [
-            {
-                username: U.ignore(U.concat('a', undefined), 'b')
-            }
-        ],
-        ['id']
-    );
 });
