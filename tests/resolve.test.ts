@@ -450,22 +450,34 @@ describe('resolveExpression', () => {
                 })
             );
         });
-        test('Raw', () => {
-            const result = resolveExpression(
-                U.raw(paramsStart => ({
-                    expression: `$${paramsStart}`,
-                    params: ['a']
-                })),
-                2,
-                randomBoolean
-            );
+        describe('Raw', () => {
+            test('text', () => {
+                const result = resolveExpression(U.raw('a'), 1, randomBoolean);
 
-            expect(result).toStrictEqual(
-                ok({
-                    text: `$2`,
-                    params: ['a']
-                })
-            );
+                expect(result).toStrictEqual(
+                    ok({
+                        text: `a`,
+                        params: []
+                    })
+                );
+            });
+            test('function', () => {
+                const result = resolveExpression(
+                    U.raw(paramsStart => ({
+                        expression: `$${paramsStart}`,
+                        params: ['a']
+                    })),
+                    2,
+                    randomBoolean
+                );
+
+                expect(result).toStrictEqual(
+                    ok({
+                        text: `$2`,
+                        params: ['a']
+                    })
+                );
+            });
         });
         describe('ignore', () => {
             test('expression', () => {

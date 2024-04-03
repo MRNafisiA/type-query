@@ -350,7 +350,10 @@ const resolveExpression = (
         return ok(partialQuery(`${expression[1]}`));
     }
     if (operator === OperatorCode.Raw) {
-        const rawExpression = expression[1](paramsStart);
+        const rawExpression =
+            typeof expression[1] === 'function'
+                ? expression[1](paramsStart)
+                : { expression: expression[1], params: [] };
         return ok(partialQuery(rawExpression.expression, rawExpression.params));
     }
     if (operator === OperatorCode.Ignore) {

@@ -147,11 +147,13 @@ const column = <S extends Schema, C extends keyof S & string>(
 ];
 
 const raw = <T>(
-    get: (paramsStart: number) => {
-        expression: string;
-        params: string[];
-    }
-): T => [OperatorCode.Raw, get] as unknown as T;
+    textOrGet:
+        | string
+        | ((paramsStart: number) => {
+              expression: string;
+              params: string[];
+          })
+): T => [OperatorCode.Raw, textOrGet] as unknown as T;
 
 const ignore = <T>(
     expression: T,
