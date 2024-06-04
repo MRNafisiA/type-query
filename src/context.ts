@@ -173,7 +173,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                     : S[C]['type'] extends Json
                       ?
                             | [
-                                  operator: '@>' | '<@',
+                                  operator: '=' | '!=' | '@>' | '<@',
                                   expression: NullableType<
                                       Json,
                                       S[C]['nullable']

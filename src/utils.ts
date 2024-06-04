@@ -288,7 +288,7 @@ function compare<T extends undefined | null | Date>(
 ): Extract<T, undefined | null> | (T extends Date ? boolean : never);
 function compare<T extends undefined | null | Json>(
     expressionA: T,
-    operator: '@>' | '<@',
+    operator: '=' | '!=' | '@>' | '<@',
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends Json ? boolean : never);
