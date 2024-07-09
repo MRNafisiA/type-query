@@ -21,7 +21,7 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
         )[]
     >(
         returning: R | ((context: Context<S>) => R),
-        where: boolean | ((context: Context<S>) => boolean),
+        where: (null | boolean) | ((context: Context<S>) => null | boolean),
         options = {} as SelectOptions<S>
     ): Query<S, R> {
         return createQuery(params =>
@@ -72,7 +72,7 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
         )[]
     >(
         sets: UpdateSets<S> | ((context: Context<S>) => UpdateSets<S>),
-        where: boolean | ((context: Context<S>) => boolean),
+        where: (null | boolean) | ((context: Context<S>) => null | boolean),
         returning: R | ((context: Context<S>) => R)
     ): Query<S, R> {
         return createQuery(params =>
@@ -94,7 +94,7 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
             | CustomColumn<unknown, string>
         )[]
     >(
-        where: boolean | ((context: Context<S>) => boolean),
+        where: (null | boolean) | ((context: Context<S>) => null | boolean),
         returning: R | ((context: Context<S>) => R)
     ): Query<S, R> {
         return createQuery(params =>
@@ -161,7 +161,7 @@ const createSelectQuery = (
     context: Context,
     table: Table,
     returning: ReturningRows | ((context: Context) => ReturningRows),
-    where: boolean | ((context: Context) => boolean),
+    where: (null | boolean) | ((context: Context) => null | boolean),
     options: SelectOptions,
     params: string[]
 ): Result<QueryData, string> => {
@@ -439,7 +439,7 @@ const createUpdateQuery = (
     context: Context,
     table: Table,
     sets: UpdateSets | ((context: Context) => UpdateSets),
-    where: boolean | ((context: Context) => boolean),
+    where: (null | boolean) | ((context: Context) => null | boolean),
     returning: ReturningRows | ((context: Context) => ReturningRows),
     params: string[]
 ): Result<QueryData, string> => {
@@ -531,7 +531,7 @@ const createDeleteQuery = (
     context: Context,
     table: Table,
     returning: ReturningRows | ((context: Context) => ReturningRows),
-    where: boolean | ((context: Context) => boolean),
+    where: (null | boolean) | ((context: Context) => null | boolean),
     params: string[]
 ): Result<QueryData, string> => {
     const tokens = [`DELETE FROM "${table.schemaName}"."${table.tableName}"`];
@@ -604,7 +604,9 @@ type JoinEntity<SMap extends Record<string, Schema>, AllS extends Schema> = {
         )[]
     >(
         returning: R | ((contexts: SchemaMapContexts<SMap>) => R),
-        where: boolean | ((contexts: SchemaMapContexts<SMap>) => boolean),
+        where:
+            | (null | boolean)
+            | ((contexts: SchemaMapContexts<SMap>) => null | boolean),
         options?: JoinSelectOptions<SMap>
     ) => Query<AllS, R>;
     join: <JS extends Schema, JA extends string>(
@@ -653,7 +655,9 @@ const createJoinSelectEntity = <
         )[]
     >(
         returning: R | ((contexts: SchemaMapContexts<SMap>) => R),
-        where: boolean | ((contexts: SchemaMapContexts<SMap>) => boolean),
+        where:
+            | (null | boolean)
+            | ((contexts: SchemaMapContexts<SMap>) => null | boolean),
         options = {} as JoinSelectOptions<SMap>
     ): Query<AllS, R> {
         return createQuery(params =>
@@ -704,7 +708,9 @@ const createJoinSelectQuery = (
     returning:
         | ReturningRows
         | ((contexts: Record<string, Context>) => ReturningRows),
-    where: boolean | ((contexts: Record<string, Context>) => boolean),
+    where:
+        | (null | boolean)
+        | ((contexts: Record<string, Context>) => null | boolean),
     options: JoinSelectOptions,
     params: string[]
 ): Result<QueryData, string> => {
