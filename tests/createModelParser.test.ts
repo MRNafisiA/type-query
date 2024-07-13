@@ -24,6 +24,11 @@ type TestSchema = {
         nullable: false;
         default: false;
     };
+    int2_null: {
+        type: number;
+        nullable: true;
+        default: false;
+    };
     int4_withMin: {
         type: number;
         nullable: false;
@@ -32,6 +37,11 @@ type TestSchema = {
     int4_withMax: {
         type: number;
         nullable: false;
+        default: false;
+    };
+    int4_null: {
+        type: number;
+        nullable: true;
         default: false;
     };
     int8_withMin: {
@@ -44,6 +54,11 @@ type TestSchema = {
         nullable: false;
         default: false;
     };
+    int8_null: {
+        type: bigint;
+        nullable: true;
+        default: false;
+    };
     float4And8_withMin: {
         type: number;
         nullable: false;
@@ -52,6 +67,11 @@ type TestSchema = {
     float4And8_withMax: {
         type: number;
         nullable: false;
+        default: false;
+    };
+    float4And8_null: {
+        type: number;
+        nullable: true;
         default: false;
     };
     decimal_withMin: {
@@ -64,6 +84,11 @@ type TestSchema = {
         nullable: false;
         default: false;
     };
+    decimal_null: {
+        type: Decimal;
+        nullable: true;
+        default: false;
+    };
     charAndVarcharAndTextAndUUID_withMinLength: {
         type: string;
         nullable: false;
@@ -72,6 +97,11 @@ type TestSchema = {
     charAndVarcharAndTextAndUUID_withMaxLengthAndRegex: {
         type: string;
         nullable: false;
+        default: false;
+    };
+    charAndVarcharAndTextAndUUID_null: {
+        type: string;
+        nullable: true;
         default: false;
     };
     timestampAndTimestamptz: {
@@ -111,6 +141,11 @@ const TestTable: Table<TestSchema> = {
             default: false,
             max: 1
         },
+        int2_null: {
+            type: 'int2',
+            nullable: true,
+            default: false
+        },
         int4_withMin: {
             type: 'int4',
             nullable: false,
@@ -122,6 +157,11 @@ const TestTable: Table<TestSchema> = {
             nullable: false,
             default: false,
             max: 1
+        },
+        int4_null: {
+            type: 'int4',
+            nullable: true,
+            default: false
         },
         int8_withMin: {
             type: 'int8',
@@ -135,6 +175,11 @@ const TestTable: Table<TestSchema> = {
             default: false,
             max: BigInt(1)
         },
+        int8_null: {
+            type: 'int8',
+            nullable: true,
+            default: false
+        },
         float4And8_withMin: {
             type: 'float4',
             nullable: false,
@@ -146,6 +191,11 @@ const TestTable: Table<TestSchema> = {
             nullable: false,
             default: false,
             max: 0.5
+        },
+        float4And8_null: {
+            type: 'float4',
+            nullable: true,
+            default: false
         },
         decimal_withMin: {
             type: 'decimal',
@@ -163,6 +213,13 @@ const TestTable: Table<TestSchema> = {
             scale: 3,
             max: new Decimal('0.9')
         },
+        decimal_null: {
+            type: 'decimal',
+            nullable: true,
+            default: false,
+            precision: 3,
+            scale: 3
+        },
         charAndVarcharAndTextAndUUID_withMinLength: {
             type: 'varchar',
             nullable: false,
@@ -175,6 +232,11 @@ const TestTable: Table<TestSchema> = {
             default: false,
             maxLength: 2,
             regex: /1/
+        },
+        charAndVarcharAndTextAndUUID_null: {
+            type: 'varchar',
+            nullable: true,
+            default: false
         },
         timestampAndTimestamptz: {
             type: 'timestamp',
@@ -195,6 +257,39 @@ const TestModelParser = createModelParser(TestTable, {
 });
 
 describe('createModelUtils', () => {
+    describe('null', () => {
+        test('int2_null', () => {
+            const result = TestModelParser.int2_null(null);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('int4_null', () => {
+            const result = TestModelParser.int4_null(null);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('int8_null', () => {
+            const result = TestModelParser.int8_null(null);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('float4And8_null', () => {
+            const result = TestModelParser.float4And8_null(null);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('decimal_null', () => {
+            const result = TestModelParser.decimal_null(null);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('charAndVarcharAndTextAndUUID_null', () => {
+            const result =
+                TestModelParser.charAndVarcharAndTextAndUUID_null(null);
+
+            expect(result).toStrictEqual(null);
+        });
+    });
     describe('undefined', () => {
         test('customParser', () => {
             const result = TestModelParser.customParser(32768);

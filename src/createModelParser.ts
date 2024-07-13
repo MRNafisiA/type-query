@@ -81,8 +81,11 @@ const createModelParser = <
                         defaultParser = U.Cast.boolean;
                         break;
                     case 'int2':
-                        defaultParser = (v: unknown) => {
-                            const _v = U.Cast.integer(v);
+                        defaultParser = (v: unknown, nullable: boolean) => {
+                            const _v = U.Cast.integer(v, nullable);
+                            if (_v === null) {
+                                return null;
+                            }
                             if (
                                 _v !== undefined &&
                                 (column.min ?? Int2Range.min) <= _v &&
@@ -94,8 +97,11 @@ const createModelParser = <
                         };
                         break;
                     case 'int4':
-                        defaultParser = (v: unknown) => {
-                            const _v = U.Cast.integer(v);
+                        defaultParser = (v: unknown, nullable: boolean) => {
+                            const _v = U.Cast.integer(v, nullable);
+                            if (_v === null) {
+                                return null;
+                            }
                             if (
                                 _v !== undefined &&
                                 (column.min ?? Int4Range.min) <= _v &&
@@ -107,8 +113,11 @@ const createModelParser = <
                         };
                         break;
                     case 'int8':
-                        defaultParser = (v: unknown) => {
-                            const _v = U.Cast.bigInt(v);
+                        defaultParser = (v: unknown, nullable: boolean) => {
+                            const _v = U.Cast.bigInt(v, nullable);
+                            if (_v === null) {
+                                return null;
+                            }
                             if (
                                 _v !== undefined &&
                                 (column.min ?? Int8Range.min) <= _v &&
@@ -121,8 +130,11 @@ const createModelParser = <
                         break;
                     case 'float4':
                     case 'float8':
-                        defaultParser = (v: unknown) => {
-                            const _v = U.Cast.number(v);
+                        defaultParser = (v: unknown, nullable: boolean) => {
+                            const _v = U.Cast.number(v, nullable);
+                            if (_v === null) {
+                                return null;
+                            }
                             if (
                                 _v !== undefined &&
                                 (column.min === undefined ||
@@ -135,8 +147,11 @@ const createModelParser = <
                         };
                         break;
                     case 'decimal':
-                        defaultParser = (v: unknown) => {
-                            const _v = U.Cast.decimal(v);
+                        defaultParser = (v: unknown, nullable: boolean) => {
+                            const _v = U.Cast.decimal(v, nullable);
+                            if (_v === null) {
+                                return null;
+                            }
                             if (
                                 _v !== undefined &&
                                 (column.min === undefined ||
@@ -153,8 +168,11 @@ const createModelParser = <
                     case 'varchar':
                     case 'text':
                     case 'uuid':
-                        defaultParser = (v: unknown) => {
-                            const _v = U.Cast.string(v);
+                        defaultParser = (v: unknown, nullable: boolean) => {
+                            const _v = U.Cast.string(v, nullable);
+                            if (_v === null) {
+                                return null;
+                            }
                             if (
                                 _v !== undefined &&
                                 (column.minLength === undefined ||
@@ -184,13 +202,17 @@ const createModelParser = <
                     key,
                     customParser !== undefined
                         ? (v: unknown) => {
-                              const _v = defaultParser(v);
+                              const _v = defaultParser(
+                                  v,
+                                  columns[key].nullable
+                              );
                               if (_v === undefined) {
                                   return undefined;
                               }
                               return customParser(_v);
                           }
-                        : defaultParser
+                        : (v: unknown) =>
+                              defaultParser(v, columns[key].nullable)
                 ];
             })
         );
