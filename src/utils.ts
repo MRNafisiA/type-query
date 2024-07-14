@@ -351,7 +351,7 @@ const stringify = (value: unknown, inline = false): string => {
             if (value === null) {
                 return 'NULL';
             }
-            if (value instanceof Decimal) {
+            if (Decimal.isDecimal(value)) {
                 return inline ? `'${value}'` : `${value}`;
             }
             if (value instanceof Date) {
@@ -463,7 +463,7 @@ const Cast = {
         ) {
             return null as NullableType<Decimal, N>;
         }
-        if (v instanceof Decimal) {
+        if (Decimal.isDecimal(v)) {
             return v;
         }
         switch (typeof v) {

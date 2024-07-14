@@ -37,7 +37,7 @@ const resolveExpression = (
     if (
         expression === null ||
         typeof expression === 'boolean' ||
-        expression instanceof Decimal ||
+        Decimal.isDecimal(expression) ||
         expression instanceof Date ||
         typeof expression === 'number' ||
         typeof expression === 'bigint'
