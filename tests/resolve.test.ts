@@ -9,6 +9,7 @@ import {
     resolveReturning,
     resolveExpression
 } from '../src/resolve';
+import Decimal from 'decimal.js';
 
 type UserSchema = {
     id: {
@@ -232,10 +233,43 @@ describe('resolveExpression', () => {
     });
     describe('ignore independent', () => {
         const randomBoolean = Math.random() > 0.5;
-        test('inline primitive', () => {
-            const result = resolveExpression(null, 1, randomBoolean);
+        describe('inline primitive', () => {
+            test('null', () => {
+                const result = resolveExpression(null, 1, randomBoolean);
 
-            expect(result).toStrictEqual(ok({ text: 'NULL', params: [] }));
+                expect(result).toStrictEqual(ok({ text: 'NULL', params: [] }));
+            });
+            test('boolean', () => {
+                const result = resolveExpression(true, 1, randomBoolean);
+
+                expect(result).toStrictEqual(ok({ text: 'TRUE', params: [] }));
+            });
+            test('decimal', () => {
+                const result = resolveExpression(
+                    new Decimal(0),
+                    1,
+                    randomBoolean
+                );
+
+                expect(result).toStrictEqual(ok({ text: `'0'`, params: [] }));
+            });
+            test('date', () => {
+                const result = resolveExpression(new Date(0), 1, randomBoolean);
+
+                expect(result).toStrictEqual(
+                    ok({ text: `'1970-01-01T00:00:00.000Z'`, params: [] })
+                );
+            });
+            test('number', () => {
+                const result = resolveExpression(0, 1, randomBoolean);
+
+                expect(result).toStrictEqual(ok({ text: '0', params: [] }));
+            });
+            test('bigint', () => {
+                const result = resolveExpression(BigInt(0), 1, randomBoolean);
+
+                expect(result).toStrictEqual(ok({ text: '0', params: [] }));
+            });
         });
         test('string', () => {
             const result = resolveExpression('a', 2, randomBoolean);
