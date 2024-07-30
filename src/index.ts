@@ -1,6 +1,7 @@
 export { type Context, createContext } from './context';
 export {
     type Model,
+    type ModelWithPrefix,
     Int2Range,
     Int4Range,
     Int8Range,

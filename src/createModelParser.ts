@@ -31,6 +31,29 @@ type Model<
     >;
 };
 
+type ModelWithPrefix<
+    S extends Schema,
+    R extends readonly (keyof S)[],
+    O extends readonly (keyof S)[],
+    P extends string
+> = {
+    [key in Exclude<
+        keyof R,
+        keyof never[]
+    > as `${P}${R[key] & string}`]: NullableType<
+        S[R[key] & string]['type'],
+        S[R[key] & string]['nullable']
+    >;
+} & {
+    [key in Exclude<
+        keyof O,
+        keyof never[]
+    > as `${P}${O[key] & string}`]?: NullableType<
+        S[O[key] & string]['type'],
+        S[O[key] & string]['nullable']
+    >;
+};
+
 type ModelParser<
     S extends Schema,
     EMap extends { [key in keyof S]: unknown }
@@ -246,5 +269,5 @@ const createModelParser = <
     } as ModelParser<S, EMap>;
 };
 
-export type { Model, ModelParser };
+export type { Model, ModelWithPrefix, ModelParser };
 export { Int2Range, Int4Range, Int8Range, createModelParser };
