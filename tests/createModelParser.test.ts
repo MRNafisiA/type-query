@@ -74,6 +74,16 @@ type TestSchema = {
         nullable: true;
         default: false;
     };
+    decimal_precision: {
+        type: Decimal;
+        nullable: false;
+        default: false;
+    };
+    decimal_scale: {
+        type: Decimal;
+        nullable: false;
+        default: false;
+    };
     decimal_withMin: {
         type: Decimal;
         nullable: false;
@@ -196,6 +206,20 @@ const TestTable: Table<TestSchema> = {
             type: 'float4',
             nullable: true,
             default: false
+        },
+        decimal_precision: {
+            type: 'decimal',
+            nullable: false,
+            default: false,
+            precision: 3,
+            scale: 3
+        },
+        decimal_scale: {
+            type: 'decimal',
+            nullable: false,
+            default: false,
+            precision: 3,
+            scale: 3
         },
         decimal_withMin: {
             type: 'decimal',
@@ -338,6 +362,16 @@ describe('createModelUtils', () => {
         });
         test('float4And8_withMax', () => {
             const result = TestModelParser.float4And8_withMax('1');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('decimal_precision', () => {
+            const result = TestModelParser.decimal_precision('1234.12');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('decimal_scale', () => {
+            const result = TestModelParser.decimal_scale('12.3456');
 
             expect(result).toStrictEqual(undefined);
         });

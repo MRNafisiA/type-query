@@ -180,7 +180,12 @@ const createModelParser = <
                                 (column.min === undefined ||
                                     _v.comparedTo(column.min) >= 0) &&
                                 (column.max === undefined ||
-                                    _v.comparedTo(column.max) <= 0)
+                                    _v.comparedTo(column.max) <= 0) &&
+                                _v.decimalPlaces() <=
+                                    (column as Record<'scale', number>).scale &&
+                                _v.precision() - _v.decimalPlaces() <=
+                                    (column as Record<'precision', number>)
+                                        .precision
                             ) {
                                 return _v;
                             }
