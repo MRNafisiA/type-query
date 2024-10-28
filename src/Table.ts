@@ -31,7 +31,9 @@ type PgType =
     | 'varchar'
     | 'text'
     | 'uuid'
-    // time
+    // date
+    | 'date'
+    // datetime
     | 'timestamp'
     | 'timestamptz'
     // json

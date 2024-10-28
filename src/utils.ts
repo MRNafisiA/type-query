@@ -512,15 +512,14 @@ const Cast = {
         ) {
             return null as NullableType<Date, N>;
         }
-        if (v instanceof Date) {
+        if (v instanceof Date && `${v}` !== 'Invalid Date') {
             return v;
         }
         if (typeof v === 'number' || typeof v === 'string') {
             const _v = new Date(v);
             return `${_v}` === 'Invalid Date' ? undefined : _v;
-        } else {
-            return undefined;
         }
+        return undefined;
     },
     json: <N extends boolean = false>(
         v: unknown,

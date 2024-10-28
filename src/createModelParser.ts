@@ -215,6 +215,7 @@ const createModelParser = <
                             return undefined;
                         };
                         break;
+                    case 'date':
                     case 'timestamp':
                     case 'timestamptz':
                         defaultParser = U.Cast.date;

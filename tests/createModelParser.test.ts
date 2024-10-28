@@ -114,7 +114,7 @@ type TestSchema = {
         nullable: true;
         default: false;
     };
-    timestampAndTimestamptz: {
+    dateAndTimestampAndTimestamptz: {
         type: Date;
         nullable: false;
         default: false;
@@ -262,7 +262,7 @@ const TestTable: Table<TestSchema> = {
             nullable: true,
             default: false
         },
-        timestampAndTimestamptz: {
+        dateAndTimestampAndTimestamptz: {
             type: 'timestamp',
             nullable: false,
             default: false
@@ -399,8 +399,8 @@ describe('createModelUtils', () => {
 
             expect(result).toStrictEqual(undefined);
         });
-        test('timestampAndTimestamptz', () => {
-            const result = TestModelParser.timestampAndTimestamptz('a');
+        test('dateAndTimestampAndTimestamptz', () => {
+            const result = TestModelParser.dateAndTimestampAndTimestamptz('a');
 
             expect(result).toStrictEqual(undefined);
         });
@@ -485,8 +485,8 @@ describe('createModelUtils', () => {
 
             expect(result).toStrictEqual('1');
         });
-        test('timestampAndTimestamptz', () => {
-            const result = TestModelParser.timestampAndTimestamptz(
+        test('dateAndTimestampAndTimestamptz', () => {
+            const result = TestModelParser.dateAndTimestampAndTimestamptz(
                 '1970-01-01T00:00:00.001Z'
             );
 
