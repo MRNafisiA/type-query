@@ -133,6 +133,7 @@ const Dictionary = {
         varchar: 'CHARACTER VARYING',
         text: 'TEXT',
         uuid: 'UUID',
+        date: 'DATE',
         timestamp: 'TIMESTAMP WITHOUT TIME ZONE',
         timestamptz: 'TIMESTAMP WITH TIME ZONE',
         json: 'JSON',

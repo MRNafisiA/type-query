@@ -92,7 +92,7 @@ type ColumnType<
             }
           : S[key]['type'] extends Date
             ? {
-                  type: 'timestamp' | 'timestamptz';
+                  type: 'date' |  'timestamp' | 'timestamptz';
                   length?: number;
               }
             : S[key]['type'] extends boolean
