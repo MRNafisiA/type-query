@@ -44,6 +44,8 @@ const testTransaction = async (
     transaction(
         pool,
         async client => {
+            const returnAction = rollback ? err : ok;
+
             // create tables
             await client.query(
                 tablesWithData
@@ -78,7 +80,9 @@ const testTransaction = async (
                             tableWithData.startData.length
                         ]);
                     if (!insertResult.ok) {
-                        return err([JSON.stringify(insertResult.error)]);
+                        return returnAction([
+                            JSON.stringify(insertResult.error)
+                        ]);
                     }
                 }
             }
@@ -93,7 +97,7 @@ const testTransaction = async (
                     .select(Object.keys(table.columns), true)
                     .execute(client, []);
                 if (!selectResult.ok) {
-                    return err([JSON.stringify(selectResult.error)]);
+                    return returnAction([JSON.stringify(selectResult.error)]);
                 }
                 const alLRows = [...selectResult.value];
 
@@ -131,14 +135,10 @@ const testTransaction = async (
                 );
             }
             if (differences.length !== 0) {
-                return err(differences);
+                return returnAction(differences);
             }
 
-            if (rollback) {
-                return err(undefined);
-            } else {
-                return ok(undefined);
-            }
+            return returnAction(undefined);
         },
         isolationLevel
     ).then(result => {
