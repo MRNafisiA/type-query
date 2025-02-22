@@ -184,6 +184,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                   operator: '?&' | '?|',
                                   expression: readonly (null | string)[]
                               ]
+                            | [operator: '@@', expression: string]
                       : never);
 
 const createContextHelper =
@@ -224,6 +225,7 @@ const createContextHelper =
                     case '?':
                     case '?&':
                     case '?|':
+                    case '@@':
                         return U.compare(
                             U.column(table, key, !!alias, alias) as number,
                             value[0] as CompareOperator,

@@ -316,6 +316,12 @@ function compare<
     | Extract<T, undefined | null>
     | Extract<B, undefined | null>
     | (T extends Json ? (B extends string ? boolean : never) : never);
+function compare<T extends undefined | null | Json>(
+    expressionA: T,
+    operator: '@@',
+    expressions: string,
+    _?: never
+): Extract<T, undefined | null> | (T extends Json ? boolean : never);
 function compare(
     a: unknown,
     operator:

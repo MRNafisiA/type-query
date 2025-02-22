@@ -39,8 +39,9 @@ enum OperatorCode {
     JsonRemoveAll = 37,
     JsonIndex = 38,
     JsonIndexText = 39,
-    SubQuery = 40,
-    SubQueryExist = 41
+    JsonQuery = 40,
+    SubQuery = 41,
+    SubQueryExist = 42
 }
 
 type ArithmeticOperator = '+' | '-' | '*' | '/' | '**';
@@ -51,7 +52,7 @@ type CompareOperator = '=' | '!=' | '>' | '>=' | '<' | '<=';
 type ListOperator = 'in' | 'not in';
 type LikeOperator = 'like' | 'like all' | 'like some';
 type BetweenOperator = 'between';
-type JsonCompareOperator = '?' | '@>' | '<@' | '?|' | '?&';
+type JsonCompareOperator = '?' | '@>' | '<@' | '?|' | '?&' | '@@';
 
 const OperatorMap: Record<
     | ArithmeticOperator
@@ -94,7 +95,8 @@ const OperatorMap: Record<
     '@>': OperatorCode.JsonRightExist,
     '<@': OperatorCode.JsonLeftExist,
     '?|': OperatorCode.JsonSomeExist,
-    '?&': OperatorCode.JsonAllExist
+    '?&': OperatorCode.JsonAllExist,
+    '@@': OperatorCode.JsonQuery
 };
 
 const Dictionary = {
