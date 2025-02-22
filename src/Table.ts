@@ -10,10 +10,7 @@ type BaseJsonValue =
     | null
     | boolean
     | number
-    | bigint
-    | Decimal
     | string
-    | Date
     | JsonObject
     | JsonArray;
 
