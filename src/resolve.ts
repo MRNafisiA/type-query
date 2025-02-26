@@ -557,7 +557,8 @@ const resolveExpression = (
         operator === OperatorCode.LikeSome ||
         operator === OperatorCode.JsonSomeExist ||
         operator === OperatorCode.JsonAllExist ||
-        operator === OperatorCode.JsonRemoveAll
+        operator === OperatorCode.JsonRemoveAll ||
+        operator === OperatorCode.JsonIndexChain
     ) {
         const params: string[] = [];
 
@@ -662,6 +663,13 @@ const resolveExpression = (
                                 params
                             )
                         );
+                    case OperatorCode.JsonIndexChain:
+                        return ok(
+                            partialQuery(
+                                `${expressionResult.value.text} -> ${tokens[0]}`,
+                                params
+                            )
+                        );
                 }
             default:
                 switch (operator) {
@@ -711,6 +719,13 @@ const resolveExpression = (
                         return ok(
                             partialQuery(
                                 `${expressionResult.value.text} - ARRAY[${tokens.join(', ')}]`,
+                                params
+                            )
+                        );
+                    case OperatorCode.JsonIndexChain:
+                        return ok(
+                            partialQuery(
+                                `${expressionResult.value.text} ${tokens.map(token => `-> ${token}`).join('')}]`,
                                 params
                             )
                         );

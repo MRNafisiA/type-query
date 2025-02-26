@@ -160,7 +160,7 @@ describe('resolveExpression', () => {
                 );
             });
         });
-        describe('InList, NotInList, LikeAll, LikeSome, JsonSomeExist, JsonAllExist, JsonRemoveAll', () => {
+        describe('InList, NotInList, LikeAll, LikeSome, JsonSomeExist, JsonAllExist, JsonRemoveAll, JsonIndexChain', () => {
             test('expression', () => {
                 const result = resolveExpression(
                     U.compare(undefined, 'in', [1]),
@@ -728,7 +728,7 @@ describe('resolveExpression', () => {
                 });
             });
         });
-        describe('InList, NotInList, LikeAll, LikeSome, JsonSomeExist, JsonAllExist, JsonRemoveAll', () => {
+        describe('InList, NotInList, LikeAll, LikeSome, JsonSomeExist, JsonAllExist, JsonRemoveAll, JsonIndexChain', () => {
             describe('single', () => {
                 test('InList', () => {
                     const result = resolveExpression(
@@ -1074,7 +1074,7 @@ describe('resolveExpression', () => {
                 expect(result).toStrictEqual(ok({ text: '', params: [] }));
             });
         });
-        describe('InList, NotInList, LikeAll, LikeSome, JsonSomeExist, JsonAllExist, JsonRemoveAll', () => {
+        describe('InList, NotInList, LikeAll, LikeSome, JsonSomeExist, JsonAllExist, JsonRemoveAll, JsonIndexChain', () => {
             test('undefined in expression', () => {
                 const result = resolveExpression(
                     U.compare(undefined, 'in', [1]),

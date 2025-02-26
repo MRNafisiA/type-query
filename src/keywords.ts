@@ -38,14 +38,15 @@ enum OperatorCode {
     JsonRemove = 36,
     JsonRemoveAll = 37,
     JsonIndex = 38,
-    JsonIndexText = 39,
-    JsonQuery = 40,
-    SubQuery = 41,
-    SubQueryExist = 42
+    JsonIndexChain = 39,
+    JsonIndexText = 40,
+    JsonQuery = 41,
+    SubQuery = 42,
+    SubQueryExist = 43
 }
 
 type ArithmeticOperator = '+' | '-' | '*' | '/' | '**';
-type JsonOperator = 'j-' | 'j- Array' | '->' | '->>';
+type JsonOperator = 'j-' | 'j- Array' | '->' | '-> Array' | '->>';
 type NullOperator = '= null' | '!= null';
 type BooleanOperator = '= true' | '= false';
 type CompareOperator = '=' | '!=' | '>' | '>=' | '<' | '<=';
@@ -74,6 +75,7 @@ const OperatorMap: Record<
     'j-': OperatorCode.JsonRemove,
     'j- Array': OperatorCode.JsonRemoveAll,
     '->': OperatorCode.JsonIndex,
+    '-> Array': OperatorCode.JsonIndexChain,
     '->>': OperatorCode.JsonIndexText,
     '= null': OperatorCode.IsNull,
     '!= null': OperatorCode.IsNotNull,
@@ -181,6 +183,7 @@ const Dictionary = {
         [OperatorCode.JsonRemove]: 'json-remove (-)',
         [OperatorCode.JsonRemoveAll]: 'json-remove all (-)',
         [OperatorCode.JsonIndex]: 'json-index access',
+        [OperatorCode.JsonIndexChain]: 'json-index chain access',
         [OperatorCode.JsonIndexText]: 'json-index text access',
         [OperatorCode.SubQuery]: 'sub-query',
         [OperatorCode.SubQueryExist]: 'row exists in sub-query'

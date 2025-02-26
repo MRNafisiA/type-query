@@ -70,6 +70,19 @@ function json<
     | (T extends Json ? Json : never);
 function json<
     T extends undefined | Json,
+    K extends undefined | null | number | string
+>(
+    expression: T,
+    operator: '-> Array',
+    keys: K[],
+    _?: never
+):
+    | (undefined extends K ? undefined : never)
+    | (undefined extends T ? undefined : never)
+    | (null extends K ? null : never)
+    | (T extends Json ? Json : never);
+function json<
+    T extends undefined | Json,
     K extends undefined | null | number | string,
     C extends undefined | string = undefined
 >(
