@@ -1159,6 +1159,7 @@ const createQuery = <
 
 export {
     createEntity,
+    defaultCustomQueryBuilder,
     createSelectQuery,
     createInsertQuery,
     createUpdateQuery,

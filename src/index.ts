@@ -21,7 +21,8 @@ export {
     type OrderDirection,
     type Mode,
     type CustomColumn,
-    createEntity
+    createEntity,
+    defaultCustomQueryBuilder
 } from './entity';
 export {
     partialQuery,
