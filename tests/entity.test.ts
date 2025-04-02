@@ -189,6 +189,20 @@ describe('createEntity', () => {
 
 describe('createSelectQuery', () => {
     describe('error', () => {
+        test('distinct', () => {
+            const result = createSelectQuery(
+                userContext,
+                UserTable,
+                ['id'],
+                true,
+                { distinct: [{ expression: undefined }] },
+                []
+            );
+
+            expect(result).toStrictEqual(
+                err('select("public"."user") -> distinct -> 0 -> undefined')
+            );
+        });
         test('returning', () => {
             const result = createSelectQuery(
                 userContext,
@@ -315,14 +329,14 @@ describe('createSelectQuery', () => {
                 ['id'],
                 true,
                 {
-                    distinct: ['id']
+                    distinct: ['id',{expression:1}]
                 },
                 []
             );
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT DISTINCT ON("ID") "ID" AS "id" FROM "public"."user" WHERE TRUE',
+                    sql: 'SELECT DISTINCT ON("ID", 1) "ID" AS "id" FROM "public"."user" WHERE TRUE',
                     params: []
                 })
             );

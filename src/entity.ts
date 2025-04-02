@@ -150,11 +150,49 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
 type By<S extends Schema> = (keyof S & string) | { expression: unknown };
 type Order<S extends Schema> = { by: By<S>; direction: OrderDirection };
 type SelectOptions<S extends Schema = Schema> = {
-    distinct?: true | (keyof S & string)[];
+    distinct?: (true | By<S>[]) | ((context: Context<S>) => true | By<S>[]);
     groupBy?: By<S>[] | ((context: Context<S>) => By<S>[]);
     orders?: Order<S>[] | ((context: Context<S>) => Order<S>[]);
     start?: bigint;
     step?: number;
+    customQueryBuilder?: (
+        parts: Record<
+            `${'distinct' | 'returning' | 'from' | 'where' | 'groupBy' | 'orders' | 'pagination'}Part`,
+            string
+        >,
+        params: string[]
+    ) => QueryData;
+};
+
+const defaultCustomQueryBuilder: SelectOptions['customQueryBuilder'] = (
+    parts,
+    params
+) => {
+    const tokens = ['SELECT'];
+    if (parts.distinctPart !== '') {
+        tokens.push(parts.distinctPart);
+    }
+    tokens.push(
+        parts.returningPart,
+        'FROM',
+        parts.fromPart,
+        'WHERE',
+        parts.wherePart
+    );
+    if (parts.groupByPart !== '') {
+        tokens.push('GROUP BY', parts.groupByPart);
+    }
+    if (parts.ordersPart !== '') {
+        tokens.push('ORDER BY', parts.ordersPart);
+    }
+    if (parts.paginationPart !== '') {
+        tokens.push(parts.paginationPart);
+    }
+
+    return {
+        sql: tokens.join(' '),
+        params
+    };
 };
 
 const createSelectQuery = (
@@ -171,17 +209,37 @@ const createSelectQuery = (
         groupBy = [],
         orders = [],
         start,
-        step
+        step,
+        customQueryBuilder = defaultCustomQueryBuilder
     } = options;
-    const tokens = ['SELECT'];
 
     // distinct
-    if (distinct === true) {
-        tokens.push('DISTINCT');
-    } else if (Array.isArray(distinct)) {
-        tokens.push(
-            `DISTINCT ON(${distinct.map(column => resolveColumn(table, column, false)).join(', ')})`
-        );
+    let distinctPart = '';
+    const _distinct =
+        typeof distinct === 'function' ? distinct(context) : distinct;
+    if (_distinct === true) {
+        distinctPart = 'DISTINCT';
+    } else if (Array.isArray(_distinct)) {
+        const distinctTextArray = [];
+        for (const aDistinct of _distinct) {
+            if (typeof aDistinct === 'object') {
+                const resolvedExpression = resolveExpression(
+                    aDistinct.expression,
+                    params.length + 1,
+                    false
+                );
+                if (!resolvedExpression.ok) {
+                    return err(
+                        `${errorPrefix} -> distinct -> ${_distinct.indexOf(aDistinct)} -> ${resolvedExpression.error}`
+                    );
+                }
+                params.push(...resolvedExpression.value.params);
+                distinctTextArray.push(resolvedExpression.value.text);
+            } else {
+                distinctTextArray.push(resolveColumn(table, aDistinct, false));
+            }
+        }
+        distinctPart = `DISTINCT ON(${distinctTextArray.join(', ')})`;
     }
 
     // select
@@ -196,10 +254,10 @@ const createSelectQuery = (
         return err(`${errorPrefix} -> ${resolvedReturning.error}`);
     }
     params.push(...resolvedReturning.value.params);
-    tokens.push(resolvedReturning.value.text);
+    const returningPart = resolvedReturning.value.text;
 
     // from
-    tokens.push(`FROM "${table.schemaName}"."${table.tableName}"`);
+    const fromPart = `"${table.schemaName}"."${table.tableName}"`;
 
     // where
     const resolvedWhereResult = resolveExpression(
@@ -214,9 +272,10 @@ const createSelectQuery = (
         return err(`${errorPrefix} -> where -> neutral`);
     }
     params.push(...resolvedWhereResult.value.params);
-    tokens.push('WHERE', resolvedWhereResult.value.text);
+    const wherePart = resolvedWhereResult.value.text;
 
     // groupBy
+    let groupByPart = '';
     const _groupBy = typeof groupBy === 'function' ? groupBy(context) : groupBy;
     if (_groupBy.length !== 0) {
         const groupByTextArray = [];
@@ -238,10 +297,11 @@ const createSelectQuery = (
                 groupByTextArray.push(resolveColumn(table, aGroupBy, false));
             }
         }
-        tokens.push('GROUP BY', groupByTextArray.join(', '));
+        groupByPart = groupByTextArray.join(', ');
     }
 
     // orders
+    let ordersPart = '';
     const _orders = typeof orders === 'function' ? orders(context) : orders;
     if (_orders.length !== 0) {
         const ordersTextArray = [];
@@ -268,24 +328,42 @@ const createSelectQuery = (
                 );
             }
         }
-        tokens.push('ORDER BY', ordersTextArray.join(', '));
+        ordersPart = ordersTextArray.join(', ');
     }
 
     // pagination
+    let paginationPart = '';
+    const paginationTextArray = [];
     if (start !== undefined) {
         if (start < 0) {
             return err(`${errorPrefix} -> start -> invalid`);
         }
-        tokens.push('OFFSET', start.toString());
+        paginationTextArray.push(`OFFSET ${start}`);
     }
     if (step !== undefined) {
         if (step <= 0) {
             return err(`${errorPrefix} -> step -> invalid`);
         }
-        tokens.push('LIMIT', step.toString());
+        paginationTextArray.push(`LIMIT ${step}`);
+    }
+    if (paginationTextArray.length !== 0) {
+        paginationPart = paginationTextArray.join(' ');
     }
 
-    return ok({ sql: tokens.join(' '), params });
+    return ok(
+        customQueryBuilder(
+            {
+                distinctPart,
+                returningPart,
+                fromPart,
+                wherePart,
+                groupByPart,
+                ordersPart,
+                paginationPart
+            },
+            params
+        )
+    );
 };
 
 // insert
@@ -534,7 +612,9 @@ const createDeleteQuery = (
     where: (null | boolean) | ((context: Context) => null | boolean),
     params: string[]
 ): Result<QueryData, string> => {
-    const tokens = [`DELETE FROM "${table.schemaName}"."${table.tableName}"`];
+    const tokens = [
+        `DELETE FROM "${table.schemaName}"."${table.tableName}"`
+    ];
 
     // where
     const resolvedWhereResult = resolveExpression(
@@ -628,7 +708,9 @@ type JoinOrder<SMap extends Record<string, Schema>> = {
 type JoinSelectOptions<
     SMap extends Record<string, Schema> = Record<string, Schema>
 > = {
-    distinct?: true | SchemaMapKeys<SMap>[];
+    distinct?:
+        | (true | JoinBy<SMap>[])
+        | ((contexts: SchemaMapContexts<SMap>) => true | JoinBy<SMap>[]);
     groupBy?:
         | JoinBy<SMap>[]
         | ((contexts: SchemaMapContexts<SMap>) => JoinBy<SMap>[]);
@@ -637,6 +719,13 @@ type JoinSelectOptions<
         | ((contexts: SchemaMapContexts<SMap>) => JoinOrder<SMap>[]);
     start?: bigint;
     step?: number;
+    customQueryBuilder?: (
+        parts: Record<
+            `${'distinct' | 'returning' | 'from' | 'where' | 'groupBy' | 'orders' | 'pagination'}Part`,
+            string
+        >,
+        params: string[]
+    ) => QueryData;
 };
 
 const createJoinSelectEntity = <
@@ -721,30 +810,48 @@ const createJoinSelectQuery = (
         groupBy = [],
         orders = [],
         start,
-        step
+        step,
+        customQueryBuilder = defaultCustomQueryBuilder
     } = options;
-    const tokens = ['SELECT'];
 
     // distinct
-    if (distinct === true) {
-        tokens.push('DISTINCT');
-    } else if (Array.isArray(distinct)) {
-        tokens.push(
-            `DISTINCT ON(${distinct
-                .map(column => {
-                    const { table, alias } = getTableDataOfJoinSelectColumn(
-                        allTables,
-                        column
+    let distinctPart = '';
+    const _distinct =
+        typeof distinct === 'function' ? distinct(contexts) : distinct;
+    if (_distinct === true) {
+        distinctPart = 'DISTINCT';
+    } else if (Array.isArray(_distinct)) {
+        const distinctTextArray = [];
+        for (const aDistinct of _distinct) {
+            if (typeof aDistinct === 'object') {
+                const resolvedExpression = resolveExpression(
+                    aDistinct.expression,
+                    params.length + 1,
+                    false
+                );
+                if (!resolvedExpression.ok) {
+                    return err(
+                        `${errorPrefix} -> distinct -> ${_distinct.indexOf(aDistinct)} -> ${resolvedExpression.error}`
                     );
-                    return resolveColumn(
+                }
+                params.push(...resolvedExpression.value.params);
+                distinctTextArray.push(resolvedExpression.value.text);
+            } else {
+                const { table, alias } = getTableDataOfJoinSelectColumn(
+                    allTables,
+                    aDistinct
+                );
+                distinctTextArray.push(
+                    resolveColumn(
                         table,
-                        column.substring((alias + '_').length),
+                        aDistinct.substring((alias + '_').length),
                         true,
                         alias
-                    );
-                })
-                .join(', ')})`
-        );
+                    )
+                );
+            }
+        }
+        distinctPart = `DISTINCT ON(${distinctTextArray.join(', ')})`;
     }
 
     // select
@@ -766,12 +873,10 @@ const createJoinSelectQuery = (
         return err(`${errorPrefix} -> ${resolvedReturning.error}`);
     }
     params.push(...resolvedReturning.value.params);
-    tokens.push(
-        resolvedReturning.value.text,
-        `FROM "${main.table.schemaName}"."${main.table.tableName}" "${main.alias}"`
-    );
+    const returningPart = resolvedReturning.value.text;
 
     // join
+    let fromPart = `"${main.table.schemaName}"."${main.table.tableName}" "${main.alias}"`;
     for (const joinTable of joinTables) {
         const onExpressionResult = resolveExpression(
             typeof joinTable.on === 'function'
@@ -791,11 +896,9 @@ const createJoinSelectQuery = (
             );
         }
         params.push(...onExpressionResult.value.params);
-        tokens.push(
-            `${Dictionary.JoinType[joinTable.joinType]} "${joinTable.table.schemaName}"."${joinTable.table.tableName}" "${
-                joinTable.alias
-            }" ON ${onExpressionResult.value.text}`
-        );
+        fromPart += ` ${Dictionary.JoinType[joinTable.joinType]} "${joinTable.table.schemaName}"."${joinTable.table.tableName}" "${
+            joinTable.alias
+        }" ON ${onExpressionResult.value.text}`;
     }
 
     // where
@@ -811,9 +914,10 @@ const createJoinSelectQuery = (
         return err(`${errorPrefix} -> where -> neutral`);
     }
     params.push(...resolvedWhereResult.value.params);
-    tokens.push('WHERE', resolvedWhereResult.value.text);
+    const wherePart = resolvedWhereResult.value.text;
 
     // groupBy
+    let groupByPart = '';
     const _groupBy =
         typeof groupBy === 'function' ? groupBy(contexts) : groupBy;
     if (_groupBy.length !== 0) {
@@ -847,10 +951,11 @@ const createJoinSelectQuery = (
                 );
             }
         }
-        tokens.push('GROUP BY', groupByTextArray.join(', '));
+        groupByPart = groupByTextArray.join(', ');
     }
 
     // orders
+    let ordersPart = '';
     const _orders = typeof orders === 'function' ? orders(contexts) : orders;
     if (_orders.length !== 0) {
         const ordersTextArray = [];
@@ -886,24 +991,42 @@ const createJoinSelectQuery = (
                 );
             }
         }
-        tokens.push('ORDER BY', ordersTextArray.join(', '));
+        ordersPart = ordersTextArray.join(', ');
     }
 
     // pagination
+    let paginationPart = '';
+    const paginationTextArray = [];
     if (start !== undefined) {
         if (start < 0) {
             return err(`${errorPrefix} -> start -> invalid`);
         }
-        tokens.push('OFFSET', start.toString());
+        paginationTextArray.push(`OFFSET ${start}`);
     }
     if (step !== undefined) {
         if (step <= 0) {
             return err(`${errorPrefix} -> step -> invalid`);
         }
-        tokens.push('LIMIT', step.toString());
+        paginationTextArray.push(`LIMIT ${step}`);
+    }
+    if (paginationTextArray.length !== 0) {
+        paginationPart = paginationTextArray.join(' ');
     }
 
-    return ok({ sql: tokens.join(' '), params });
+    return ok(
+        customQueryBuilder(
+            {
+                distinctPart,
+                returningPart,
+                fromPart,
+                wherePart,
+                groupByPart,
+                ordersPart,
+                paginationPart
+            },
+            params
+        )
+    );
 };
 const getTableDataOfJoinSelectColumn = (
     tablesData: TableWithAlias[],
