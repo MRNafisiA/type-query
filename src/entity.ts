@@ -149,22 +149,23 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
 // select
 type By<S extends Schema> = (keyof S & string) | { expression: unknown };
 type Order<S extends Schema> = { by: By<S>; direction: OrderDirection };
+type CustomQueryBuilder=(
+    parts: Record<
+        `${'distinct' | 'returning' | 'from' | 'where' | 'groupBy' | 'orders' | 'pagination'}Part`,
+        string
+    >,
+    params: string[]
+) => QueryData
 type SelectOptions<S extends Schema = Schema> = {
     distinct?: (true | By<S>[]) | ((context: Context<S>) => true | By<S>[]);
     groupBy?: By<S>[] | ((context: Context<S>) => By<S>[]);
     orders?: Order<S>[] | ((context: Context<S>) => Order<S>[]);
     start?: bigint;
     step?: number;
-    customQueryBuilder?: (
-        parts: Record<
-            `${'distinct' | 'returning' | 'from' | 'where' | 'groupBy' | 'orders' | 'pagination'}Part`,
-            string
-        >,
-        params: string[]
-    ) => QueryData;
+    customQueryBuilder?: CustomQueryBuilder;
 };
 
-const defaultCustomQueryBuilder: SelectOptions['customQueryBuilder'] = (
+const defaultCustomQueryBuilder: CustomQueryBuilder = (
     parts,
     params
 ) => {
@@ -1172,6 +1173,7 @@ export {
 export type {
     By,
     Order,
+    CustomQueryBuilder,
     SelectOptions,
     InsertOptions,
     InsertingRow,
