@@ -725,7 +725,7 @@ const resolveExpression = (
                     case OperatorCode.JsonIndexChain:
                         return ok(
                             partialQuery(
-                                `${expressionResult.value.text} ${tokens.map(token => `-> ${token}`).join('')}]`,
+                                `${expressionResult.value.text} ${tokens.map(token => `-> ${token}`).join(' ')}`,
                                 params
                             )
                         );

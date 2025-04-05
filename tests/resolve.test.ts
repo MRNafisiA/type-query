@@ -816,6 +816,20 @@ describe('resolveExpression', () => {
                         })
                     );
                 });
+                test('JsonIndexChain', () => {
+                    const result = resolveExpression(
+                        U.json(['a'], '-> Array', ['b']),
+                        2,
+                        randomBoolean
+                    );
+
+                    expect(result).toStrictEqual(
+                        ok({
+                            text: '$2::JSONB -> $3',
+                            params: [JSON.stringify(['a']), 'b']
+                        })
+                    );
+                });
             });
             describe('multiple', () => {
                 test('InList', () => {
@@ -909,6 +923,20 @@ describe('resolveExpression', () => {
                     expect(result).toStrictEqual(
                         ok({
                             text: '$2::JSONB - ARRAY[$3, $4]',
+                            params: [JSON.stringify(['a']), 'b', 'c']
+                        })
+                    );
+                });
+                test('JsonIndexChain', () => {
+                    const result = resolveExpression(
+                        U.json(['a'], '-> Array', ['b', 'c']),
+                        2,
+                        randomBoolean
+                    );
+
+                    expect(result).toStrictEqual(
+                        ok({
+                            text: '$2::JSONB -> $3 -> $4',
                             params: [JSON.stringify(['a']), 'b', 'c']
                         })
                     );
