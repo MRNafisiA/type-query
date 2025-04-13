@@ -149,13 +149,13 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
 // select
 type By<S extends Schema> = (keyof S & string) | { expression: unknown };
 type Order<S extends Schema> = { by: By<S>; direction: OrderDirection };
-type CustomQueryBuilder=(
+type CustomQueryBuilder = (
     parts: Record<
         `${'distinct' | 'returning' | 'from' | 'where' | 'groupBy' | 'orders' | 'pagination'}Part`,
         string
     >,
     params: string[]
-) => QueryData
+) => QueryData;
 type SelectOptions<S extends Schema = Schema> = {
     distinct?: (true | By<S>[]) | ((context: Context<S>) => true | By<S>[]);
     groupBy?: By<S>[] | ((context: Context<S>) => By<S>[]);
@@ -165,10 +165,7 @@ type SelectOptions<S extends Schema = Schema> = {
     customQueryBuilder?: CustomQueryBuilder;
 };
 
-const defaultCustomQueryBuilder: CustomQueryBuilder = (
-    parts,
-    params
-) => {
+const defaultCustomQueryBuilder: CustomQueryBuilder = (parts, params) => {
     const tokens = ['SELECT'];
     if (parts.distinctPart !== '') {
         tokens.push(parts.distinctPart);
@@ -613,9 +610,7 @@ const createDeleteQuery = (
     where: (null | boolean) | ((context: Context) => null | boolean),
     params: string[]
 ): Result<QueryData, string> => {
-    const tokens = [
-        `DELETE FROM "${table.schemaName}"."${table.tableName}"`
-    ];
+    const tokens = [`DELETE FROM "${table.schemaName}"."${table.tableName}"`];
 
     // where
     const resolvedWhereResult = resolveExpression(

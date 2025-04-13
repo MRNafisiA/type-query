@@ -5,6 +5,7 @@ declare global {
 
         shuffle(): T[];
     }
+
     interface ReadonlyArray<T> {
         getRandomElement(): T;
 

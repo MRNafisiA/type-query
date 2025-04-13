@@ -1,6 +1,6 @@
-import * as U from './utils';
+import Decimal from 'decimal.js';
 import { err, ok, Result } from 'never-catch';
-import { NullableType, PgType, Schema, Table } from './Table';
+import { NullableType, PgType, Schema, Table, Json } from './Table';
 
 const Int2Range = {
     min: -32768,
@@ -13,6 +13,195 @@ const Int4Range = {
 const Int8Range = {
     min: BigInt('-9223372036854775808'),
     max: BigInt('9223372036854775807')
+};
+
+const Parser = {
+    boolean: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<boolean, N> | undefined => {
+        if (
+            nullable &&
+            (v === null ||
+                (typeof v === 'string' && v.toLowerCase() === 'null'))
+        ) {
+            return null as NullableType<boolean, N>;
+        }
+        switch (typeof v) {
+            case 'boolean':
+                return v;
+            case 'string':
+                switch (v) {
+                    case 't':
+                    case 'true':
+                        return true;
+                    case 'f':
+                    case 'false':
+                        return false;
+                    default:
+                        return undefined;
+                }
+            default:
+                return undefined;
+        }
+    },
+    number: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<number, N> | undefined => {
+        if (
+            nullable &&
+            (v === null ||
+                (typeof v === 'string' && v.toLowerCase() === 'null'))
+        ) {
+            return null as NullableType<number, N>;
+        }
+        if (typeof v === 'number') {
+            return v;
+        } else if (typeof v === 'string') {
+            const _v = Number(v);
+            return Number.isNaN(_v) ? undefined : _v;
+        } else {
+            return undefined;
+        }
+    },
+    integer: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<number, N> | undefined => {
+        const _v = Parser.number(v, nullable);
+        return typeof _v === 'number' ? Math.trunc(_v) : _v;
+    },
+    bigInt: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<bigint, N> | undefined => {
+        if (
+            nullable &&
+            (v === null ||
+                (typeof v === 'string' && v.toLowerCase() === 'null'))
+        ) {
+            return null as NullableType<bigint, N>;
+        }
+        switch (typeof v) {
+            case 'bigint':
+                return v;
+            case 'number':
+                return BigInt(v);
+            case 'string':
+                try {
+                    return BigInt(v);
+                } catch (_) {
+                    return undefined;
+                }
+            default:
+                return undefined;
+        }
+    },
+    decimal: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<Decimal, N> | undefined => {
+        if (
+            nullable &&
+            (v === null ||
+                (typeof v === 'string' && v.toLowerCase() === 'null'))
+        ) {
+            return null as NullableType<Decimal, N>;
+        }
+        if (Decimal.isDecimal(v)) {
+            return v;
+        }
+        switch (typeof v) {
+            case 'number':
+                return new Decimal(v);
+            case 'string':
+                try {
+                    return new Decimal(v);
+                } catch (_) {
+                    return undefined;
+                }
+            default:
+                return undefined;
+        }
+    },
+    string: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<string, N> | undefined => {
+        if (
+            nullable &&
+            (v === null ||
+                (typeof v === 'string' && v.toLowerCase() === 'null'))
+        ) {
+            return null as NullableType<string, N>;
+        }
+        switch (typeof v) {
+            case 'boolean':
+            case 'number':
+            case 'bigint':
+                return `${v}`;
+            case 'string':
+                return v;
+            default:
+                return undefined;
+        }
+    },
+    timestamp: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<Date, N> | undefined => {
+        if (
+            nullable &&
+            (v === null ||
+                (typeof v === 'string' && v.toLowerCase() === 'null'))
+        ) {
+            return null as NullableType<Date, N>;
+        }
+        if (v instanceof Date && `${v}` !== 'Invalid Date') {
+            return v;
+        }
+        if (typeof v === 'number' || typeof v === 'string') {
+            const _v = new Date(v);
+            return `${_v}` === 'Invalid Date' ? undefined : _v;
+        }
+        return undefined;
+    },
+    date: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<Date, N> | undefined => {
+        const _v = Parser.timestamp(v, nullable);
+        if (
+            _v instanceof Date &&
+            _v.toISOString().split('T')[1] !== '00:00:00.000Z'
+        ) {
+            return undefined;
+        }
+        return _v;
+    },
+    json: <N extends boolean = false>(
+        v: unknown,
+        nullable = false as N
+    ): NullableType<Json, N> | undefined => {
+        if (
+            nullable &&
+            (v === null ||
+                (typeof v === 'string' && v.toLowerCase() === 'null'))
+        ) {
+            return null as NullableType<Json, N>;
+        }
+        const _v = typeof v !== 'string' ? JSON.stringify(v) : v;
+        try {
+            const parsedV = JSON.parse(_v);
+            if (typeof parsedV !== 'object' || parsedV === null) {
+                return undefined;
+            }
+            return parsedV;
+        } catch (_) {
+            return undefined;
+        }
+    }
 };
 
 type Model<
@@ -101,11 +290,11 @@ const createModelParser = <
                 let defaultParser;
                 switch (column.type as PgType) {
                     case 'boolean':
-                        defaultParser = U.Cast.boolean;
+                        defaultParser = Parser.boolean;
                         break;
                     case 'int2':
                         defaultParser = (v: unknown, nullable: boolean) => {
-                            const _v = U.Cast.integer(v, nullable);
+                            const _v = Parser.integer(v, nullable);
                             if (_v === null) {
                                 return null;
                             }
@@ -121,7 +310,7 @@ const createModelParser = <
                         break;
                     case 'int4':
                         defaultParser = (v: unknown, nullable: boolean) => {
-                            const _v = U.Cast.integer(v, nullable);
+                            const _v = Parser.integer(v, nullable);
                             if (_v === null) {
                                 return null;
                             }
@@ -137,7 +326,7 @@ const createModelParser = <
                         break;
                     case 'int8':
                         defaultParser = (v: unknown, nullable: boolean) => {
-                            const _v = U.Cast.bigInt(v, nullable);
+                            const _v = Parser.bigInt(v, nullable);
                             if (_v === null) {
                                 return null;
                             }
@@ -154,7 +343,7 @@ const createModelParser = <
                     case 'float4':
                     case 'float8':
                         defaultParser = (v: unknown, nullable: boolean) => {
-                            const _v = U.Cast.number(v, nullable);
+                            const _v = Parser.number(v, nullable);
                             if (_v === null) {
                                 return null;
                             }
@@ -171,7 +360,7 @@ const createModelParser = <
                         break;
                     case 'decimal':
                         defaultParser = (v: unknown, nullable: boolean) => {
-                            const _v = U.Cast.decimal(v, nullable);
+                            const _v = Parser.decimal(v, nullable);
                             if (_v === null) {
                                 return null;
                             }
@@ -197,7 +386,7 @@ const createModelParser = <
                     case 'text':
                     case 'uuid':
                         defaultParser = (v: unknown, nullable: boolean) => {
-                            const _v = U.Cast.string(v, nullable);
+                            const _v = Parser.string(v, nullable);
                             if (_v === null) {
                                 return null;
                             }
@@ -216,13 +405,15 @@ const createModelParser = <
                         };
                         break;
                     case 'date':
+                        defaultParser = Parser.date;
+                        break;
                     case 'timestamp':
                     case 'timestamptz':
-                        defaultParser = U.Cast.date;
+                        defaultParser = Parser.timestamp;
                         break;
                     case 'json':
                     case 'jsonb':
-                        defaultParser = U.Cast.json;
+                        defaultParser = Parser.json;
                         break;
                 }
 
@@ -276,4 +467,4 @@ const createModelParser = <
 };
 
 export type { Model, ModelWithPrefix, ModelParser };
-export { Int2Range, Int4Range, Int8Range, createModelParser };
+export { Int2Range, Int4Range, Int8Range, Parser, createModelParser };

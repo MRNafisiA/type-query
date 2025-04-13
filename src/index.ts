@@ -5,6 +5,7 @@ export {
     Int2Range,
     Int4Range,
     Int8Range,
+    Parser,
     createModelParser
 } from './createModelParser';
 export {

@@ -329,7 +329,7 @@ describe('createSelectQuery', () => {
                 ['id'],
                 true,
                 {
-                    distinct: ['id',{expression:1}]
+                    distinct: ['id', { expression: 1 }]
                 },
                 []
             );
@@ -883,14 +883,14 @@ describe('createJoinSelectQuery', () => {
                 ['u_id'],
                 true,
                 {
-                    distinct: ['u_id']
+                    distinct: ['u_id', { expression: 1 }]
                 },
                 []
             );
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT DISTINCT ON("u"."ID") "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON FALSE WHERE TRUE',
+                    sql: 'SELECT DISTINCT ON("u"."ID", 1) "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON FALSE WHERE TRUE',
                     params: []
                 })
             );

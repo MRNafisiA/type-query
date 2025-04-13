@@ -53,6 +53,11 @@ type UserSchema = {
         nullable: false;
         default: true;
     };
+    dateRange: {
+        type: [Date, Date];
+        nullable: false;
+        default: false;
+    };
 };
 const UserTable: Table<UserSchema> = {
     schemaName: 'public',
@@ -93,6 +98,11 @@ const UserTable: Table<UserSchema> = {
             default: true,
             defaultValue: ['auto-increment'],
             primary: true
+        },
+        dateRange: {
+            type: 'custom(DateRange)',
+            nullable: false,
+            default: false
         }
     }
 };
@@ -114,6 +124,7 @@ describe('generateCreateSequencesSQL', () => {
         ]);
     });
 });
+
 test('generateDropSequencesSQL', () => {
     const result = generateDropSequencesSQL(UserTable);
 
@@ -122,21 +133,24 @@ test('generateDropSequencesSQL', () => {
         'DROP SEQUENCE "public"."user_code_seq"'
     ]);
 });
+
 test('generateCreateTableSQL', () => {
     const result = generateCreateTableSQL(UserTable);
 
     expect(result).toStrictEqual(
         `CREATE TABLE "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
-            `"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ` +
-            `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, ` +
-            `CONSTRAINT "user_pk" PRIMARY KEY("ID", "code"))`
+            '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+            `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+            'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code"))'
     );
 });
+
 test('generateDropTableSQL', () => {
     const result = generateDropTableSQL(UserTable);
 
     expect(result).toStrictEqual('DROP TABLE "public"."user"');
 });
+
 describe('getSequenceName', () => {
     test('sequenceTitle', () => {
         const result = getSequenceName('a', 'b', 'c', {

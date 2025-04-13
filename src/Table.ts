@@ -89,16 +89,20 @@ type ColumnType<
             }
           : S[key]['type'] extends Date
             ? {
-                  type: 'date' |  'timestamp' | 'timestamptz';
+                  type: 'date' | 'timestamp' | 'timestamptz';
                   length?: number;
               }
             : S[key]['type'] extends boolean
               ? {
                     type: 'boolean';
                 }
-              : {
-                    type: 'json' | 'jsonb';
-                };
+              : S[key]['type'] extends Json
+                ? {
+                      type: 'json' | 'jsonb';
+                  }
+                : {
+                      type: `custom(${string})`;
+                  };
 type ColumnDefault<
     S extends Schema,
     key extends keyof S

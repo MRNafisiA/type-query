@@ -1,4 +1,4 @@
-import { Table } from './Table';
+import { Table, PgType } from './Table';
 import { Dictionary } from './keywords';
 
 const generateCreateSequencesSQL = (table: Table) => {
@@ -50,7 +50,13 @@ const generateCreateTableSQL = (table: Table) => {
     const columnsAsEntries = Object.entries(table.columns);
     const columns = columnsAsEntries.map(([key, column]) => {
         const tokens = [
-            `"${column.title ?? key}" ${Dictionary.PostgresType[column.type]}`
+            `"${column.title ?? key}" ` +
+                (column.type.startsWith('custom(') && column.type.endsWith(')')
+                    ? column.type.substring(
+                          'custom('.length,
+                          column.type.length - 1
+                      )
+                    : Dictionary.PostgresType[column.type as PgType])
         ];
 
         // default

@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js';
 import { Json, Table } from '../src';
 import { err, ok } from 'never-catch';
-import { createModelParser } from '../src/createModelParser';
+import { Parser, createModelParser } from '../src/createModelParser';
 
 type TestSchema = {
     customParser: {
@@ -114,7 +114,12 @@ type TestSchema = {
         nullable: true;
         default: false;
     };
-    dateAndTimestampAndTimestamptz: {
+    date: {
+        type: Date;
+        nullable: false;
+        default: false;
+    };
+    timestampAndTimestamptz: {
         type: Date;
         nullable: false;
         default: false;
@@ -262,7 +267,12 @@ const TestTable: Table<TestSchema> = {
             nullable: true,
             default: false
         },
-        dateAndTimestampAndTimestamptz: {
+        date: {
+            type: 'date',
+            nullable: false,
+            default: false
+        },
+        timestampAndTimestamptz: {
             type: 'timestamp',
             nullable: false,
             default: false
@@ -278,6 +288,257 @@ const TestModelParser = createModelParser(TestTable, {
     parsers: {
         customParser: v => (v === 1 || v === 2 ? v : undefined)
     }
+});
+
+describe('Parser', () => {
+    describe('boolean', () => {
+        test('null', () => {
+            const result = Parser.boolean(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('boolean', () => {
+            const result = Parser.boolean(true);
+
+            expect(result).toStrictEqual(true);
+        });
+        test('string-true', () => {
+            const result = Parser.boolean('t');
+
+            expect(result).toStrictEqual(true);
+        });
+        test('string-false', () => {
+            const result = Parser.boolean('f');
+
+            expect(result).toStrictEqual(false);
+        });
+        test('string-other', () => {
+            const result = Parser.boolean('a');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('other', () => {
+            const result = Parser.boolean(1);
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
+    describe('number', () => {
+        test('null', () => {
+            const result = Parser.number(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('number', () => {
+            const result = Parser.number(1);
+
+            expect(result).toStrictEqual(1);
+        });
+        test('string', () => {
+            const result = Parser.number('1');
+
+            expect(result).toStrictEqual(1);
+        });
+        test('string-NaN', () => {
+            const result = Parser.number('a');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('other', () => {
+            const result = Parser.number(true);
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
+    describe('integer', () => {
+        test('null', () => {
+            const result = Parser.integer(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('number', () => {
+            const result = Parser.integer(1.2);
+
+            expect(result).toStrictEqual(1);
+        });
+        test('other', () => {
+            const result = Parser.integer('a');
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
+    describe('bigInt', () => {
+        test('null', () => {
+            const result = Parser.bigInt(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('bigint', () => {
+            const result = Parser.bigInt(BigInt(1));
+
+            expect(result).toStrictEqual(BigInt(1));
+        });
+        test('number', () => {
+            const result = Parser.bigInt(1);
+
+            expect(result).toStrictEqual(BigInt(1));
+        });
+        test('string', () => {
+            const result = Parser.bigInt('1');
+
+            expect(result).toStrictEqual(BigInt(1));
+        });
+        test('string-other', () => {
+            const result = Parser.bigInt('a');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('other', () => {
+            const result = Parser.bigInt(true);
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
+    describe('decimal', () => {
+        test('null', () => {
+            const result = Parser.decimal(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('decimal', () => {
+            const result = Parser.decimal(new Decimal('1.2'));
+
+            expect(result).toStrictEqual(new Decimal('1.2'));
+        });
+        test('number', () => {
+            const result = Parser.decimal(1.3);
+
+            expect(result).toStrictEqual(new Decimal('1.3'));
+        });
+        test('string', () => {
+            const result = Parser.decimal('1.2');
+
+            expect(result).toStrictEqual(new Decimal('1.2'));
+        });
+        test('string-other', () => {
+            const result = Parser.decimal('a');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('other', () => {
+            const result = Parser.decimal(true);
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
+    describe('string', () => {
+        test('null', () => {
+            const result = Parser.string(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('boolean', () => {
+            const result = Parser.string(true);
+
+            expect(result).toStrictEqual('true');
+        });
+        test('number', () => {
+            const result = Parser.string(1);
+
+            expect(result).toStrictEqual('1');
+        });
+        test('bigint', () => {
+            const result = Parser.string(BigInt(1));
+
+            expect(result).toStrictEqual('1');
+        });
+        test('string', () => {
+            const result = Parser.string('a');
+
+            expect(result).toStrictEqual('a');
+        });
+        test('other', () => {
+            const result = Parser.string(() => true);
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
+    describe('timestamp', () => {
+        test('null', () => {
+            const result = Parser.timestamp(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('date', () => {
+            const result = Parser.timestamp(new Date(1));
+
+            expect(result).toStrictEqual(new Date(1));
+        });
+        test('number|string', () => {
+            const result = Parser.timestamp(1);
+
+            expect(result).toStrictEqual(new Date(1));
+        });
+        test('number|string-other', () => {
+            const result = Parser.timestamp('a');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('other', () => {
+            const result = Parser.timestamp(true);
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
+    describe('date', () => {
+        test('null', () => {
+            const result = Parser.date(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('not-date', () => {
+            const result = Parser.date(new Date(1));
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('other', () => {
+            const result = Parser.date(new Date('1970-01-01T00:00:00.000Z'));
+
+            expect(result).toStrictEqual(new Date('1970-01-01T00:00:00.000Z'));
+        });
+    });
+    describe('json', () => {
+        test('null', () => {
+            const result = Parser.json(null, true);
+
+            expect(result).toStrictEqual(null);
+        });
+        test('input: string, result: undefined', () => {
+            const result = Parser.json('1');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('input: not-string, result: undefined', () => {
+            const result = Parser.json(1);
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('input: string, result: json', () => {
+            const result = Parser.json('{}');
+
+            expect(result).toStrictEqual({});
+        });
+        test('input: not-string, result: json', () => {
+            const result = Parser.json({});
+
+            expect(result).toStrictEqual({});
+        });
+        test('input: string, result: not-json', () => {
+            const result = Parser.json('a{}');
+
+            expect(result).toStrictEqual(undefined);
+        });
+    });
 });
 
 describe('createModelUtils', () => {
@@ -399,8 +660,13 @@ describe('createModelUtils', () => {
 
             expect(result).toStrictEqual(undefined);
         });
-        test('dateAndTimestampAndTimestamptz', () => {
-            const result = TestModelParser.dateAndTimestampAndTimestamptz('a');
+        test('date', () => {
+            const result = TestModelParser.date('a');
+
+            expect(result).toStrictEqual(undefined);
+        });
+        test('timestampAndTimestamptz', () => {
+            const result = TestModelParser.timestampAndTimestamptz('a');
 
             expect(result).toStrictEqual(undefined);
         });
@@ -485,8 +751,13 @@ describe('createModelUtils', () => {
 
             expect(result).toStrictEqual('1');
         });
-        test('dateAndTimestampAndTimestamptz', () => {
-            const result = TestModelParser.dateAndTimestampAndTimestamptz(
+        test('date', () => {
+            const result = TestModelParser.date('1970-01-01T00:00:00.000Z');
+
+            expect(result).toStrictEqual(new Date(0));
+        });
+        test('timestampAndTimestamptz', () => {
+            const result = TestModelParser.timestampAndTimestamptz(
                 '1970-01-01T00:00:00.001Z'
             );
 
