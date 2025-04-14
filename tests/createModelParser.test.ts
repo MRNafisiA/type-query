@@ -463,29 +463,29 @@ describe('Parser', () => {
             expect(result).toStrictEqual(undefined);
         });
     });
-    describe('timestamp', () => {
+    describe('dateTime', () => {
         test('null', () => {
-            const result = Parser.timestamp(null, true);
+            const result = Parser.dateTime(null, true);
 
             expect(result).toStrictEqual(null);
         });
         test('date', () => {
-            const result = Parser.timestamp(new Date(1));
+            const result = Parser.dateTime(new Date(1));
 
             expect(result).toStrictEqual(new Date(1));
         });
         test('number|string', () => {
-            const result = Parser.timestamp(1);
+            const result = Parser.dateTime(1);
 
             expect(result).toStrictEqual(new Date(1));
         });
         test('number|string-other', () => {
-            const result = Parser.timestamp('a');
+            const result = Parser.dateTime('a');
 
             expect(result).toStrictEqual(undefined);
         });
         test('other', () => {
-            const result = Parser.timestamp(true);
+            const result = Parser.dateTime(true);
 
             expect(result).toStrictEqual(undefined);
         });

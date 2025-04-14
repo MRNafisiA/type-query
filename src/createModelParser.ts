@@ -147,7 +147,7 @@ const Parser = {
                 return undefined;
         }
     },
-    timestamp: <N extends boolean = false>(
+    dateTime: <N extends boolean = false>(
         v: unknown,
         nullable = false as N
     ): NullableType<Date, N> | undefined => {
@@ -171,7 +171,7 @@ const Parser = {
         v: unknown,
         nullable = false as N
     ): NullableType<Date, N> | undefined => {
-        const _v = Parser.timestamp(v, nullable);
+        const _v = Parser.dateTime(v, nullable);
         if (
             _v instanceof Date &&
             _v.toISOString().split('T')[1] !== '00:00:00.000Z'
@@ -409,7 +409,7 @@ const createModelParser = <
                         break;
                     case 'timestamp':
                     case 'timestamptz':
-                        defaultParser = Parser.timestamp;
+                        defaultParser = Parser.dateTime;
                         break;
                     case 'json':
                     case 'jsonb':
