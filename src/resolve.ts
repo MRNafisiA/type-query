@@ -819,14 +819,14 @@ const resolveExpression = (
                 return ok(
                     partialQuery(
                         `(${subQueryResult.value.sql})`,
-                        subQueryResult.value.params
+                        subQueryResult.value.params.slice(paramsStart - 1)
                     )
                 );
             case OperatorCode.SubQueryExist:
                 return ok(
                     partialQuery(
                         `EXISTS(${subQueryResult.value.sql})`,
-                        subQueryResult.value.params
+                        subQueryResult.value.params.slice(paramsStart - 1)
                     )
                 );
         }

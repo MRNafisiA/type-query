@@ -432,7 +432,7 @@ describe('createInsertQuery', () => {
 
             expect(result).toStrictEqual(
                 err(
-                    'insert("public"."user") -> rows -> 0 -> username -> no-value'
+                    'insert("public"."user") -> rows -> [0] -> [username] -> no-value'
                 )
             );
         });
@@ -480,7 +480,7 @@ describe('createUpdateQuery', () => {
 
             expect(result).toStrictEqual(
                 err(
-                    'update("public"."user") -> sets -> username -> concat -> no operands given'
+                    'update("public"."user") -> sets -> [username] -> concat -> no operands given'
                 )
             );
         });

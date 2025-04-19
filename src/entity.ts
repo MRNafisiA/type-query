@@ -459,7 +459,7 @@ const createInsertQuery = (
                     continue;
                 }
                 return err(
-                    `${errorPrefix} -> rows -> ${_rows.indexOf(_row)} -> ${insertingColumn} -> no-value`
+                    `${errorPrefix} -> rows -> [${_rows.indexOf(_row)}] -> [${insertingColumn}] -> no-value`
                 );
             } else {
                 const resolvedExpressionResult = resolveExpression(
@@ -469,14 +469,14 @@ const createInsertQuery = (
                 );
                 if (!resolvedExpressionResult.ok) {
                     return err(
-                        `${errorPrefix} -> rows -> ${_rows.indexOf(_row)}][${insertingColumn} -> ${
+                        `${errorPrefix} -> rows -> [${_rows.indexOf(_row)}] -> [${insertingColumn}] -> ${
                             resolvedExpressionResult.error
                         }`
                     );
                 }
                 if (resolvedExpressionResult.value.text === '') {
                     return err(
-                        `${errorPrefix} -> rows -> ${_rows.indexOf(_row)}][${insertingColumn} -> neutral`
+                        `${errorPrefix} -> rows -> [${_rows.indexOf(_row)}] -> [${insertingColumn}] -> neutral`
                     );
                 }
                 params.push(...resolvedExpressionResult.value.params);
@@ -537,11 +537,11 @@ const createUpdateQuery = (
         );
         if (!setExpressionResult.ok) {
             return err(
-                `${errorPrefix} -> sets -> ${key} -> ${setExpressionResult.error}`
+                `${errorPrefix} -> sets -> [${key}] -> ${setExpressionResult.error}`
             );
         }
         if (setExpressionResult.value.text === '') {
-            return err(`${errorPrefix} -> sets -> ${key} -> neutral`);
+            return err(`${errorPrefix} -> sets -> [${key}] -> neutral`);
         }
         params.push(...setExpressionResult.value.params);
         setsTextArray.push(

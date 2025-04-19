@@ -980,7 +980,7 @@ describe('resolveExpression', () => {
                 );
 
                 expect(result).toStrictEqual(
-                    ok({ text: '($2)', params: [undefined, 'a'] })
+                    ok({ text: '($2)', params: ['a'] })
                 );
             });
             test('SubQueryExist', () => {
@@ -998,7 +998,7 @@ describe('resolveExpression', () => {
                 );
 
                 expect(result).toStrictEqual(
-                    ok({ text: 'EXISTS($2)', params: [undefined, 'a'] })
+                    ok({ text: 'EXISTS($2)', params: ['a'] })
                 );
             });
         });
