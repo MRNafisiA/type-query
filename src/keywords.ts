@@ -27,22 +27,24 @@ enum OperatorCode {
     Between = 25,
     InList = 26,
     NotInList = 27,
-    Like = 28,
-    LikeSome = 29,
-    LikeAll = 30,
-    JsonExist = 31,
-    JsonRightExist = 32,
-    JsonLeftExist = 33,
-    JsonSomeExist = 34,
-    JsonAllExist = 35,
-    JsonRemove = 36,
-    JsonRemoveAll = 37,
-    JsonIndex = 38,
-    JsonIndexChain = 39,
-    JsonIndexText = 40,
-    JsonQuery = 41,
-    SubQuery = 42,
-    SubQueryExist = 43
+    InListSubQuery = 28,
+    NotInListSubQuery = 29,
+    Like = 30,
+    LikeSome = 31,
+    LikeAll = 32,
+    JsonExist = 33,
+    JsonRightExist = 34,
+    JsonLeftExist = 35,
+    JsonSomeExist = 36,
+    JsonAllExist = 37,
+    JsonRemove = 38,
+    JsonRemoveAll = 39,
+    JsonIndex = 40,
+    JsonIndexChain = 41,
+    JsonIndexText = 42,
+    JsonQuery = 43,
+    SubQuery = 44,
+    SubQueryExist = 45
 }
 
 type ArithmeticOperator = '+' | '-' | '*' | '/' | '**';
@@ -51,6 +53,7 @@ type NullOperator = '= null' | '!= null';
 type BooleanOperator = '= true' | '= false';
 type CompareOperator = '=' | '!=' | '>' | '>=' | '<' | '<=';
 type ListOperator = 'in' | 'not in';
+type ListWithSubQueryOperator = 'in sub-query' | 'not in sub-query';
 type LikeOperator = 'like' | 'like all' | 'like some';
 type BetweenOperator = 'between';
 type JsonCompareOperator = '?' | '@>' | '<@' | '?|' | '?&' | '@@';
@@ -62,6 +65,7 @@ const OperatorMap: Record<
     | BooleanOperator
     | CompareOperator
     | ListOperator
+    | ListWithSubQueryOperator
     | LikeOperator
     | BetweenOperator
     | JsonCompareOperator,
@@ -89,6 +93,8 @@ const OperatorMap: Record<
     '<=': OperatorCode.IsLessEqual,
     in: OperatorCode.InList,
     'not in': OperatorCode.NotInList,
+    'in sub-query': OperatorCode.InListSubQuery,
+    'not in sub-query': OperatorCode.NotInListSubQuery,
     like: OperatorCode.Like,
     'like some': OperatorCode.LikeSome,
     'like all': OperatorCode.LikeAll,
@@ -172,6 +178,8 @@ const Dictionary = {
         [OperatorCode.Between]: 'is in between',
         [OperatorCode.InList]: 'is inside of',
         [OperatorCode.NotInList]: 'is not inside of',
+        [OperatorCode.InListSubQuery]: 'is inside of sub-query',
+        [OperatorCode.NotInListSubQuery]: 'is not inside of sub-query',
         [OperatorCode.Like]: 'does like',
         [OperatorCode.LikeSome]: 'does like some',
         [OperatorCode.LikeAll]: 'does like all',
@@ -198,6 +206,7 @@ export type {
     BooleanOperator,
     CompareOperator,
     ListOperator,
+    ListWithSubQueryOperator,
     LikeOperator,
     BetweenOperator,
     JsonCompareOperator

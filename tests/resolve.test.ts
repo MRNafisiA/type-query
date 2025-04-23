@@ -1,7 +1,8 @@
+import Decimal from 'decimal.js';
 import * as U from '../src/utils';
-import { Query } from '../src/entity';
 import { err, ok } from 'never-catch';
 import { Schema, Table } from '../src/Table';
+import { Query, createEntity } from '../src/entity';
 import {
     partialQuery,
     resolveColumn,
@@ -9,7 +10,6 @@ import {
     resolveReturning,
     resolveExpression
 } from '../src/resolve';
-import Decimal from 'decimal.js';
 
 type UserSchema = {
     id: {
@@ -30,6 +30,7 @@ const UserTable: Table<UserSchema> = {
         }
     }
 };
+const User = createEntity(UserTable);
 
 test('partialQuery', () => {
     const result = partialQuery('a', ['b']);
@@ -133,6 +134,36 @@ describe('resolveExpression', () => {
                     err(
                         'switch statement -> otherwise -> sum -> no operands given'
                     )
+                );
+            });
+        });
+        describe('InListSubQuery, NotInListSubQuery, ', () => {
+            test('expression1', () => {
+                const result = resolveExpression(
+                    U.compare(
+                        undefined,
+                        'in sub-query',
+                        User.select(['id'] as const, true)
+                    ),
+                    1,
+                    false
+                );
+
+                expect(result).toStrictEqual(
+                    err('is inside of sub-query -> first operand -> undefined')
+                );
+            });
+            test('expression2', () => {
+                const result = resolveExpression(
+                    U.compare(1, 'in sub-query', {
+                        getData: () => err('a')
+                    } as Query<Schema, []>),
+                    1,
+                    false
+                );
+
+                expect(result).toStrictEqual(
+                    err('is inside of sub-query -> a')
                 );
             });
         });
@@ -539,6 +570,44 @@ describe('resolveExpression', () => {
                     ok({
                         text: `$2`,
                         params: ['b']
+                    })
+                );
+            });
+        });
+        describe('InListSubQuery, NotInListSubQuery, ', () => {
+            test('InListSubQuery', () => {
+                const result = resolveExpression(
+                    U.compare(
+                        1,
+                        'in sub-query',
+                        User.select(['id'] as const, true)
+                    ),
+                    2,
+                    randomBoolean
+                );
+
+                expect(result).toStrictEqual(
+                    ok({
+                        text: '1 IN (SELECT "ID" AS "id" FROM "public"."user" WHERE TRUE)',
+                        params: []
+                    })
+                );
+            });
+            test('NotInListSubQuery', () => {
+                const result = resolveExpression(
+                    U.compare(
+                        1,
+                        'not in sub-query',
+                        User.select(['id'] as const, true)
+                    ),
+                    2,
+                    randomBoolean
+                );
+
+                expect(result).toStrictEqual(
+                    ok({
+                        text: '1 NOT IN (SELECT "ID" AS "id" FROM "public"."user" WHERE TRUE)',
+                        params: []
                     })
                 );
             });
@@ -1080,6 +1149,21 @@ describe('resolveExpression', () => {
                 );
 
                 expect(result).toStrictEqual(ok({ text: '$2', params: ['a'] }));
+            });
+        });
+        describe('InListSubQuery, NotInListSubQuery, ', () => {
+            test('expression1', () => {
+                const result = resolveExpression(
+                    U.compare(
+                        undefined,
+                        'in sub-query',
+                        User.select(['id'] as const, true)
+                    ),
+                    1,
+                    true
+                );
+
+                expect(result).toStrictEqual(ok({ text: '', params: [] }));
             });
         });
         describe('IsEqual, IsNotEqual, IsGreater, IsGreaterEqual, IsLess, IsLessEqual, Like, JsonExist, JsonRightExist, JsonLeftExist, JsonRemove, JsonIndex, JsonIndexText', () => {

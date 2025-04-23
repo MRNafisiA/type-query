@@ -8,8 +8,10 @@ import {
     BetweenOperator,
     BooleanOperator,
     CompareOperator,
-    JsonCompareOperator
+    JsonCompareOperator,
+    ListWithSubQueryOperator
 } from './keywords';
+import { Query } from './entity';
 
 type Context<S extends Schema = Schema> = {
     column: <C extends keyof S & string>(
@@ -73,6 +75,10 @@ type ContextRule<S extends Schema, C extends keyof S> =
                         >[]
                     ]
                   | [
+                        operator: ListWithSubQueryOperator,
+                        subQuery: Query<Schema, []>
+                    ]
+                  | [
                         operator: BetweenOperator,
                         startExpression: NullableType<number, S[C]['nullable']>,
                         endExpression: NullableType<number, S[C]['nullable']>
@@ -89,6 +95,10 @@ type ContextRule<S extends Schema, C extends keyof S> =
                               bigint,
                               S[C]['nullable']
                           >[]
+                      ]
+                    | [
+                          operator: ListWithSubQueryOperator,
+                          subQuery: Query<Schema, []>
                       ]
                     | [
                           operator: BetweenOperator,
@@ -110,6 +120,10 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                 Decimal,
                                 S[C]['nullable']
                             >[]
+                        ]
+                      | [
+                            operator: ListWithSubQueryOperator,
+                            subQuery: Query<Schema, []>
                         ]
                       | [
                             operator: BetweenOperator,
@@ -136,6 +150,10 @@ type ContextRule<S extends Schema, C extends keyof S> =
                               >[]
                           ]
                         | [
+                              operator: ListWithSubQueryOperator,
+                              subQuery: Query<Schema, []>
+                          ]
+                        | [
                               operator: BetweenOperator,
                               startExpression: NullableType<
                                   string,
@@ -158,6 +176,10 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                     Date,
                                     S[C]['nullable']
                                 >[]
+                            ]
+                          | [
+                                operator: ListWithSubQueryOperator,
+                                subQuery: Query<Schema, []>
                             ]
                           | [
                                 operator: BetweenOperator,
@@ -197,6 +219,7 @@ const createContextHelper =
                     | BooleanOperator
                     | CompareOperator
                     | ListOperator
+                    | ListWithSubQueryOperator
                     | LikeOperator
                     | JsonCompareOperator
                     | BetweenOperator;
@@ -217,6 +240,8 @@ const createContextHelper =
                     case '<=':
                     case 'in':
                     case 'not in':
+                    case 'in sub-query':
+                    case 'not in sub-query':
                     case 'like':
                     case 'like all':
                     case 'like some':

@@ -399,6 +399,58 @@ const resolveExpression = (
         );
     }
     if (
+        operator === OperatorCode.InListSubQuery ||
+        operator === OperatorCode.NotInListSubQuery
+    ) {
+        const params: string[] = [];
+
+        const expressionResult = resolveExpression(
+            expression[1],
+            paramsStart,
+            ignore
+        );
+        if (!expressionResult.ok) {
+            return err(
+                `${Dictionary.OperatorDescriptions[operator]} -> first operand -> ${expressionResult.error}`
+            );
+        }
+        if (expressionResult.value.text === '') {
+            return ignore
+                ? ok(partialQuery())
+                : err(
+                      `${Dictionary.OperatorDescriptions[operator]} -> first operand -> neutral`
+                  );
+        }
+        params.push(...expressionResult.value.params);
+        paramsStart += expressionResult.value.params.length;
+
+        const subQueryResult = expression[2].getData(
+            Array(paramsStart - 1).fill(undefined)
+        );
+        if (!subQueryResult.ok) {
+            return err(
+                `${Dictionary.OperatorDescriptions[operator]} -> ${subQueryResult.error}`
+            );
+        }
+
+        switch (operator) {
+            case OperatorCode.InListSubQuery:
+                return ok(
+                    partialQuery(
+                        `${expressionResult.value.text} IN (${subQueryResult.value.sql})`,
+                        subQueryResult.value.params.slice(paramsStart - 1)
+                    )
+                );
+            case OperatorCode.NotInListSubQuery:
+                return ok(
+                    partialQuery(
+                        `${expressionResult.value.text} NOT IN (${subQueryResult.value.sql})`,
+                        subQueryResult.value.params.slice(paramsStart - 1)
+                    )
+                );
+        }
+    }
+    if (
         operator === OperatorCode.IsEqual ||
         operator === OperatorCode.IsNotEqual ||
         operator === OperatorCode.IsGreater ||

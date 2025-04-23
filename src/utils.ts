@@ -13,7 +13,8 @@ import {
     BooleanOperator,
     CompareOperator,
     ArithmeticOperator,
-    JsonCompareOperator
+    JsonCompareOperator,
+    ListWithSubQueryOperator
 } from './keywords';
 
 const value = <T>(expression: T): T =>
@@ -257,6 +258,16 @@ function compare<T extends undefined | null | Date>(
     expressions: readonly T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends Date ? boolean : never);
+function compare<
+    T extends undefined | null | number | bigint | Decimal | string | Date
+>(
+    expressionA: T,
+    operator: ListWithSubQueryOperator,
+    subQuery: Query<Schema, []>,
+    _?: never
+):
+    | Extract<T, undefined | null>
+    | (T extends number | bigint | Decimal | string | Date ? boolean : never);
 function compare<T extends undefined | null | string>(
     expressionA: T,
     operator: 'like',
@@ -342,6 +353,7 @@ function compare(
         | BooleanOperator
         | CompareOperator
         | ListOperator
+        | ListWithSubQueryOperator
         | LikeOperator
         | BetweenOperator
         | JsonCompareOperator,
