@@ -18,7 +18,8 @@ import {
     stringify,
     arithmetic,
     switchCase,
-    subQueryExist
+    subQueryExist,
+    cons
 } from '../src/utils';
 
 test('value', () => {
@@ -55,6 +56,17 @@ test('fun', () => {
     const result = fun('a', ['b', 1], 'c');
 
     expect(result).toStrictEqual([OperatorCode.Function, 'a', ['b', 1], 'c']);
+});
+
+test('cons', () => {
+    const result = cons('a', ['b', 1], 'c');
+
+    expect(result).toStrictEqual([
+        OperatorCode.Constructor,
+        'a',
+        ['b', 1],
+        'c'
+    ]);
 });
 
 test('switchCase', () => {

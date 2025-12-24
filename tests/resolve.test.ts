@@ -90,6 +90,17 @@ describe('resolveExpression', () => {
                 err('function -> parameters -> 0 -> undefined')
             );
         });
+        test('Constructor', () => {
+            const result = resolveExpression(
+                U.cons('a', [undefined], 'b'),
+                1,
+                false
+            );
+
+            expect(result).toStrictEqual(
+                err('constructor -> parameters -> 0 -> undefined')
+            );
+        });
         describe('SwitchCase', () => {
             test('when', () => {
                 const result = resolveExpression(
@@ -471,6 +482,17 @@ describe('resolveExpression', () => {
 
             expect(result).toStrictEqual(
                 ok({ text: 'a(1, $2)c', params: ['b'] })
+            );
+        });
+        test('Constructor', () => {
+            const result = resolveExpression(
+                U.cons('a', [1, 'b'], 'c'),
+                2,
+                randomBoolean
+            );
+
+            expect(result).toStrictEqual(
+                ok({ text: 'a[1, $2]c', params: ['b'] })
             );
         });
         describe('SwitchCase', () => {
@@ -1104,6 +1126,15 @@ describe('resolveExpression', () => {
         test('Function', () => {
             const result = resolveExpression(
                 U.fun('a', [undefined], 'b'),
+                1,
+                true
+            );
+
+            expect(result).toStrictEqual(ok({ text: '', params: [] }));
+        });
+        test('Constructor', () => {
+            const result = resolveExpression(
+                U.cons('a', [undefined], 'b'),
                 1,
                 true
             );

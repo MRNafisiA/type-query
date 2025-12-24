@@ -246,6 +246,33 @@ const resolveExpression = (
             )
         );
     }
+    if (operator === OperatorCode.Constructor) {
+        const params: string[] = [];
+        for (const item of expression[2]) {
+            const itemResult = resolveExpression(item, paramsStart, ignore);
+            if (!itemResult.ok) {
+                return err(
+                    `${Dictionary.OperatorDescriptions[operator]} -> parameters -> ${expression[2].indexOf(item)} -> ${itemResult.error}`
+                );
+            }
+            if (itemResult.value.text === '') {
+                return ignore
+                    ? ok(partialQuery())
+                    : err(
+                          `${Dictionary.OperatorDescriptions[operator]} -> parameters -> ${expression[2].indexOf(item)} -> neutral`
+                      );
+            }
+            params.push(...itemResult.value.params);
+            paramsStart += itemResult.value.params.length;
+            tokens.push(itemResult.value.text);
+        }
+        return ok(
+            partialQuery(
+                `${expression[1]}[${tokens.join(', ')}]${expression[3]}`,
+                params
+            )
+        );
+    }
     if (operator === OperatorCode.SwitchCase) {
         const params: string[] = [];
         for (const item of expression[1]) {

@@ -131,6 +131,12 @@ const fun = (
     cast: string = ''
 ): unknown => [OperatorCode.Function, name, args, cast];
 
+const cons = (
+    name: string,
+    args: readonly unknown[],
+    cast: string = ''
+): unknown => [OperatorCode.Constructor, name, args, cast];
+
 const switchCase = <W extends undefined | boolean, T>(
     cases: readonly {
         when: W;
@@ -405,6 +411,7 @@ export {
     arithmetic,
     json,
     fun,
+    cons,
     switchCase,
     concat,
     column,

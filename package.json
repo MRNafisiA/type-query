@@ -1,6 +1,6 @@
 {
     "name": "@mrnafisia/type-query",
-    "version": "2.0.31",
+    "version": "2.0.32",
     "description": "mini-orm with full type support for postgres.",
     "keywords": [
         "orm",
