@@ -119,7 +119,7 @@ describe('createEntity', () => {
     const User = createEntity(UserTable);
 
     test('select', () => {
-        const result = User.select(['username'] as const, true).getData();
+        const result = User.select(['username'], true).getData();
 
         expect(result).toStrictEqual(
             ok({
@@ -364,6 +364,12 @@ describe('createSelectQuery', () => {
                     orders: context => [
                         { by: 'username', direction: 'asc' },
                         {
+                            by: 'email',
+                            direction: 'asc',
+                            nullPosition: 'first'
+                        },
+                        { by: 'level', direction: 'asc', nullPosition: 'last' },
+                        {
                             by: {
                                 expression: U.arithmetic(
                                     context.column('id') as number,
@@ -372,6 +378,28 @@ describe('createSelectQuery', () => {
                                 )
                             },
                             direction: 'desc'
+                        },
+                        {
+                            by: {
+                                expression: U.arithmetic(
+                                    context.column('id') as number,
+                                    '+',
+                                    2
+                                )
+                            },
+                            direction: 'desc',
+                            nullPosition: 'first'
+                        },
+                        {
+                            by: {
+                                expression: U.arithmetic(
+                                    context.column('id') as number,
+                                    '+',
+                                    2
+                                )
+                            },
+                            direction: 'desc',
+                            nullPosition: 'last'
                         }
                     ],
                     start: BigInt(3),
@@ -382,7 +410,7 @@ describe('createSelectQuery', () => {
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT "ID" AS "id" FROM "public"."user" WHERE "username" = $2 GROUP BY "ID", ("ID" + 1) ORDER BY "username" ASC, ("ID" + 2) DESC OFFSET 3 LIMIT 4',
+                    sql: 'SELECT "ID" AS "id" FROM "public"."user" WHERE "username" = $2 GROUP BY "ID", ("ID" + 1) ORDER BY "username" ASC, "email" ASC NULL FIRST, "level" ASC NULL LAST, ("ID" + 2) DESC, ("ID" + 2) DESC NULL FIRST, ("ID" + 2) DESC NULL LAST OFFSET 3 LIMIT 4',
                     params: ['b', 'a']
                 })
             );
@@ -450,7 +478,7 @@ describe('createInsertQuery', () => {
             ],
             ['id', 'username'],
             {
-                nullableDefaultColumns: ['email']
+                nullableDefaultColumns: ['email' as never]
             },
             ['b']
         );
@@ -941,6 +969,16 @@ describe('createJoinSelectQuery', () => {
                             direction: 'asc'
                         },
                         {
+                            by: 'u_email',
+                            direction: 'asc',
+                            nullPosition: 'first'
+                        },
+                        {
+                            by: 'u_level',
+                            direction: 'asc',
+                            nullPosition: 'last'
+                        },
+                        {
                             by: {
                                 expression: U.arithmetic(
                                     uContext.column('id') as number,
@@ -949,6 +987,28 @@ describe('createJoinSelectQuery', () => {
                                 )
                             },
                             direction: 'desc'
+                        },
+                        {
+                            by: {
+                                expression: U.arithmetic(
+                                    uContext.column('id') as number,
+                                    '+',
+                                    2
+                                )
+                            },
+                            direction: 'desc',
+                            nullPosition: 'first'
+                        },
+                        {
+                            by: {
+                                expression: U.arithmetic(
+                                    uContext.column('id') as number,
+                                    '+',
+                                    2
+                                )
+                            },
+                            direction: 'desc',
+                            nullPosition: 'last'
                         }
                     ],
                     start: BigInt(1),
@@ -959,7 +1019,7 @@ describe('createJoinSelectQuery', () => {
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON "u"."ID" = "l"."userID" WHERE "u"."username" = $2 GROUP BY "u"."ID", ("u"."ID" + 1) ORDER BY "u"."username" ASC, ("u"."ID" + 2) DESC OFFSET 1 LIMIT 2',
+                    sql: 'SELECT "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON "u"."ID" = "l"."userID" WHERE "u"."username" = $2 GROUP BY "u"."ID", ("u"."ID" + 1) ORDER BY "u"."username" ASC, "u"."email" ASC NULL FIRST, "u"."level" ASC NULL LAST, ("u"."ID" + 2) DESC, ("u"."ID" + 2) DESC NULL FIRST, ("u"."ID" + 2) DESC NULL LAST OFFSET 1 LIMIT 2',
                     params: ['b', 'a']
                 })
             );

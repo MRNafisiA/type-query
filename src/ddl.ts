@@ -1,7 +1,13 @@
 import { Table, PgType } from './Table';
 import { Dictionary } from './keywords';
 
-const generateCreateSequencesSQL = (table: Table) => {
+const generateCreateSequencesSQL = (
+    table: Table,
+    {
+        applyIfNotExist = false,
+        owner
+    }: { applyIfNotExist?: boolean; owner?: string } = {}
+) => {
     const queries = [];
     for (const [key, column] of Object.entries(table.columns)) {
         if (
@@ -11,9 +17,14 @@ const generateCreateSequencesSQL = (table: Table) => {
             continue;
         }
 
-        const tokens = [
-            `CREATE SEQUENCE ${getSequenceName(table.schemaName, table.tableName, key, column)}`
-        ];
+        const tokens = ['CREATE SEQUENCE'];
+        if (applyIfNotExist) {
+            tokens.push('IF NOT EXISTS');
+        }
+        tokens.push(
+            getSequenceName(table.schemaName, table.tableName, key, column)
+        );
+
         switch (column.type as 'int2' | 'int4') {
             case 'int2':
                 tokens.push('AS SMALLINT');
@@ -23,12 +34,19 @@ const generateCreateSequencesSQL = (table: Table) => {
                 break;
         }
 
+        if (owner !== undefined) {
+            tokens.push(`OWNER TO ${owner}`);
+        }
+
         queries.push(tokens.join(' '));
     }
     return queries;
 };
 
-const generateDropSequencesSQL = (table: Table) => {
+const generateDropSequencesSQL = (
+    table: Table,
+    { applyIfExist = false }: { applyIfExist?: boolean } = {}
+) => {
     const queries = [];
     for (const [key, column] of Object.entries(table.columns)) {
         if (
@@ -39,13 +57,20 @@ const generateDropSequencesSQL = (table: Table) => {
         }
 
         queries.push(
-            `DROP SEQUENCE ${getSequenceName(table.schemaName, table.tableName, key, column)}`
+            `DROP ${applyIfExist ? 'IF EXISTS ' : ''}SEQUENCE ${getSequenceName(table.schemaName, table.tableName, key, column)}`
         );
     }
     return queries;
 };
 
-const generateCreateTableSQL = (table: Table) => {
+const generateCreateTableSQL = (
+    table: Table,
+    {
+        applyIfNotExist = false,
+        isTemp = false,
+        owner
+    }: { applyIfNotExist?: boolean; isTemp?: boolean; owner?: string } = {}
+) => {
     // columns
     const columnsAsEntries = Object.entries(table.columns);
     const columns = columnsAsEntries.map(([key, column]) => {
@@ -118,11 +143,14 @@ const generateCreateTableSQL = (table: Table) => {
         );
     }
 
-    return `CREATE TABLE "${table.schemaName}"."${table.tableName}"(${[...columns, ...constraints].join(', ')})`;
+    return `CREATE ${isTemp ? 'TEMPORARY ' : ''}TABLE ${applyIfNotExist ? 'IF NOT EXIST ' : ''}"${table.schemaName}"."${table.tableName}"(${[...columns, ...constraints].join(', ')})${owner !== undefined ? ` OWNER TO ${owner}` : ''}`;
 };
 
-const generateDropTableSQL = (table: Table) =>
-    `DROP TABLE "${table.schemaName}"."${table.tableName}"`;
+const generateDropTableSQL = (
+    table: Table,
+    { applyIfExist = false }: { applyIfExist?: boolean } = {}
+) =>
+    `DROP TABLE ${applyIfExist ? 'IF EXIST ' : ''}"${table.schemaName}"."${table.tableName}"`;
 
 const getSequenceName = (
     schemaName: string,

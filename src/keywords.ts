@@ -113,6 +113,10 @@ const Dictionary = {
         asc: 'ASC',
         desc: 'DESC'
     },
+    OrderNullPosition: {
+        first: 'NULL FIRST',
+        last: 'NULL LAST'
+    },
     TransactionIsolationLevel: {
         'read-committed': 'READ COMMITTED',
         'read-uncommitted': 'READ UNCOMMITTED',

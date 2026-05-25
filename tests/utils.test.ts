@@ -150,13 +150,13 @@ test('compare', () => {
 });
 
 test('subQuery', () => {
-    const result = subQuery(null as unknown as Query<Schema, []>);
+    const result = subQuery(null as unknown as Query<Schema, never>);
 
     expect(result).toStrictEqual([OperatorCode.SubQuery, null]);
 });
 
 test('subQueryExist', () => {
-    const result = subQueryExist(null as unknown as Query<Schema, []>);
+    const result = subQueryExist(null as unknown as Query<Schema, never>);
 
     expect(result).toStrictEqual([OperatorCode.SubQueryExist, null]);
 });

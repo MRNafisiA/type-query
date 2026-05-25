@@ -269,7 +269,7 @@ function compare<
 >(
     expressionA: T,
     operator: ListWithSubQueryOperator,
-    subQuery: Query<Schema, []>,
+    subQuery: Query<Schema, never>,
     _?: never
 ):
     | Extract<T, undefined | null>
@@ -369,10 +369,10 @@ function compare(
     return [OperatorMap[operator], a, b, c];
 }
 
-const subQuery = <T>(query: Query<Schema, []>): T =>
+const subQuery = <T>(query: Query<Schema, never>): T =>
     [OperatorCode.SubQuery, query] as T;
 
-const subQueryExist = <T>(query: Query<Schema, []>): T =>
+const subQueryExist = <T>(query: Query<Schema, never>): T =>
     [OperatorCode.SubQueryExist, query] as T;
 
 const stringify = (value: unknown, inline = false): string => {

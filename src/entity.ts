@@ -2,6 +2,7 @@ import * as U from './utils';
 import { ClientBase } from 'pg';
 import { Dictionary } from './keywords';
 import { err, ok, Result } from 'never-catch';
+import { SimpleModel } from './createModelParser';
 import { Context, createContext } from './context';
 import { NullableType, Schema, Table } from './Table';
 import {
@@ -15,22 +16,19 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
     table,
     context: createContext(table),
     select: function <
-        R extends readonly (
-            | (keyof S & string)
-            | CustomColumn<unknown, string>
-        )[]
+        R extends (keyof S & string) | CustomColumn<unknown, string>
     >(
-        returning: R | ((context: Context<S>) => R),
+        returning: R[] | ((context: Context<S>) => R[]),
         where: (null | boolean) | ((context: Context<S>) => null | boolean),
         options = {} as SelectOptions<S>
     ): Query<S, R> {
         return createQuery(params =>
             createSelectQuery(
                 this.context,
-                table as Table,
+                table,
                 returning as
-                    | ReturningRows
-                    | ((context: Context) => ReturningRows),
+                    | ReturningRow[]
+                    | ((context: Context) => ReturningRow[]),
                 where as boolean | ((context: Context) => boolean),
                 options as SelectOptions,
                 params
@@ -38,72 +36,63 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
         );
     },
     insert: function <
-        R extends readonly (
-            | (keyof S & string)
-            | CustomColumn<unknown, string>
-        )[],
-        N extends readonly (keyof NullableAndDefaultColumns<S>)[] = []
+        R extends (keyof S & string) | CustomColumn<unknown, string>,
+        N extends NullableAndDefaultColumns<S> = never
     >(
         rows:
             | InsertingRow<S, N>[]
             | ((context: Context<S>) => InsertingRow<S, N>[]),
-        returning: R | ((context: Context<S>) => R),
+        returning: R[] | ((context: Context<S>) => R[]),
         options = {} as InsertOptions<S, N>
     ): Query<S, R> {
         return createQuery(params =>
             createInsertQuery(
                 this.context,
-                table as Table,
+                table,
                 rows as
                     | Record<string, unknown>[]
                     | ((context: Context) => Record<string, unknown>[]),
                 returning as
-                    | ReturningRows
-                    | ((context: Context) => ReturningRows),
-                options as InsertOptions<Schema, readonly string[]>,
+                    | ReturningRow[]
+                    | ((context: Context) => ReturningRow[]),
+                options as InsertOptions<Schema, never>,
                 params
             )
         );
     },
     update: function <
-        R extends readonly (
-            | (keyof S & string)
-            | CustomColumn<unknown, string>
-        )[]
+        R extends (keyof S & string) | CustomColumn<unknown, string>
     >(
         sets: UpdateSets<S> | ((context: Context<S>) => UpdateSets<S>),
         where: (null | boolean) | ((context: Context<S>) => null | boolean),
-        returning: R | ((context: Context<S>) => R)
+        returning: R[] | ((context: Context<S>) => R[])
     ): Query<S, R> {
         return createQuery(params =>
             createUpdateQuery(
                 this.context,
-                table as Table,
+                table,
                 sets as UpdateSets | ((context: Context) => UpdateSets),
                 where as boolean | ((context: Context) => boolean),
                 returning as
-                    | ReturningRows
-                    | ((context: Context) => ReturningRows),
+                    | ReturningRow[]
+                    | ((context: Context) => ReturningRow[]),
                 params
             )
         );
     },
     delete: function <
-        R extends readonly (
-            | (keyof S & string)
-            | CustomColumn<unknown, string>
-        )[]
+        R extends (keyof S & string) | CustomColumn<unknown, string>
     >(
         where: (null | boolean) | ((context: Context<S>) => null | boolean),
-        returning: R | ((context: Context<S>) => R)
+        returning: R[] | ((context: Context<S>) => R[])
     ): Query<S, R> {
         return createQuery(params =>
             createDeleteQuery(
                 this.context,
-                table as Table,
+                table,
                 returning as
-                    | ReturningRows
-                    | ((context: Context) => ReturningRows),
+                    | ReturningRow[]
+                    | ((context: Context) => ReturningRow[]),
                 where as boolean | ((context: Context) => boolean),
                 params
             )
@@ -127,10 +116,10 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
             Record<MA, S> & Record<JA, JS>,
             PrefixAliasOnSchema<S, MA> & PrefixAliasOnSchema<JS, JA>
         >(
-            { table: table as Table, alias: mainAlias },
+            { table, alias: mainAlias },
             [
                 {
-                    table: joinTable as Table,
+                    table: joinTable,
                     joinType,
                     alias: joinAlias,
                     on: on as
@@ -148,7 +137,11 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
 
 // select
 type By<S extends Schema> = (keyof S & string) | { expression: unknown };
-type Order<S extends Schema> = { by: By<S>; direction: OrderDirection };
+type Order<S extends Schema> = {
+    by: By<S>;
+    direction: OrderDirection;
+    nullPosition?: 'first' | 'last';
+};
 type CustomQueryBuilder = (
     parts: Record<
         `${'distinct' | 'returning' | 'from' | 'where' | 'groupBy' | 'orders' | 'pagination'}Part`,
@@ -196,7 +189,7 @@ const defaultCustomQueryBuilder: CustomQueryBuilder = (parts, params) => {
 const createSelectQuery = (
     context: Context,
     table: Table,
-    returning: ReturningRows | ((context: Context) => ReturningRows),
+    returning: ReturningRow[] | ((context: Context) => ReturningRow[]),
     where: (null | boolean) | ((context: Context) => null | boolean),
     options: SelectOptions,
     params: string[]
@@ -304,7 +297,11 @@ const createSelectQuery = (
     if (_orders.length !== 0) {
         const ordersTextArray = [];
         for (const order of _orders) {
-            const { by, direction } = order;
+            const { by, direction, nullPosition } = order;
+            const nullPositionText =
+                nullPosition !== undefined
+                    ? ' ' + Dictionary.OrderNullPosition[nullPosition]
+                    : '';
             if (typeof by === 'object') {
                 const resolvedExpression = resolveExpression(
                     by.expression,
@@ -318,11 +315,11 @@ const createSelectQuery = (
                 }
                 params.push(...resolvedExpression.value.params);
                 ordersTextArray.push(
-                    `${resolvedExpression.value.text} ${Dictionary.OrderDirection[direction]}`
+                    `${resolvedExpression.value.text} ${Dictionary.OrderDirection[direction]}${nullPositionText}`
                 );
             } else {
                 ordersTextArray.push(
-                    `${resolveColumn(table, by, false)} ${Dictionary.OrderDirection[direction]}`
+                    `${resolveColumn(table, by, false)} ${Dictionary.OrderDirection[direction]}${nullPositionText}`
                 );
             }
         }
@@ -365,24 +362,16 @@ const createSelectQuery = (
 };
 
 // insert
-type InsertOptions<
-    S extends Schema,
-    N extends readonly (keyof NullableAndDefaultColumns<S>)[]
-> = {
-    nullableDefaultColumns?: N;
+type InsertOptions<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
+    nullableDefaultColumns?: N[];
 };
 type InsertingRow<
     S extends Schema,
-    N extends readonly (keyof NullableAndDefaultColumns<S>)[]
-> = {
-    [key in Exclude<
-        keyof S,
-        keyof NullableAndDefaultColumns<S>
-    >]: S[key]['type'];
-} & {
-    [key in Exclude<keyof N, keyof never[]> as N[key] & string]?: NullableType<
-        S[N[key] & string]['type'],
-        S[N[key] & string]['nullable']
+    N extends NullableAndDefaultColumns<S>
+> = Pick<SimpleModel<S>, Exclude<keyof S & string, N>> & {
+    [key in N]?: NullableType<
+        S[key & string]['type'],
+        S[key & string]['nullable']
     >;
 };
 
@@ -392,8 +381,8 @@ const createInsertQuery = (
     rows:
         | Record<string, unknown>[]
         | ((context: Context) => Record<string, unknown>[]),
-    returning: ReturningRows | ((context: Context) => ReturningRows),
-    options: InsertOptions<Schema, readonly string[]>,
+    returning: ReturningRow[] | ((context: Context) => ReturningRow[]),
+    options: InsertOptions<Schema, never>,
     params: string[]
 ): Result<QueryData, string> => {
     const errorPrefix = `insert("${table.schemaName}"."${table.tableName}")`;
@@ -405,7 +394,7 @@ const createInsertQuery = (
     const columnsTextArray = [];
     for (const column in table.columns) {
         if (
-            nullableDefaultColumns.includes(column) ||
+            nullableDefaultColumns.includes(column as never) ||
             !table.columns[column].nullable ||
             table.columns[column].default
         ) {
@@ -516,7 +505,7 @@ const createUpdateQuery = (
     table: Table,
     sets: UpdateSets | ((context: Context) => UpdateSets),
     where: (null | boolean) | ((context: Context) => null | boolean),
-    returning: ReturningRows | ((context: Context) => ReturningRows),
+    returning: ReturningRow[] | ((context: Context) => ReturningRow[]),
     params: string[]
 ): Result<QueryData, string> => {
     const errorPrefix = `update("${table.schemaName}"."${table.tableName}")`;
@@ -606,7 +595,7 @@ const createUpdateQuery = (
 const createDeleteQuery = (
     context: Context,
     table: Table,
-    returning: ReturningRows | ((context: Context) => ReturningRows),
+    returning: ReturningRow[] | ((context: Context) => ReturningRow[]),
     where: (null | boolean) | ((context: Context) => null | boolean),
     params: string[]
 ): Result<QueryData, string> => {
@@ -673,13 +662,8 @@ type PrefixAliasOnSchema<S extends Schema, A extends string> = {
 };
 type JoinEntity<SMap extends Record<string, Schema>, AllS extends Schema> = {
     contexts: SchemaMapContexts<SMap>;
-    select: <
-        R extends readonly (
-            | (keyof AllS & string)
-            | CustomColumn<unknown, string>
-        )[]
-    >(
-        returning: R | ((contexts: SchemaMapContexts<SMap>) => R),
+    select: <R extends (keyof AllS & string) | CustomColumn<unknown, string>>(
+        returning: R[] | ((contexts: SchemaMapContexts<SMap>) => R[]),
         where:
             | (null | boolean)
             | ((contexts: SchemaMapContexts<SMap>) => null | boolean),
@@ -700,6 +684,7 @@ type JoinBy<SMap extends Record<string, Schema>> =
 type JoinOrder<SMap extends Record<string, Schema>> = {
     by: JoinBy<SMap>;
     direction: OrderDirection;
+    nullPosition?: 'first' | 'last';
 };
 type JoinSelectOptions<
     SMap extends Record<string, Schema> = Record<string, Schema>
@@ -734,12 +719,9 @@ const createJoinSelectEntity = <
 ): JoinEntity<SMap, AllS> => ({
     contexts: contexts,
     select: function <
-        R extends readonly (
-            | (keyof AllS & string)
-            | CustomColumn<unknown, string>
-        )[]
+        R extends (keyof AllS & string) | CustomColumn<unknown, string>
     >(
-        returning: R | ((contexts: SchemaMapContexts<SMap>) => R),
+        returning: R[] | ((contexts: SchemaMapContexts<SMap>) => R[]),
         where:
             | (null | boolean)
             | ((contexts: SchemaMapContexts<SMap>) => null | boolean),
@@ -751,8 +733,8 @@ const createJoinSelectEntity = <
                 main,
                 joinTables,
                 returning as
-                    | ReturningRows
-                    | ((contexts: Record<string, Context>) => ReturningRows),
+                    | ReturningRow[]
+                    | ((contexts: Record<string, Context>) => ReturningRow[]),
                 where as
                     | boolean
                     | ((contexts: Record<string, Context>) => boolean),
@@ -791,8 +773,8 @@ const createJoinSelectQuery = (
     main: TableWithAlias,
     joinTables: (TableWithAlias & JoinData)[],
     returning:
-        | ReturningRows
-        | ((contexts: Record<string, Context>) => ReturningRows),
+        | ReturningRow[]
+        | ((contexts: Record<string, Context>) => ReturningRow[]),
     where:
         | (null | boolean)
         | ((contexts: Record<string, Context>) => null | boolean),
@@ -956,7 +938,11 @@ const createJoinSelectQuery = (
     if (_orders.length !== 0) {
         const ordersTextArray = [];
         for (const order of _orders) {
-            const { by, direction } = order;
+            const { by, direction, nullPosition } = order;
+            const nullPositionText =
+                nullPosition !== undefined
+                    ? ' ' + Dictionary.OrderNullPosition[nullPosition]
+                    : '';
             if (typeof by === 'object') {
                 const resolvedGroupBy = resolveExpression(
                     by.expression,
@@ -970,7 +956,7 @@ const createJoinSelectQuery = (
                 }
                 params.push(...resolvedGroupBy.value.params);
                 ordersTextArray.push(
-                    `${resolvedGroupBy.value.text} ${Dictionary.OrderDirection[direction]}`
+                    `${resolvedGroupBy.value.text} ${Dictionary.OrderDirection[direction]}${nullPositionText}`
                 );
             } else {
                 const { table, alias } = getTableDataOfJoinSelectColumn(
@@ -983,7 +969,7 @@ const createJoinSelectQuery = (
                         by.substring((alias + '_').length),
                         true,
                         alias
-                    )} ${Dictionary.OrderDirection[direction]}`
+                    )} ${Dictionary.OrderDirection[direction]}${nullPositionText}`
                 );
             }
         }
@@ -1058,21 +1044,18 @@ type CustomColumn<T, N extends string> = {
     name: N;
 };
 
-type NullableAndDefaultColumns<S extends Schema> = {
+type NullableAndDefaultColumns<S extends Schema> = keyof {
     [key in keyof S as true extends S[key]['nullable']
         ? key
         : true extends S[key]['default']
           ? key
-          : never]: true extends S[key]['nullable']
-        ? S[key]
-        : true extends S[key]['default']
-          ? S[key]
-          : never;
-};
+          : never]: undefined;
+} &
+    string;
 
 type Query<
     S extends Schema,
-    R extends readonly (keyof S | CustomColumn<unknown, string>)[]
+    R extends keyof S | CustomColumn<unknown, string>
 > = {
     getData: (params?: string[]) => Result<QueryData, string>;
     execute: <M extends Mode>(
@@ -1087,7 +1070,7 @@ type QueryData = {
 };
 type QueryResult<
     S extends Schema,
-    R extends readonly (keyof S | CustomColumn<unknown, string>)[],
+    R extends keyof S | CustomColumn<unknown, string>,
     M extends Mode
 > = M extends ['get', 'one']
     ? QueryResultRow<S, R>
@@ -1098,25 +1081,20 @@ type QueryResult<
         : never;
 type QueryResultRow<
     S extends Schema,
-    R extends readonly (keyof S | CustomColumn<unknown, string>)[]
-> = {
-    [key in Exclude<keyof R, keyof never[]> as R[key] extends CustomColumn<
+    R extends keyof S | CustomColumn<unknown, string>
+> = Pick<SimpleModel<S>, Extract<R, keyof S & string>> & {
+    [key in Exclude<R, keyof S & string> as key extends CustomColumn<
         unknown,
         infer N
     >
         ? N
-        : R[key] & string]: R[key] extends CustomColumn<infer T, string>
-        ? T
-        : NullableType<
-              S[R[key] & string]['type'],
-              S[R[key] & string]['nullable']
-          >;
+        : never]: key extends CustomColumn<infer T, string> ? T : never;
 };
-type ReturningRows = readonly (string | CustomColumn<unknown, string>)[];
+type ReturningRow = string | CustomColumn<unknown, string>;
 
 const createQuery = <
     S extends Schema,
-    R extends readonly (keyof S | CustomColumn<unknown, string>)[]
+    R extends keyof S | CustomColumn<unknown, string>
 >(
     createQueryData: (params: string[]) => Result<QueryData, string>
 ): Query<S, R> => {
@@ -1191,5 +1169,5 @@ export type {
     QueryData,
     QueryResult,
     QueryResultRow,
-    ReturningRows
+    ReturningRow
 };

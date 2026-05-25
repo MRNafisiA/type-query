@@ -108,47 +108,257 @@ const UserTable: Table<UserSchema> = {
 };
 
 describe('generateCreateSequencesSQL', () => {
-    test('smallint', () => {
-        const result = generateCreateSequencesSQL(UserGroupTable);
+    describe('applyIfNotExist: false', () => {
+        describe('smallint', () => {
+            test('without owner', () => {
+                const result = generateCreateSequencesSQL(UserGroupTable, {
+                    applyIfNotExist: false
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE "public"."user_group_id_seq" AS SMALLINT'
+                ]);
+            });
+            test('with owner', () => {
+                const result = generateCreateSequencesSQL(UserGroupTable, {
+                    applyIfNotExist: false,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE "public"."user_group_id_seq" AS SMALLINT OWNER TO USER'
+                ]);
+            });
+        });
+        describe('integer and bigint', () => {
+            test('without owner', () => {
+                const result = generateCreateSequencesSQL(UserTable, {
+                    applyIfNotExist: false
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE "public"."user_ID_seq" AS INTEGER',
+                    'CREATE SEQUENCE "public"."user_code_seq"'
+                ]);
+            });
+            test('with owner', () => {
+                const result = generateCreateSequencesSQL(UserTable, {
+                    applyIfNotExist: false,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE "public"."user_ID_seq" AS INTEGER OWNER TO USER',
+                    'CREATE SEQUENCE "public"."user_code_seq" OWNER TO USER'
+                ]);
+            });
+        });
+    });
+    describe('applyIfNotExist: true', () => {
+        describe('smallint', () => {
+            test('without owner', () => {
+                const result = generateCreateSequencesSQL(UserGroupTable, {
+                    applyIfNotExist: true
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE IF NOT EXISTS "public"."user_group_id_seq" AS SMALLINT'
+                ]);
+            });
+            test('with owner', () => {
+                const result = generateCreateSequencesSQL(UserGroupTable, {
+                    applyIfNotExist: true,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE IF NOT EXISTS "public"."user_group_id_seq" AS SMALLINT OWNER TO USER'
+                ]);
+            });
+        });
+        describe('integer and bigint', () => {
+            test('without owner', () => {
+                const result = generateCreateSequencesSQL(UserTable, {
+                    applyIfNotExist: true
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE IF NOT EXISTS "public"."user_ID_seq" AS INTEGER',
+                    'CREATE SEQUENCE IF NOT EXISTS "public"."user_code_seq"'
+                ]);
+            });
+            test('with owner', () => {
+                const result = generateCreateSequencesSQL(UserTable, {
+                    applyIfNotExist: true,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual([
+                    'CREATE SEQUENCE IF NOT EXISTS "public"."user_ID_seq" AS INTEGER OWNER TO USER',
+                    'CREATE SEQUENCE IF NOT EXISTS "public"."user_code_seq" OWNER TO USER'
+                ]);
+            });
+        });
+    });
+});
+
+describe('generateDropSequencesSQL', () => {
+    test('applyIfExist: false', () => {
+        const result = generateDropSequencesSQL(UserTable, {
+            applyIfExist: false
+        });
 
         expect(result).toStrictEqual([
-            'CREATE SEQUENCE "public"."user_group_id_seq" AS SMALLINT'
+            'DROP SEQUENCE "public"."user_ID_seq"',
+            'DROP SEQUENCE "public"."user_code_seq"'
         ]);
     });
-    test('integer and bigint', () => {
-        const result = generateCreateSequencesSQL(UserTable);
+    test('applyIfExist: true', () => {
+        const result = generateDropSequencesSQL(UserTable, {
+            applyIfExist: true
+        });
 
         expect(result).toStrictEqual([
-            'CREATE SEQUENCE "public"."user_ID_seq" AS INTEGER',
-            'CREATE SEQUENCE "public"."user_code_seq"'
+            'DROP IF EXISTS SEQUENCE "public"."user_ID_seq"',
+            'DROP IF EXISTS SEQUENCE "public"."user_code_seq"'
         ]);
     });
 });
 
-test('generateDropSequencesSQL', () => {
-    const result = generateDropSequencesSQL(UserTable);
+describe('generateCreateTableSQL', () => {
+    describe('applyIfNotExist: false', () => {
+        describe('isTemp: false', () => {
+            test('without owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: false,
+                    isTemp: false
+                });
 
-    expect(result).toStrictEqual([
-        'DROP SEQUENCE "public"."user_ID_seq"',
-        'DROP SEQUENCE "public"."user_code_seq"'
-    ]);
+                expect(result).toStrictEqual(
+                    `CREATE TABLE "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code"))'
+                );
+            });
+            test('with owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: false,
+                    isTemp: false,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual(
+                    `CREATE TABLE "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code")) OWNER TO USER'
+                );
+            });
+        });
+        describe('isTemp: true', () => {
+            test('without owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: false,
+                    isTemp: true
+                });
+
+                expect(result).toStrictEqual(
+                    `CREATE TEMPORARY TABLE "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code"))'
+                );
+            });
+            test('with owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: false,
+                    isTemp: true,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual(
+                    `CREATE TEMPORARY TABLE "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code")) OWNER TO USER'
+                );
+            });
+        });
+    });
+    describe('applyIfNotExist: true', () => {
+        describe('isTemp: false', () => {
+            test('without owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: true,
+                    isTemp: false
+                });
+
+                expect(result).toStrictEqual(
+                    `CREATE TABLE IF NOT EXIST "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code"))'
+                );
+            });
+            test('with owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: true,
+                    isTemp: false,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual(
+                    `CREATE TABLE IF NOT EXIST "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code")) OWNER TO USER'
+                );
+            });
+        });
+        describe('isTemp: true', () => {
+            test('without owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: true,
+                    isTemp: true
+                });
+
+                expect(result).toStrictEqual(
+                    `CREATE TEMPORARY TABLE IF NOT EXIST "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code"))'
+                );
+            });
+            test('with owner', () => {
+                const result = generateCreateTableSQL(UserTable, {
+                    applyIfNotExist: true,
+                    isTemp: true,
+                    owner: 'USER'
+                });
+
+                expect(result).toStrictEqual(
+                    `CREATE TEMPORARY TABLE IF NOT EXIST "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
+                        '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
+                        `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
+                        'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code")) OWNER TO USER'
+                );
+            });
+        });
+    });
 });
 
-test('generateCreateTableSQL', () => {
-    const result = generateCreateTableSQL(UserTable);
+describe('generateDropTableSQL', () => {
+    test('applyIfExist: true', () => {
+        const result = generateDropTableSQL(UserTable, { applyIfExist: false });
 
-    expect(result).toStrictEqual(
-        `CREATE TABLE "public"."user"("ID" INTEGER DEFAULT NEXTVAL('"public"."user_ID_seq"'::REGCLASS) NOT NULL, ` +
-            '"userGroupID" SMALLINT NOT NULL REFERENCES "public"."user_group"("id") ON UPDATE NO ACTION ON DELETE CASCADE, ' +
-            `"username" CHARACTER VARYING NULL, "level" SMALLINT DEFAULT 1 NOT NULL, "code" BIGINT DEFAULT NEXTVAL('"public"."user_code_seq"'::REGCLASS) NOT NULL, "dateRange" DateRange NOT NULL, ` +
-            'CONSTRAINT "user_pk" PRIMARY KEY("ID", "code"))'
-    );
-});
+        expect(result).toStrictEqual('DROP TABLE "public"."user"');
+    });
+    test('applyIfExist: true', () => {
+        const result = generateDropTableSQL(UserTable, { applyIfExist: true });
 
-test('generateDropTableSQL', () => {
-    const result = generateDropTableSQL(UserTable);
-
-    expect(result).toStrictEqual('DROP TABLE "public"."user"');
+        expect(result).toStrictEqual('DROP TABLE IF EXIST "public"."user"');
+    });
 });
 
 describe('getSequenceName', () => {

@@ -24,12 +24,6 @@ type Context<S extends Schema = Schema> = {
     ) => boolean;
     columnsAnd: (rules: ContextRules<S>, alias?: string) => boolean;
     columnsOr: (rules: ContextRules<S>, alias?: string) => boolean;
-    and: <T extends undefined | null | boolean>(
-        ...expressions: readonly T[]
-    ) => T;
-    or: <T extends undefined | null | boolean>(
-        ...expressions: readonly T[]
-    ) => T;
 };
 
 const createContext = <S extends Schema>(
@@ -48,9 +42,7 @@ const createContext = <S extends Schema>(
         columnsAnd: (rules, _alias = alias) =>
             U.and(...contextHelper(rules, _alias)),
         columnsOr: (rules, _alias = alias) =>
-            U.or(...contextHelper(rules, _alias)),
-        and: U.and,
-        or: U.or
+            U.or(...contextHelper(rules, _alias))
     };
 };
 
@@ -76,7 +68,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                     ]
                   | [
                         operator: ListWithSubQueryOperator,
-                        subQuery: Query<Schema, []>
+                        subQuery: Query<Schema, never>
                     ]
                   | [
                         operator: BetweenOperator,
@@ -98,7 +90,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                       ]
                     | [
                           operator: ListWithSubQueryOperator,
-                          subQuery: Query<Schema, []>
+                          subQuery: Query<Schema, never>
                       ]
                     | [
                           operator: BetweenOperator,
@@ -123,7 +115,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                         ]
                       | [
                             operator: ListWithSubQueryOperator,
-                            subQuery: Query<Schema, []>
+                            subQuery: Query<Schema, never>
                         ]
                       | [
                             operator: BetweenOperator,
@@ -151,7 +143,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                           ]
                         | [
                               operator: ListWithSubQueryOperator,
-                              subQuery: Query<Schema, []>
+                              subQuery: Query<Schema, never>
                           ]
                         | [
                               operator: BetweenOperator,
@@ -179,7 +171,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                             ]
                           | [
                                 operator: ListWithSubQueryOperator,
-                                subQuery: Query<Schema, []>
+                                subQuery: Query<Schema, never>
                             ]
                           | [
                                 operator: BetweenOperator,
@@ -213,7 +205,10 @@ const createContextHelper =
     <S extends Schema>(table: Table<S>) =>
     (rules: ContextRules<S>, alias?: string): boolean[] =>
         Object.entries(rules).map(
-            ([key, value]: [keyof S & string, unknown[]]) => {
+            ([key, value]: [keyof S & string, unknown[] | undefined]) => {
+                if (value === undefined) {
+                    throw `undefined value is not allowed for ${key}`;
+                }
                 const operator = value[0] as
                     | NullOperator
                     | BooleanOperator

@@ -8,23 +8,23 @@ import { generateCreateSequencesSQL, generateCreateTableSQL } from './ddl';
 type TestTableData<S extends Schema = Schema> = {
     table: Table<S>;
     startData: ({
-        [key in Exclude<
-            keyof S,
-            keyof NullableAndDefaultColumns<S>
-        >]: NullableType<S[key]['type'], S[key]['nullable']>;
+        [key in Exclude<keyof S, NullableAndDefaultColumns<S>>]: NullableType<
+            S[key]['type'],
+            S[key]['nullable']
+        >;
     } & {
-        [key in keyof NullableAndDefaultColumns<S>]?: NullableType<
+        [key in NullableAndDefaultColumns<S>]?: NullableType<
             S[key]['type'],
             S[key]['nullable']
         >;
     })[];
     finalData: {
-        [key in keyof S]:
+        [key in keyof S & string]:
             | NullableType<S[key]['type'], S[key]['nullable']>
             | ((
                   cell: NullableType<S[key]['type'], S[key]['nullable']>,
                   rows: {
-                      [key in keyof S]: NullableType<
+                      [key in keyof S & string]: NullableType<
                           S[key]['type'],
                           S[key]['nullable']
                       >;

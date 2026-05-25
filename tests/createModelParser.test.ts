@@ -9,6 +9,11 @@ type TestSchema = {
         nullable: false;
         default: false;
     };
+    customParserNullable: {
+        type: 1 | 2;
+        nullable: true;
+        default: false;
+    };
     boolean: {
         type: boolean;
         nullable: false;
@@ -137,6 +142,11 @@ const TestTable: Table<TestSchema> = {
         customParser: {
             type: 'int2',
             nullable: false,
+            default: false
+        },
+        customParserNullable: {
+            type: 'int2',
+            nullable: true,
             default: false
         },
         boolean: {
@@ -771,30 +781,56 @@ describe('createModelUtils', () => {
     });
     describe('Parse', () => {
         describe('default error', () => {
-            test('require key', () => {
-                const result = TestModelParser.Parse(
-                    {},
-                    ['customParser'] as const,
-                    []
-                );
+            describe('require', () => {
+                test('key not exist', () => {
+                    const result = TestModelParser.Parse(
+                        {},
+                        ['customParser'],
+                        []
+                    );
 
-                expect(result).toStrictEqual(err('customParser'));
+                    expect(result).toStrictEqual(err('customParser'));
+                });
+                test('null not allowed', () => {
+                    const result = TestModelParser.Parse(
+                        { customParserNullable: null },
+                        ['customParserNullable'],
+                        [],
+                        ['customParserNullable']
+                    );
+
+                    expect(result).toStrictEqual(err('customParserNullable'));
+                });
+                test('value not valid', () => {
+                    const result = TestModelParser.Parse(
+                        { customParser: 3 },
+                        ['customParser'],
+                        []
+                    );
+
+                    expect(result).toStrictEqual(err('customParser'));
+                });
             });
-            test('require value', () => {
-                const result = TestModelParser.Parse(
-                    { customParser: 3 },
-                    ['customParser'] as const,
-                    []
-                );
+            describe('optional', () => {
+                test('null not allowed', () => {
+                    const result = TestModelParser.Parse(
+                        { customParserNullable: null },
+                        [],
+                        ['customParserNullable'],
+                        ['customParserNullable']
+                    );
 
-                expect(result).toStrictEqual(err('customParser'));
-            });
-            test('optional value', () => {
-                const result = TestModelParser.Parse({ customParser: 3 }, [], [
-                    'customParser'
-                ] as const);
+                    expect(result).toStrictEqual(err('customParserNullable'));
+                });
+                test('value not valid', () => {
+                    const result = TestModelParser.Parse(
+                        { customParser: 3 },
+                        [],
+                        ['customParser']
+                    );
 
-                expect(result).toStrictEqual(err('customParser'));
+                    expect(result).toStrictEqual(err('customParser'));
+                });
             });
         });
         describe('custom error', () => {
@@ -835,23 +871,17 @@ describe('createModelUtils', () => {
             });
 
             test('require key', () => {
-                const result = UserModelParser.Parse({}, ['id'] as const, []);
+                const result = UserModelParser.Parse({}, ['id'], []);
 
                 expect(result).toStrictEqual(err([1]));
             });
             test('require value', () => {
-                const result = UserModelParser.Parse(
-                    { id: 0 },
-                    ['id'] as const,
-                    []
-                );
+                const result = UserModelParser.Parse({ id: 0 }, ['id'], []);
 
                 expect(result).toStrictEqual(err([1]));
             });
             test('optional value', () => {
-                const result = UserModelParser.Parse({ id: -1 }, [], [
-                    'id'
-                ] as const);
+                const result = UserModelParser.Parse({ id: -1 }, [], ['id']);
 
                 expect(result).toStrictEqual(err([1]));
             });
@@ -864,8 +894,8 @@ describe('createModelUtils', () => {
                     int2_withMax: undefined,
                     a: 2
                 },
-                ['customParser'] as const,
-                ['boolean', 'int2_withMin'] as const
+                ['customParser'],
+                ['boolean', 'int2_withMin']
             );
 
             expect(result).toStrictEqual(

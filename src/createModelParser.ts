@@ -204,80 +204,72 @@ const Parser = {
     }
 };
 
+type SimpleModel<S extends Schema> = {
+    [key in keyof S & string]: NullableType<S[key]['type'], S[key]['nullable']>;
+};
+
+type ModelHelper<S extends Schema, NotNull extends keyof S> = {
+    [key in keyof S & string]: key extends NotNull
+        ? S[key]['type']
+        : NullableType<S[key]['type'], S[key]['nullable']>;
+};
+
 type Model<
     S extends Schema,
-    R extends readonly (keyof S)[],
-    O extends readonly (keyof S)[]
-> = {
-    [key in Exclude<keyof R, keyof never[]> as R[key] & string]: NullableType<
-        S[R[key] & string]['type'],
-        S[R[key] & string]['nullable']
-    >;
-} & {
-    [key in Exclude<keyof O, keyof never[]> as O[key] & string]?: NullableType<
-        S[O[key] & string]['type'],
-        S[O[key] & string]['nullable']
-    >;
-};
+    Required extends keyof S & string,
+    Optional extends keyof S & string,
+    NotNull extends Required | Optional
+> = Pick<ModelHelper<S, NotNull>, Required> &
+    Partial<Pick<ModelHelper<S, NotNull>, Optional>>;
 
 type ModelWithPrefix<
     S extends Schema,
-    R extends readonly (keyof S)[],
-    O extends readonly (keyof S)[],
-    P extends string
+    Required extends keyof S & string,
+    Optional extends keyof S & string,
+    NotNull extends Required | Optional,
+    Prefix extends string
 > = {
-    [key in Exclude<
-        keyof R,
-        keyof never[]
-    > as `${P}${R[key] & string}`]: NullableType<
-        S[R[key] & string]['type'],
-        S[R[key] & string]['nullable']
-    >;
-} & {
-    [key in Exclude<
-        keyof O,
-        keyof never[]
-    > as `${P}${O[key] & string}`]?: NullableType<
-        S[O[key] & string]['type'],
-        S[O[key] & string]['nullable']
-    >;
+    [key in keyof Model<
+        S,
+        Required,
+        Optional,
+        NotNull
+    > as `${Prefix}${key}`]: Model<S, Required, Optional, NotNull>[key];
 };
 
 type ModelParser<
     S extends Schema,
-    EMap extends { [key in keyof S]: unknown }
+    EMap extends { [key in keyof S & string]: unknown }
 > = {
     Parse: <
-        R extends readonly (keyof S & string)[],
-        O extends readonly (keyof S & string)[]
+        Required extends keyof S & string,
+        Optional extends keyof S & string,
+        NotNull extends Required | Optional = never
     >(
         data: Record<string, unknown>,
-        requires: R,
-        optionals: O
+        requires: Required[],
+        optionals: Optional[],
+        notNulls?: NotNull[]
     ) => Result<
-        Model<S, R, O>,
-        EMap[(
-            | R[Exclude<keyof R, keyof never[]>]
-            | O[Exclude<keyof O, keyof never[]>]
-        ) &
-            keyof EMap]
+        Model<S, Required, Optional, NotNull>,
+        EMap[Required | Optional]
     >;
 } & {
-    [key in keyof S]: (
+    [key in keyof S & string]: (
         v: unknown
     ) => NullableType<S[key]['type'], S[key]['nullable']> | undefined;
 };
 
 const createModelParser = <
     S extends Schema,
-    EMap extends { [key in keyof S]: unknown } = {
-        [key in keyof S]: key;
+    EMap extends { [key in keyof S & string]: unknown } = {
+        [key in keyof S & string]: key;
     }
 >(
     { columns }: Table<S>,
     { parsers, errorsMap } = {} as {
         parsers?: {
-            [key in keyof S]?: (
+            [key in keyof S & string]?: (
                 v: NullableType<S[key]['type'], S[key]['nullable']>
             ) => NullableType<S[key]['type'], S[key]['nullable']> | undefined;
         };
@@ -438,7 +430,7 @@ const createModelParser = <
         );
 
     return {
-        Parse: (data, requires, optionals) => {
+        Parse: (data, requires, optionals, notNulls = []) => {
             const result = {} as Record<string, unknown>;
 
             for (const key of requires) {
@@ -446,7 +438,11 @@ const createModelParser = <
                     return err(errorsMap?.[key] ?? key);
                 }
                 result[key] = columnsParser[key](data[key]);
-                if (result[key] === undefined) {
+                if (
+                    result[key] === undefined ||
+                    (result[key] === null &&
+                        notNulls.includes(key as (typeof notNulls)[number]))
+                ) {
                     return err(errorsMap?.[key] ?? key);
                 }
             }
@@ -455,7 +451,11 @@ const createModelParser = <
                     continue;
                 }
                 result[key] = columnsParser[key](data[key]);
-                if (result[key] === undefined) {
+                if (
+                    result[key] === undefined ||
+                    (result[key] === null &&
+                        notNulls.includes(key as (typeof notNulls)[number]))
+                ) {
                     return err(errorsMap?.[key] ?? key);
                 }
             }
@@ -466,5 +466,5 @@ const createModelParser = <
     } as ModelParser<S, EMap>;
 };
 
-export type { Model, ModelWithPrefix, ModelParser };
+export type { SimpleModel, ModelHelper, Model, ModelWithPrefix, ModelParser };
 export { Int2Range, Int4Range, Int8Range, Parser, createModelParser };

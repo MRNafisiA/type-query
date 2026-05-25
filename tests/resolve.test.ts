@@ -168,7 +168,7 @@ describe('resolveExpression', () => {
                 const result = resolveExpression(
                     U.compare(1, 'in sub-query', {
                         getData: () => err('a')
-                    } as Query<Schema, []>),
+                    } as Query<Schema, never>),
                     1,
                     false
                 );
@@ -1047,7 +1047,10 @@ describe('resolveExpression', () => {
         });
         describe('SubQuery, SubQueryExist', () => {
             test('err', () => {
-                const query = { getData: () => err('a') } as Query<Schema, []>;
+                const query = { getData: () => err('a') } as Query<
+                    Schema,
+                    never
+                >;
                 const result = resolveExpression(
                     U.subQuery(query),
                     1,
@@ -1063,7 +1066,7 @@ describe('resolveExpression', () => {
                             sql: `$${params.length + 1}`,
                             params: [...params, 'a']
                         })
-                } as Query<Schema, []>;
+                } as Query<Schema, never>;
                 const result = resolveExpression(
                     U.subQuery(query),
                     2,
@@ -1081,7 +1084,7 @@ describe('resolveExpression', () => {
                             sql: `$${params.length + 1}`,
                             params: [...params, 'a']
                         })
-                } as Query<Schema, []>;
+                } as Query<Schema, never>;
                 const result = resolveExpression(
                     U.subQueryExist(query),
                     2,

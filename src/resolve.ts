@@ -941,7 +941,7 @@ const resolveReturning = (
     getColumnTitleAndAlias: (
         column: string
     ) => [title: string | undefined, alias: string | undefined],
-    columns: readonly (string | CustomColumn<unknown, string>)[],
+    columns: (string | CustomColumn<unknown, string>)[],
     paramsStart: number
 ): Result<PartialQuery, string> => {
     const tokens = [];
@@ -996,7 +996,7 @@ const resolveReturning = (
 
 const resolveResult = <
     S extends Schema,
-    R extends readonly (keyof S | CustomColumn<unknown, string>)[],
+    R extends keyof S | CustomColumn<unknown, string>,
     M extends Mode
 >(
     rows: unknown[],
