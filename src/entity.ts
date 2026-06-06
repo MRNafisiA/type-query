@@ -365,9 +365,11 @@ type InsertOptions<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
     nullableDefaultColumns?: N[];
 };
 type InsertingRow<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
-    [key in keyof S & string as key extends N ? never : key]: key extends N
+    [key in keyof S & string as key extends NullableAndDefaultColumns<S>
         ? never
-        : NullableType<S[key & string]['type'], S[key & string]['nullable']>;
+        : key]: key extends NullableAndDefaultColumns<S>
+        ? never
+        : S[key & string]['type'];
 } & {
     [key in N]?: NullableType<
         S[key & string]['type'],
