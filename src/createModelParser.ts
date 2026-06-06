@@ -204,10 +204,6 @@ const Parser = {
     }
 };
 
-type SimpleModel<S extends Schema> = {
-    [key in keyof S & string]: NullableType<S[key]['type'], S[key]['nullable']>;
-};
-
 type ModelHelper<S extends Schema, NotNull extends keyof S> = {
     [key in keyof S & string]: key extends NotNull
         ? S[key]['type']
@@ -466,5 +462,5 @@ const createModelParser = <
     } as ModelParser<S, EMap>;
 };
 
-export type { SimpleModel, ModelHelper, Model, ModelWithPrefix, ModelParser };
+export type { ModelHelper, Model, ModelWithPrefix, ModelParser };
 export { Int2Range, Int4Range, Int8Range, Parser, createModelParser };

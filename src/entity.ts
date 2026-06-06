@@ -2,7 +2,6 @@ import * as U from './utils';
 import { ClientBase } from 'pg';
 import { Dictionary } from './keywords';
 import { err, ok, Result } from 'never-catch';
-import { SimpleModel } from './createModelParser';
 import { Context, createContext } from './context';
 import { NullableType, Schema, Table } from './Table';
 import {
@@ -365,10 +364,11 @@ const createSelectQuery = (
 type InsertOptions<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
     nullableDefaultColumns?: N[];
 };
-type InsertingRow<
-    S extends Schema,
-    N extends NullableAndDefaultColumns<S>
-> = Pick<SimpleModel<S>, Exclude<keyof S & string, N>> & {
+type InsertingRow<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
+    [key in keyof S & string as key extends N ? never : key]: key extends N
+        ? never
+        : NullableType<S[key & string]['type'], S[key & string]['nullable']>;
+} & {
     [key in N]?: NullableType<
         S[key & string]['type'],
         S[key & string]['nullable']
@@ -1082,13 +1082,12 @@ type QueryResult<
 type QueryResultRow<
     S extends Schema,
     R extends keyof S | CustomColumn<unknown, string>
-> = Pick<SimpleModel<S>, Extract<R, keyof S & string>> & {
-    [key in Exclude<R, keyof S & string> as key extends CustomColumn<
-        unknown,
-        infer N
-    >
-        ? N
-        : never]: key extends CustomColumn<infer T, string> ? T : never;
+> = {
+    [key in R as key extends CustomColumn<unknown, infer T>
+        ? T
+        : key]: key extends CustomColumn<infer T, string>
+        ? T
+        : NullableType<S[key & string]['type'], S[key & string]['nullable']>;
 };
 type ReturningRow = string | CustomColumn<unknown, string>;
 
