@@ -1,5 +1,6 @@
 import * as U from './utils';
 import Decimal from 'decimal.js';
+import { Query } from './entity';
 import { Json, NullableType, Schema, Table } from './Table';
 import {
     LikeOperator,
@@ -11,7 +12,6 @@ import {
     JsonCompareOperator,
     ListWithSubQueryOperator
 } from './keywords';
-import { Query } from './entity';
 
 type Context<S extends Schema = Schema> = {
     column: <C extends keyof S & string>(

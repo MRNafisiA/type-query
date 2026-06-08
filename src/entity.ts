@@ -15,7 +15,7 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
     table,
     context: createContext(table),
     select: function <
-        R extends (keyof S & string) | CustomColumn<unknown, string>
+        const R extends (keyof S & string) | CustomColumn<unknown, string>
     >(
         returning: R[] | ((context: Context<S>) => R[]),
         where: (null | boolean) | ((context: Context<S>) => null | boolean),
