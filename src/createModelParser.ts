@@ -258,7 +258,7 @@ type ModelParser<
 
 const createModelParser = <
     S extends Schema,
-    EMap extends { [key in keyof S & string]: unknown } = {
+    const EMap extends { [key in keyof S & string]: unknown } = {
         [key in keyof S & string]: key;
     }
 >(
