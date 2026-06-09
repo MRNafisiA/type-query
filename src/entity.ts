@@ -35,7 +35,7 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
         );
     },
     insert: function <
-        R extends (keyof S & string) | CustomColumn<unknown, string>,
+        const R extends (keyof S & string) | CustomColumn<unknown, string>,
         N extends NullableAndDefaultColumns<S> = never
     >(
         rows:
@@ -60,7 +60,7 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
         );
     },
     update: function <
-        R extends (keyof S & string) | CustomColumn<unknown, string>
+        const R extends (keyof S & string) | CustomColumn<unknown, string>
     >(
         sets: UpdateSets<S> | ((context: Context<S>) => UpdateSets<S>),
         where: (null | boolean) | ((context: Context<S>) => null | boolean),
@@ -80,7 +80,7 @@ const createEntity = <S extends Schema = Schema>(table: Table<S>) => ({
         );
     },
     delete: function <
-        R extends (keyof S & string) | CustomColumn<unknown, string>
+        const R extends (keyof S & string) | CustomColumn<unknown, string>
     >(
         where: (null | boolean) | ((context: Context<S>) => null | boolean),
         returning: R[] | ((context: Context<S>) => R[])
@@ -664,7 +664,9 @@ type PrefixAliasOnSchema<S extends Schema, A extends string> = {
 };
 type JoinEntity<SMap extends Record<string, Schema>, AllS extends Schema> = {
     contexts: SchemaMapContexts<SMap>;
-    select: <R extends (keyof AllS & string) | CustomColumn<unknown, string>>(
+    select: <
+        const R extends (keyof AllS & string) | CustomColumn<unknown, string>
+    >(
         returning: R[] | ((contexts: SchemaMapContexts<SMap>) => R[]),
         where:
             | (null | boolean)
@@ -1095,7 +1097,7 @@ type ReturningRow = string | CustomColumn<unknown, string>;
 
 const createQuery = <
     S extends Schema,
-    R extends keyof S | CustomColumn<unknown, string>
+    const R extends keyof S | CustomColumn<unknown, string>
 >(
     createQueryData: (params: string[]) => Result<QueryData, string>
 ): Query<S, R> => {

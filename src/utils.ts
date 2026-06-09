@@ -20,34 +20,34 @@ import {
 const value = <T>(expression: T): T =>
     [OperatorCode.Value, expression] as unknown as T;
 
-function arithmetic<T extends undefined | null | number>(
+function arithmetic<const T extends undefined | null | number>(
     expressionA: T,
     operator: ArithmeticOperator,
     expressionB: T
 ): Extract<T, undefined | null> | (T extends number ? number : never);
-function arithmetic<T extends undefined | null | bigint>(
+function arithmetic<const T extends undefined | null | bigint>(
     expressionA: T,
     operator: ArithmeticOperator,
     expressionB: T
 ): Extract<T, undefined | null> | (T extends bigint ? bigint : never);
-function arithmetic<T extends undefined | null | Decimal>(
+function arithmetic<const T extends undefined | null | Decimal>(
     expressionA: T,
     operator: ArithmeticOperator,
     expressionB: T
 ): Extract<T, undefined | null> | (T extends Decimal ? Decimal : never);
-function arithmetic<T extends undefined | null | number>(
+function arithmetic<const T extends undefined | null | number>(
     operator: ArithmeticOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends number ? number : never);
-function arithmetic<T extends undefined | null | bigint>(
+function arithmetic<const T extends undefined | null | bigint>(
     operator: ArithmeticOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends bigint ? bigint : never);
-function arithmetic<T extends undefined | null | Decimal>(
+function arithmetic<const T extends undefined | null | Decimal>(
     operator: ArithmeticOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends Decimal ? Decimal : never);
 function arithmetic(a: unknown, b: unknown, c: unknown) {
@@ -57,7 +57,7 @@ function arithmetic(a: unknown, b: unknown, c: unknown) {
 }
 
 function json<
-    T extends undefined | Json,
+    const T extends undefined | Json,
     K extends undefined | null | number | string
 >(
     expression: T,
@@ -70,7 +70,7 @@ function json<
     | (null extends K ? null : never)
     | (T extends Json ? Json : never);
 function json<
-    T extends undefined | Json,
+    const T extends undefined | Json,
     K extends undefined | null | number | string
 >(
     expression: T,
@@ -83,7 +83,7 @@ function json<
     | (null extends K ? null : never)
     | (T extends Json ? Json : never);
 function json<
-    T extends undefined | Json,
+    const T extends undefined | Json,
     K extends undefined | null | number | string,
     C extends undefined | string = undefined
 >(
@@ -96,7 +96,10 @@ function json<
     | (undefined extends T ? undefined : never)
     | (null extends K ? null : never)
     | (C extends string ? unknown : T extends Json ? string : never);
-function json<T extends undefined | Json, B extends undefined | null | string>(
+function json<
+    const T extends undefined | Json,
+    B extends undefined | null | string
+>(
     expressionA: T,
     operator: 'j-',
     expressionB: B,
@@ -105,12 +108,12 @@ function json<T extends undefined | Json, B extends undefined | null | string>(
     | (undefined extends B ? undefined : never)
     | (null extends B ? null | Partial<T> : Partial<T>);
 function json<
-    T extends undefined | null | Json,
-    B extends undefined | null | string
+    const T extends undefined | null | Json,
+    const B extends undefined | null | string
 >(
     expressionA: T,
     operator: 'j- Array',
-    expressionB: readonly B[],
+    expressionB: B[],
     _?: never
 ):
     | (undefined extends B ? undefined : never)
@@ -137,8 +140,8 @@ const cons = (
     cast: string = ''
 ): unknown => [OperatorCode.Constructor, name, args, cast];
 
-const switchCase = <W extends undefined | boolean, T>(
-    cases: readonly {
+const switchCase = <const W extends undefined | boolean, const T>(
+    cases: {
         when: W;
         then: T;
     }[],
@@ -146,10 +149,10 @@ const switchCase = <W extends undefined | boolean, T>(
 ): undefined extends W ? undefined | T : T =>
     [OperatorCode.SwitchCase, cases, otherwise] as unknown as T;
 
-function concat<T extends undefined | null | string>(
+function concat<const T extends undefined | null | string>(
     ...expressions: T[]
 ): Extract<T, undefined | null> | (T extends string ? string : never);
-function concat<T extends undefined | null | Json>(
+function concat<const T extends undefined | null | Json>(
     ...expressions: T[]
 ): Extract<T, undefined | null> | (T extends Json ? Json : never);
 function concat(...a: unknown[]) {
@@ -166,7 +169,7 @@ const column = <S extends Schema, C extends keyof S & string>(
     resolveColumn(table, column, full, alias)
 ];
 
-const raw = <T>(
+const raw = <const T>(
     textOrGet:
         | string
         | ((paramsStart: number) => {
@@ -175,97 +178,97 @@ const raw = <T>(
           })
 ): T => [OperatorCode.Raw, textOrGet] as unknown as T;
 
-const ignore = <T>(
+const ignore = <const T>(
     expression: T,
     otherwise: Exclude<T, undefined>
 ): Exclude<T, undefined> =>
     [OperatorCode.Ignore, expression, otherwise] as Exclude<T, undefined>;
 
-const not = <T extends undefined | null | boolean>(expression: T): T =>
+const not = <const T extends undefined | null | boolean>(expression: T): T =>
     [OperatorCode.Not, expression] as unknown as T;
 
-const and = <T extends undefined | null | boolean>(
-    ...expressions: readonly T[]
+const and = <const T extends undefined | null | boolean>(
+    ...expressions: T[]
 ): T => [OperatorCode.And, expressions] as unknown as T;
 
-const or = <T extends undefined | null | boolean>(
-    ...expressions: readonly T[]
+const or = <const T extends undefined | null | boolean>(
+    ...expressions: T[]
 ): T => [OperatorCode.Or, expressions] as unknown as T;
 
-function compare<T>(
+function compare<const T>(
     expression: T,
     operator: null extends T ? NullOperator : never,
     _?: never,
     __?: never
 ): undefined extends T ? undefined | boolean : boolean;
-function compare<T extends undefined | null | boolean>(
+function compare<const T extends undefined | null | boolean>(
     expression: T,
     operator: BooleanOperator,
     _?: never,
     __?: never
 ): T;
-function compare<T extends undefined | null | number>(
+function compare<const T extends undefined | null | number>(
     expressionA: T,
     operator: CompareOperator,
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends number ? boolean : never);
-function compare<T extends undefined | null | bigint>(
+function compare<const T extends undefined | null | bigint>(
     expressionA: T,
     operator: CompareOperator,
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends bigint ? boolean : never);
-function compare<T extends undefined | null | Decimal>(
+function compare<const T extends undefined | null | Decimal>(
     expressionA: T,
     operator: CompareOperator,
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends Decimal ? boolean : never);
-function compare<T extends undefined | null | string>(
+function compare<const T extends undefined | null | string>(
     expressionA: T,
     operator: CompareOperator,
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends string ? boolean : never);
-function compare<T extends undefined | null | Date>(
+function compare<const T extends undefined | null | Date>(
     expressionA: T,
     operator: CompareOperator,
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends Date ? boolean : never);
-function compare<T extends undefined | null | number>(
+function compare<const T extends undefined | null | number>(
     expressionA: T,
     operator: ListOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends number ? boolean : never);
-function compare<T extends undefined | null | bigint>(
+function compare<const T extends undefined | null | bigint>(
     expressionA: T,
     operator: ListOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends bigint ? boolean : never);
-function compare<T extends undefined | null | Decimal>(
+function compare<const T extends undefined | null | Decimal>(
     expressionA: T,
     operator: ListOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends Decimal ? boolean : never);
-function compare<T extends undefined | null | string>(
+function compare<const T extends undefined | null | string>(
     expressionA: T,
     operator: ListOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends string ? boolean : never);
-function compare<T extends undefined | null | Date>(
+function compare<const T extends undefined | null | Date>(
     expressionA: T,
     operator: ListOperator,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends Date ? boolean : never);
 function compare<
-    T extends undefined | null | number | bigint | Decimal | string | Date
+    const T extends undefined | null | number | bigint | Decimal | string | Date
 >(
     expressionA: T,
     operator: ListWithSubQueryOperator,
@@ -274,57 +277,57 @@ function compare<
 ):
     | Extract<T, undefined | null>
     | (T extends number | bigint | Decimal | string | Date ? boolean : never);
-function compare<T extends undefined | null | string>(
+function compare<const T extends undefined | null | string>(
     expressionA: T,
     operator: 'like',
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends string ? boolean : never);
-function compare<T extends undefined | null | string>(
+function compare<const T extends undefined | null | string>(
     expressionA: T,
     operator: Exclude<LikeOperator, 'like'>,
-    expressions: readonly T[],
+    expressions: T[],
     _?: never
 ): Extract<T, undefined | null> | (T extends string ? boolean : never);
-function compare<T extends undefined | null | number>(
+function compare<const T extends undefined | null | number>(
     expression: T,
     operator: BetweenOperator,
     expressionStart: T,
     expressionEnd: T
 ): Extract<T, undefined | null> | (T extends number ? boolean : never);
-function compare<T extends undefined | null | bigint>(
+function compare<const T extends undefined | null | bigint>(
     expression: T,
     operator: BetweenOperator,
     expressionStart: T,
     expressionEnd: T
 ): Extract<T, undefined | null> | (T extends bigint ? boolean : never);
-function compare<T extends undefined | null | Decimal>(
+function compare<const T extends undefined | null | Decimal>(
     expression: T,
     operator: BetweenOperator,
     expressionStart: T,
     expressionEnd: T
 ): Extract<T, undefined | null> | (T extends Decimal ? boolean : never);
-function compare<T extends undefined | null | string>(
+function compare<const T extends undefined | null | string>(
     expression: T,
     operator: BetweenOperator,
     expressionStart: T,
     expressionEnd: T
 ): Extract<T, undefined | null> | (T extends string ? boolean : never);
-function compare<T extends undefined | null | Date>(
+function compare<const T extends undefined | null | Date>(
     expression: T,
     operator: BetweenOperator,
     expressionStart: T,
     expressionEnd: T
 ): Extract<T, undefined | null> | (T extends Date ? boolean : never);
-function compare<T extends undefined | null | Json>(
+function compare<const T extends undefined | null | Json>(
     expressionA: T,
     operator: '=' | '!=' | '@>' | '<@',
     expressionB: T,
     _?: never
 ): Extract<T, undefined | null> | (T extends Json ? boolean : never);
 function compare<
-    T extends undefined | null | Json,
-    B extends undefined | null | string
+    const T extends undefined | null | Json,
+    const B extends undefined | null | string
 >(
     expressionA: T,
     operator: '?',
@@ -335,18 +338,18 @@ function compare<
     | Extract<B, undefined | null>
     | (T extends Json ? (B extends string ? boolean : never) : never);
 function compare<
-    T extends undefined | null | Json,
-    B extends undefined | null | string
+    const T extends undefined | null | Json,
+    const B extends undefined | null | string
 >(
     expressionA: T,
     operator: '?&' | '?|',
-    expressions: readonly B[],
+    expressions: B[],
     _?: never
 ):
     | Extract<T, undefined | null>
     | Extract<B, undefined | null>
     | (T extends Json ? (B extends string ? boolean : never) : never);
-function compare<T extends undefined | null | Json>(
+function compare<const T extends undefined | null | Json>(
     expressionA: T,
     operator: '@@',
     expressions: string,
