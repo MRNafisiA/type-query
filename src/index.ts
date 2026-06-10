@@ -34,8 +34,10 @@ export {
 } from './resolve';
 export {
     createReference,
-    type Table,
     type Schema,
+    type SchemaByColumns,
+    type Table,
+    type Columns,
     type ColumnInfo,
     type GetColumnType,
     type BooleanColumn,

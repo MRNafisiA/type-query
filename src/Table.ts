@@ -1,16 +1,33 @@
 import Decimal from 'decimal.js';
 
-const createReference = <T extends Table<Schema>, C extends keyof T['columns']>(
+const createReference = <T extends Table, C extends keyof T['columns']>(
     reference: Reference<T, C>
 ) => reference as GetColumnType<T['columns'][C]>;
 
-type Table<S extends Schema = Schema> = {
-    schemaName: string;
-    tableName: string;
-    columns: S;
+type Schema = Record<
+    string,
+    {
+        type: unknown;
+        default: boolean;
+        nullable: boolean;
+    }
+>;
+
+type SchemaByColumns<C extends Columns> = {
+    [key in keyof C]: {
+        type: GetColumnType<C[key]>;
+        default: C[key]['default'];
+        nullable: C[key]['nullable'];
+    };
 };
 
-type Schema = Record<string, ColumnInfo>;
+type Table<C extends Columns = Columns> = {
+    schemaName: string;
+    tableName: string;
+    columns: C;
+};
+
+type Columns = Record<string, ColumnInfo>;
 
 type ColumnInfo = (
     | BooleanColumn
@@ -27,7 +44,7 @@ type ColumnInfo = (
         | { nullable: true; primary?: never }
     );
 
-type Reference<T extends Table<Schema>, C extends keyof T['columns']> = {
+type Reference<T extends Table, C extends keyof T['columns']> = {
     table: T;
     onUpdate?: ReferenceActions;
     onDelete?: ReferenceActions;
@@ -221,7 +238,9 @@ type PgType =
     | 'timestamptz'
     // json
     | 'json'
-    | 'jsonb';
+    | 'jsonb'
+    // custom
+    | `custom(${string})`;
 
 type NullableType<T, Nullable extends boolean> = Nullable extends true
     ? T | null
@@ -243,8 +262,10 @@ type BaseJsonValue =
 
 export { createReference };
 export type {
-    Table,
     Schema,
+    SchemaByColumns,
+    Table,
+    Columns,
     ColumnInfo,
     Reference,
     GetColumnType,

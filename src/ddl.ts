@@ -81,7 +81,9 @@ const generateCreateTableSQL = (
                           'custom('.length,
                           column.type.length - 1
                       )
-                    : Dictionary.PostgresType[column.type as PgType])
+                    : Dictionary.PostgresType[
+                          column.type as Exclude<PgType, `custom(${string})`>
+                      ])
         ];
 
         // default

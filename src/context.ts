@@ -1,7 +1,14 @@
 import * as U from './utils';
 import Decimal from 'decimal.js';
 import { Query } from './entity';
-import { GetColumnType, Json, NullableType, Schema, Table } from './Table';
+import {
+    Json,
+    Table,
+    Schema,
+    Columns,
+    NullableType,
+    SchemaByColumns
+} from './Table';
 import {
     LikeOperator,
     ListOperator,
@@ -17,7 +24,7 @@ type Context<S extends Schema = Schema> = {
     column: <C extends keyof S & string>(
         column: C,
         alias?: string
-    ) => NullableType<GetColumnType<S[C]>, S[C]['nullable']>;
+    ) => NullableType<S[C]['type'], S[C]['nullable']>;
     compare: <C extends keyof S & string>(
         column: C,
         ...args: ContextRule<S, C>
@@ -26,10 +33,10 @@ type Context<S extends Schema = Schema> = {
     columnsOr: (rules: ContextRules<S>, alias?: string) => boolean;
 };
 
-const createContext = <S extends Schema>(
-    table: Table<S>,
+const createContext = <C extends Columns>(
+    table: Table<C>,
     alias = ''
-): Context<S> => {
+): Context<SchemaByColumns<C>> => {
     const contextHelper = createContextHelper(table);
     return {
         column: (column, _alias = alias) =>
@@ -51,9 +58,9 @@ type ContextRules<S extends Schema> = {
 };
 type ContextRule<S extends Schema, C extends keyof S> =
     | (S[C]['nullable'] extends true ? [operator: NullOperator] : never)
-    | (GetColumnType<S[C]> extends boolean
+    | (S[C]['type'] extends boolean
           ? [operator: BooleanOperator]
-          : GetColumnType<S[C]> extends number
+          : S[C]['type'] extends number
             ?
                   | [
                         operator: CompareOperator,
@@ -75,7 +82,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                         startExpression: NullableType<number, S[C]['nullable']>,
                         endExpression: NullableType<number, S[C]['nullable']>
                     ]
-            : GetColumnType<S[C]> extends bigint
+            : S[C]['type'] extends bigint
               ?
                     | [
                           operator: CompareOperator,
@@ -100,7 +107,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                           >,
                           endExpression: NullableType<bigint, S[C]['nullable']>
                       ]
-              : GetColumnType<S[C]> extends Decimal
+              : S[C]['type'] extends Decimal
                 ?
                       | [
                             operator: CompareOperator,
@@ -128,7 +135,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                 S[C]['nullable']
                             >
                         ]
-                : GetColumnType<S[C]> extends string
+                : S[C]['type'] extends string
                   ?
                         | [
                               operator: CompareOperator | 'like',
@@ -156,7 +163,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                   S[C]['nullable']
                               >
                           ]
-                  : GetColumnType<S[C]> extends Date
+                  : S[C]['type'] extends Date
                     ?
                           | [
                                 operator: CompareOperator,
@@ -184,7 +191,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                     S[C]['nullable']
                                 >
                             ]
-                    : GetColumnType<S[C]> extends Json
+                    : S[C]['type'] extends Json
                       ?
                             | [
                                   operator: '=' | '!=' | '@>' | '<@',
@@ -202,10 +209,10 @@ type ContextRule<S extends Schema, C extends keyof S> =
                       : never);
 
 const createContextHelper =
-    <S extends Schema>(table: Table<S>) =>
-    (rules: ContextRules<S>, alias?: string): boolean[] =>
+    <C extends Columns>(table: Table<C>) =>
+    (rules: ContextRules<SchemaByColumns<C>>, alias?: string): boolean[] =>
         Object.entries(rules).map(
-            ([key, value]: [keyof S & string, unknown[] | undefined]) => {
+            ([key, value]: [keyof C & string, unknown[] | undefined]) => {
                 if (value === undefined) {
                     throw `undefined value is not allowed for ${key}`;
                 }

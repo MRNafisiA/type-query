@@ -15,6 +15,7 @@ import {
     createJoinSelectEntity,
     getTableDataOfJoinSelectColumn
 } from '../src/entity';
+import { SchemaByColumns } from '../src';
 
 const UserTable = createEntity({
     schemaName: 'public',
@@ -57,7 +58,7 @@ const UserTable = createEntity({
         }
     }
 }).table;
-type UserSchema = typeof UserTable.columns;
+type UserSchema = SchemaByColumns<typeof UserTable.columns>;
 const userContext = createContext(UserTable);
 
 const LaptopTable = createEntity({
@@ -68,7 +69,7 @@ const LaptopTable = createEntity({
         userID: { type: 'int2', nullable: false, default: false }
     }
 }).table;
-type LaptopSchema = typeof LaptopTable.columns;
+type LaptopSchema = SchemaByColumns<typeof LaptopTable.columns>;
 const lContext = createContext(LaptopTable, 'l');
 const uContext = createContext(UserTable, 'u');
 
