@@ -32,16 +32,28 @@ export {
     resolveReturning,
     resolveResult
 } from './resolve';
-export type {
-    Json,
-    JsonObject,
-    JsonArray,
-    BaseJsonValue,
-    NullableType,
-    Schema,
-    ColumnType,
-    ColumnDefault,
-    Table
+export {
+    createReference,
+    type Table,
+    type Schema,
+    type ColumnInfo,
+    type GetColumnType,
+    type BooleanColumn,
+    type Int2Int4Column,
+    type Int8Column,
+    type Float4Float8Column,
+    type DecimalColumn,
+    type CharVarcharTextUuidColumn,
+    type DateTimestampTimestamptzColumn,
+    type JsonJsonbColumn,
+    type CustomTypeColumn,
+    type ReferenceActions,
+    type PgType,
+    type NullableType,
+    type Json,
+    type JsonObject,
+    type JsonArray,
+    type BaseJsonValue
 } from './Table';
 export {
     type TestTableData,

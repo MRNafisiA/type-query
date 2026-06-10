@@ -1,15 +1,8 @@
-import { Table } from '../src/Table';
+import { createEntity } from '../src/entity';
 import { OperatorCode } from '../src/keywords';
 import { createContext, createContextHelper } from '../src/context';
 
-type UserSchema = {
-    id: {
-        type: number;
-        nullable: true;
-        default: false;
-    };
-};
-const UserTable: Table<UserSchema> = {
+const UserTable = createEntity({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -19,7 +12,7 @@ const UserTable: Table<UserSchema> = {
             default: false
         }
     }
-};
+}).table;
 
 describe('createContextHelper', () => {
     const contextHelper = createContextHelper(UserTable);

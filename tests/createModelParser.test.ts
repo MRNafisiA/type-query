@@ -1,153 +1,23 @@
 import Decimal from 'decimal.js';
-import { Json, Table } from '../src';
 import { err, ok } from 'never-catch';
+import { createEntity } from '../src/entity';
 import { Parser, createModelParser } from '../src/createModelParser';
 
-type TestSchema = {
-    customParser: {
-        type: 1 | 2;
-        nullable: false;
-        default: false;
-    };
-    customParserNullable: {
-        type: 1 | 2;
-        nullable: true;
-        default: false;
-    };
-    boolean: {
-        type: boolean;
-        nullable: false;
-        default: false;
-    };
-    int2_withMin: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    int2_withMax: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    int2_null: {
-        type: number;
-        nullable: true;
-        default: false;
-    };
-    int4_withMin: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    int4_withMax: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    int4_null: {
-        type: number;
-        nullable: true;
-        default: false;
-    };
-    int8_withMin: {
-        type: bigint;
-        nullable: false;
-        default: false;
-    };
-    int8_withMax: {
-        type: bigint;
-        nullable: false;
-        default: false;
-    };
-    int8_null: {
-        type: bigint;
-        nullable: true;
-        default: false;
-    };
-    float4And8_withMin: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    float4And8_withMax: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    float4And8_null: {
-        type: number;
-        nullable: true;
-        default: false;
-    };
-    decimal_precision: {
-        type: Decimal;
-        nullable: false;
-        default: false;
-    };
-    decimal_scale: {
-        type: Decimal;
-        nullable: false;
-        default: false;
-    };
-    decimal_withMin: {
-        type: Decimal;
-        nullable: false;
-        default: false;
-    };
-    decimal_withMax: {
-        type: Decimal;
-        nullable: false;
-        default: false;
-    };
-    decimal_null: {
-        type: Decimal;
-        nullable: true;
-        default: false;
-    };
-    charAndVarcharAndTextAndUUID_withMinLength: {
-        type: string;
-        nullable: false;
-        default: false;
-    };
-    charAndVarcharAndTextAndUUID_withMaxLengthAndRegex: {
-        type: string;
-        nullable: false;
-        default: false;
-    };
-    charAndVarcharAndTextAndUUID_null: {
-        type: string;
-        nullable: true;
-        default: false;
-    };
-    date: {
-        type: Date;
-        nullable: false;
-        default: false;
-    };
-    timestampAndTimestamptz: {
-        type: Date;
-        nullable: false;
-        default: false;
-    };
-    jsonAndJsonb: {
-        type: Json;
-        nullable: false;
-        default: false;
-    };
-};
-const TestTable: Table<TestSchema> = {
+const TestTable = createEntity({
     schemaName: 'public',
     tableName: 'test',
     columns: {
         customParser: {
             type: 'int2',
             nullable: false,
-            default: false
+            default: false,
+            narrowType: undefined as unknown as 1 | 2
         },
         customParserNullable: {
             type: 'int2',
             nullable: true,
-            default: false
+            default: false,
+            narrowType: undefined as unknown as 1 | 2
         },
         boolean: {
             type: 'boolean',
@@ -293,7 +163,7 @@ const TestTable: Table<TestSchema> = {
             default: false
         }
     }
-};
+}).table;
 const TestModelParser = createModelParser(TestTable, {
     parsers: {
         customParser: v => (v === 1 || v === 2 ? v : undefined)
@@ -834,19 +704,7 @@ describe('createModelUtils', () => {
             });
         });
         describe('custom error', () => {
-            type UserSchema = {
-                id: {
-                    type: number;
-                    nullable: false;
-                    default: false;
-                };
-                username: {
-                    type: string;
-                    nullable: false;
-                    default: false;
-                };
-            };
-            const UserTable: Table<UserSchema> = {
+            const User = createEntity({
                 schemaName: 'public',
                 tableName: 'user',
                 columns: {
@@ -862,8 +720,8 @@ describe('createModelUtils', () => {
                         default: false
                     }
                 }
-            };
-            const UserModelParser = createModelParser(UserTable, {
+            });
+            const UserModelParser = createModelParser(User.table, {
                 errorsMap: {
                     id: [1],
                     username: [2]

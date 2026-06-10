@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Table } from '../src';
+import { createEntity } from '../src';
 import {
     isEqual,
     isRowEqual,
@@ -7,19 +7,7 @@ import {
     createTestTableData
 } from '../src/testTransaction';
 
-type UserSchema = {
-    id: {
-        type: number;
-        nullable: false;
-        default: true;
-    };
-    username: {
-        type: string;
-        nullable: true;
-        default: false;
-    };
-};
-const UserTable: Table<UserSchema> = {
+const UserTable = createEntity({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -35,7 +23,7 @@ const UserTable: Table<UserSchema> = {
             default: false
         }
     }
-};
+}).table;
 
 describe('testTransaction', () => {
     test('init db fails', async () => {

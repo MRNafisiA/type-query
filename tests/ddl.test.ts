@@ -1,4 +1,5 @@
-import { Table } from '../src';
+import { createEntity } from '../src/entity';
+import { createReference } from '../src/Table';
 import {
     getSequenceName,
     generateDropTableSQL,
@@ -7,14 +8,7 @@ import {
     generateCreateSequencesSQL
 } from '../src/ddl';
 
-type UserGroupSchema = {
-    id: {
-        type: number;
-        nullable: false;
-        default: true;
-    };
-};
-const UserGroupTable: Table<UserGroupSchema> = {
+const UserGroupTable = createEntity({
     schemaName: 'public',
     tableName: 'user_group',
     columns: {
@@ -25,41 +19,9 @@ const UserGroupTable: Table<UserGroupSchema> = {
             defaultValue: ['auto-increment']
         }
     }
-};
+}).table;
 
-type UserSchema = {
-    id: {
-        type: number;
-        nullable: false;
-        default: true;
-    };
-    userGroupID: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    username: {
-        type: string;
-        nullable: true;
-        default: false;
-    };
-    level: {
-        type: number;
-        nullable: false;
-        default: true;
-    };
-    code: {
-        type: bigint;
-        nullable: false;
-        default: true;
-    };
-    dateRange: {
-        type: [Date, Date];
-        nullable: false;
-        default: false;
-    };
-};
-const UserTable: Table<UserSchema> = {
+const UserTable = createEntity({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -75,11 +37,11 @@ const UserTable: Table<UserSchema> = {
             type: 'int2',
             nullable: false,
             default: false,
-            reference: {
+            reference: createReference({
                 table: UserGroupTable,
                 column: 'id',
                 onDelete: 'cascade'
-            }
+            })
         },
         username: {
             type: 'varchar',
@@ -102,10 +64,11 @@ const UserTable: Table<UserSchema> = {
         dateRange: {
             type: 'custom(DateRange)',
             nullable: false,
-            default: false
+            default: false,
+            narrowType: undefined as unknown as [Date, Date]
         }
     }
-};
+}).table;
 
 describe('generateCreateSequencesSQL', () => {
     describe('applyIfNotExist: false', () => {

@@ -1,5 +1,5 @@
-import { Table, PgType } from './Table';
 import { Dictionary } from './keywords';
+import { Table, PgType, Reference } from './Table';
 
 const generateCreateSequencesSQL = (
     table: Table,
@@ -112,18 +112,19 @@ const generateCreateTableSQL = (
         tokens.push(column.nullable ? 'NULL' : 'NOT NULL');
 
         // reference
-        if (column.reference !== undefined) {
+        const reference = column.reference as Reference<Table, string>;
+        if (reference !== undefined) {
             tokens.push(
-                `REFERENCES "${column.reference.table.schemaName}"."${column.reference.table.tableName}"` +
+                `REFERENCES "${reference.table.schemaName}"."${reference.table.tableName}"` +
                     `("${
-                        column.reference.table.columns[column.reference.column]
-                            .title ?? column.reference.column
+                        reference.table.columns[reference.column].title ??
+                        reference.column
                     }") ` +
                     `ON UPDATE ${
                         Dictionary.ReferenceAction[
-                            column.reference.onUpdate ?? 'no-action'
+                            reference.onUpdate ?? 'no-action'
                         ]
-                    } ON DELETE ${Dictionary.ReferenceAction[column.reference.onDelete ?? 'no-action']}`
+                    } ON DELETE ${Dictionary.ReferenceAction[reference.onDelete ?? 'no-action']}`
             );
         }
 

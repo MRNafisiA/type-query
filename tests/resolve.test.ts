@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js';
 import * as U from '../src/utils';
 import { err, ok } from 'never-catch';
-import { Schema, Table } from '../src/Table';
+import { Schema } from '../src/Table';
 import { Query, createEntity } from '../src/entity';
 import {
     partialQuery,
@@ -11,14 +11,7 @@ import {
     resolveExpression
 } from '../src/resolve';
 
-type UserSchema = {
-    id: {
-        type: number;
-        nullable: true;
-        default: false;
-    };
-};
-const UserTable: Table<UserSchema> = {
+const UserTable = createEntity({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -29,7 +22,7 @@ const UserTable: Table<UserSchema> = {
             title: 'ID'
         }
     }
-};
+}).table;
 const User = createEntity(UserTable);
 
 test('partialQuery', () => {

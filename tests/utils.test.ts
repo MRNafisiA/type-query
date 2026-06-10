@@ -1,13 +1,14 @@
 import Decimal from 'decimal.js';
-import { Query } from '../src/entity';
-import { Schema, Table } from '../src/Table';
+import { Schema } from '../src/Table';
 import { OperatorCode } from '../src/keywords';
+import { createEntity, Query } from '../src/entity';
 import {
     or,
     and,
     fun,
     not,
     raw,
+    cons,
     json,
     value,
     column,
@@ -18,8 +19,7 @@ import {
     stringify,
     arithmetic,
     switchCase,
-    subQueryExist,
-    cons
+    subQueryExist
 } from '../src/utils';
 
 test('value', () => {
@@ -86,13 +86,7 @@ test('concat', () => {
 });
 
 test('column', () => {
-    const UserTable: Table<{
-        id: {
-            type: number;
-            nullable: false;
-            default: false;
-        };
-    }> = {
+    const UserTable = createEntity({
         schemaName: 'public',
         tableName: 'user',
         columns: {
@@ -103,7 +97,7 @@ test('column', () => {
                 title: 'userID'
             }
         }
-    };
+    }).table;
     const result = column(UserTable, 'id', true, 'B');
 
     expect(result).toStrictEqual([OperatorCode.Column, '"B"."userID"']);

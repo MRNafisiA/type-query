@@ -1,6 +1,5 @@
 import { ClientBase } from 'pg';
 import * as U from '../src/utils';
-import { Table } from '../src/Table';
 import { err, ok } from 'never-catch';
 import { Context, createContext } from '../src/context';
 import {
@@ -17,39 +16,7 @@ import {
     getTableDataOfJoinSelectColumn
 } from '../src/entity';
 
-type UserSchema = {
-    id: {
-        type: number;
-        nullable: false;
-        default: true;
-    };
-    username: {
-        type: string;
-        nullable: false;
-        default: false;
-    };
-    email: {
-        type: string;
-        nullable: true;
-        default: false;
-    };
-    level: {
-        type: number;
-        nullable: true;
-        default: true;
-    };
-    createdAt: {
-        type: Date;
-        nullable: false;
-        default: true;
-    };
-    isAdmin: {
-        type: boolean;
-        nullable: false;
-        default: true;
-    };
-};
-const UserTable: Table<UserSchema> = {
+const UserTable = createEntity({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -89,29 +56,19 @@ const UserTable: Table<UserSchema> = {
             defaultValue: ['js', true]
         }
     }
-};
+}).table;
+type UserSchema = typeof UserTable.columns;
 const userContext = createContext(UserTable);
 
-type LaptopSchema = {
-    id: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-    userID: {
-        type: number;
-        nullable: false;
-        default: false;
-    };
-};
-const LaptopTable: Table<LaptopSchema> = {
+const LaptopTable = createEntity({
     schemaName: 'public',
     tableName: 'laptop',
     columns: {
         id: { type: 'int2', nullable: false, default: false },
         userID: { type: 'int2', nullable: false, default: false }
     }
-};
+}).table;
+type LaptopSchema = typeof LaptopTable.columns;
 const lContext = createContext(LaptopTable, 'l');
 const uContext = createContext(UserTable, 'u');
 
@@ -558,24 +515,7 @@ describe('createUpdateQuery', () => {
         });
     });
     test('ok', () => {
-        type JobSchema = {
-            id: {
-                type: number;
-                nullable: false;
-                default: false;
-            };
-            title: {
-                type: string;
-                nullable: false;
-                default: false;
-            };
-            updatedAt: {
-                type: Date;
-                nullable: false;
-                default: true;
-            };
-        };
-        const JobTable: Table<JobSchema> = {
+        const JobTable = createEntity({
             schemaName: 'public',
             tableName: 'job',
             columns: {
@@ -596,7 +536,7 @@ describe('createUpdateQuery', () => {
                     defaultValue: ['updated-at']
                 }
             }
-        };
+        }).table;
         jest.useFakeTimers().setSystemTime(new Date(1));
 
         const result = createUpdateQuery(
@@ -1041,19 +981,7 @@ describe('createJoinSelectEntity', () => {
         { uContext, lContext }
     );
 
-    type MonitorSchema = {
-        laptopID: {
-            type: number;
-            nullable: false;
-            default: false;
-        };
-        model: {
-            type: string;
-            nullable: false;
-            default: false;
-        };
-    };
-    const MonitorTable: Table<MonitorSchema> = {
+    const MonitorTable = createEntity({
         schemaName: 'public',
         tableName: 'monitor',
         columns: {
@@ -1068,7 +996,7 @@ describe('createJoinSelectEntity', () => {
                 default: false
             }
         }
-    };
+    }).table;
 
     test('select', () => {
         const result = UserJoin.select(
@@ -1106,14 +1034,7 @@ describe('createJoinSelectEntity', () => {
 });
 
 describe('getTableDataOfJoinSelectColumn', () => {
-    type PhoneSchema = {
-        phone_id: {
-            type: number;
-            nullable: false;
-            default: false;
-        };
-    };
-    const PhoneTable: Table<PhoneSchema> = {
+    const PhoneTable = createEntity({
         schemaName: 'public',
         tableName: 'phone',
         columns: {
@@ -1123,7 +1044,7 @@ describe('getTableDataOfJoinSelectColumn', () => {
                 default: false
             }
         }
-    };
+    }).table;
 
     test('no separator', () => {
         expect(() => getTableDataOfJoinSelectColumn([], 'a')).toThrow(

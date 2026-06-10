@@ -1,18 +1,204 @@
 import Decimal from 'decimal.js';
 
-type Json = JsonObject | JsonArray;
-type JsonObject = {
-    [key: number | string]: BaseJsonValue;
+const createReference = <T extends Table<Schema>, C extends keyof T['columns']>(
+    reference: Reference<T, C>
+) => reference as GetColumnType<T['columns'][C]>;
+
+type Table<S extends Schema = Schema> = {
+    schemaName: string;
+    tableName: string;
+    columns: S;
 };
-type JsonArray = BaseJsonValue[];
-type BaseJsonValue =
-    | undefined
-    | null
-    | boolean
-    | number
-    | string
-    | JsonObject
-    | JsonArray;
+
+type Schema = Record<string, ColumnInfo>;
+
+type ColumnInfo = (
+    | BooleanColumn
+    | Int2Int4Column
+    | Int8Column
+    | Float4Float8Column
+    | DecimalColumn
+    | CharVarcharTextUuidColumn
+    | DateTimestampTimestamptzColumn
+    | JsonJsonbColumn
+    | CustomTypeColumn
+) & { title?: string } & (
+        | { nullable: false; primary?: true | never }
+        | { nullable: true; primary?: never }
+    );
+
+type Reference<T extends Table<Schema>, C extends keyof T['columns']> = {
+    table: T;
+    onUpdate?: ReferenceActions;
+    onDelete?: ReferenceActions;
+    column: C;
+};
+
+type GetColumnType<CI extends ColumnInfo> =
+    CI extends BooleanColumn<infer U>
+        ? U
+        : CI extends Int2Int4Column<infer U>
+          ? U
+          : CI extends Int8Column<infer U>
+            ? U
+            : CI extends Float4Float8Column<infer U>
+              ? U
+              : CI extends DecimalColumn<infer U>
+                ? U
+                : CI extends CharVarcharTextUuidColumn<infer U>
+                  ? U
+                  : CI extends DateTimestampTimestamptzColumn<infer U>
+                    ? U
+                    : CI extends JsonJsonbColumn<infer U>
+                      ? U
+                      : CI extends CustomTypeColumn<infer U>
+                        ? U
+                        : never;
+
+type BooleanColumn<NT extends boolean = boolean> = {
+    type: 'boolean';
+    narrowType?: NT;
+    reference?: NT;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', boolean];
+      }
+);
+
+type Int2Int4Column<NT extends number = number> = {
+    type: 'int2' | 'int4';
+    narrowType?: NT;
+    reference?: NT;
+    min?: number;
+    max?: number;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', number];
+          sequenceTitle?: never;
+      }
+    | {
+          default: true;
+          defaultValue: ['auto-increment'];
+          sequenceTitle?: string;
+      }
+);
+
+type Int8Column<NT extends bigint = bigint> = {
+    type: 'int8';
+    narrowType?: NT;
+    reference?: NT;
+    min?: bigint;
+    max?: bigint;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', bigint];
+          sequenceTitle?: never;
+      }
+    | {
+          default: true;
+          defaultValue: ['auto-increment'];
+          sequenceTitle?: string;
+      }
+);
+
+type Float4Float8Column<NT extends number = number> = {
+    type: 'float4' | 'float8';
+    narrowType?: NT;
+    reference?: NT;
+    min?: number;
+    max?: number;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', number];
+      }
+);
+
+type DecimalColumn<NT extends Decimal = Decimal> = {
+    type: 'decimal';
+    narrowType?: NT;
+    reference?: NT;
+    precision: number;
+    scale: number;
+    min?: Decimal;
+    max?: Decimal;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', Decimal];
+      }
+);
+
+type CharVarcharTextUuidColumn<NT extends string = string> = {
+    type: 'char' | 'varchar' | 'text' | 'uuid';
+    narrowType?: NT;
+    reference?: NT;
+    minLength?: number;
+    maxLength?: number;
+    regex?: RegExp;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', string];
+      }
+);
+
+type DateTimestampTimestamptzColumn<NT extends Date = Date> = {
+    type: 'date' | 'timestamp' | 'timestamptz';
+    narrowType?: NT;
+    reference?: NT;
+    length?: number;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue:
+              | ['sql', string]
+              | ['js', Date]
+              | ['created-at']
+              | ['updated-at'];
+      }
+);
+
+type JsonJsonbColumn<NT extends Json = Json> = {
+    type: 'json' | 'jsonb';
+    reference?: NT;
+    narrowType?: NT;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', Json];
+      }
+);
+
+type CustomTypeColumn<NT = unknown> = {
+    type: `custom(${string})`;
+    reference?: NT;
+    narrowType: NT;
+} & (
+    | { default: false }
+    | {
+          default: true;
+          defaultValue: ['sql', string] | ['js', NT];
+      }
+);
+
+type ReferenceActions =
+    | 'no-action'
+    | 'restrict'
+    | 'set-null'
+    | 'set-Default'
+    | 'cascade';
 
 type PgType =
     | 'boolean'
@@ -41,137 +227,41 @@ type NullableType<T, Nullable extends boolean> = Nullable extends true
     ? T | null
     : T;
 
-type ReferenceActions =
-    | 'no-action'
-    | 'restrict'
-    | 'set-null'
-    | 'set-Default'
-    | 'cascade';
-
-type Schema = Record<
-    string,
-    {
-        type: unknown;
-        default: boolean;
-        nullable: boolean;
-    }
->;
-
-type ColumnType<
-    S extends Schema,
-    key extends keyof S
-> = S[key]['type'] extends number
-    ? {
-          type: 'int2' | 'int4' | 'float4' | 'float8';
-          min?: number;
-          max?: number;
-      }
-    : S[key]['type'] extends bigint
-      ? {
-            type: 'int8';
-            min?: bigint;
-            max?: bigint;
-        }
-      : S[key]['type'] extends Decimal
-        ? {
-              type: 'decimal';
-              precision: number;
-              scale: number;
-              min?: Decimal;
-              max?: Decimal;
-          }
-        : S[key]['type'] extends string
-          ? {
-                type: 'char' | 'varchar' | 'text' | 'uuid';
-                minLength?: number;
-                maxLength?: number;
-                regex?: RegExp;
-            }
-          : S[key]['type'] extends Date
-            ? {
-                  type: 'date' | 'timestamp' | 'timestamptz';
-                  length?: number;
-              }
-            : S[key]['type'] extends boolean
-              ? {
-                    type: 'boolean';
-                }
-              : S[key]['type'] extends Json
-                ? {
-                      type: 'json' | 'jsonb';
-                  }
-                : {
-                      type: `custom(${string})`;
-                  };
-type ColumnDefault<
-    S extends Schema,
-    key extends keyof S
-> = S[key]['default'] extends true
-    ? {
-          default: true;
-      } & (S[key]['type'] extends number
-          ?
-                | {
-                      defaultValue: ['sql', string] | ['js', S[key]['type']];
-                      sequenceTitle?: never;
-                  }
-                | {
-                      defaultValue: ['auto-increment'];
-                      sequenceTitle?: string;
-                  }
-          : S[key]['type'] extends bigint
-            ?
-                  | {
-                        defaultValue: ['sql', string] | ['js', S[key]['type']];
-                        sequenceTitle?: never;
-                    }
-                  | {
-                        defaultValue: ['auto-increment'];
-                        sequenceTitle?: string;
-                    }
-            : S[key]['type'] extends Date
-              ? {
-                    defaultValue:
-                        | ['created-at']
-                        | ['updated-at']
-                        | ['sql', string]
-                        | ['js', S[key]['type']];
-                }
-              : {
-                    defaultValue: ['sql', string] | ['js', S[key]['type']];
-                })
-    : {
-          default: false;
-      };
-type Table<S extends Schema = Schema> = {
-    schemaName: string;
-    tableName: string;
-    columns: {
-        [key in keyof S]: ColumnType<S, key> &
-            ColumnDefault<S, key> & {
-                nullable: S[key]['nullable'];
-                title?: string;
-                primary?: S[key]['nullable'] extends false ? true : never;
-                reference?: {
-                    table: Table;
-                    onUpdate?: ReferenceActions;
-                    onDelete?: ReferenceActions;
-                    column: string;
-                };
-            };
-    };
+type Json = JsonObject | JsonArray;
+type JsonObject = {
+    [key: number | string]: BaseJsonValue;
 };
+type JsonArray = BaseJsonValue[];
+type BaseJsonValue =
+    | undefined
+    | null
+    | boolean
+    | number
+    | string
+    | JsonObject
+    | JsonArray;
 
+export { createReference };
 export type {
+    Table,
+    Schema,
+    ColumnInfo,
+    Reference,
+    GetColumnType,
+    BooleanColumn,
+    Int2Int4Column,
+    Int8Column,
+    Float4Float8Column,
+    DecimalColumn,
+    CharVarcharTextUuidColumn,
+    DateTimestampTimestamptzColumn,
+    JsonJsonbColumn,
+    CustomTypeColumn,
+    ReferenceActions,
+    PgType,
+    NullableType,
     Json,
     JsonObject,
     JsonArray,
-    BaseJsonValue,
-    PgType,
-    NullableType,
-    ReferenceActions,
-    Schema,
-    ColumnType,
-    ColumnDefault,
-    Table
+    BaseJsonValue
 };

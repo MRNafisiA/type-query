@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js';
 import { Query } from './entity';
 import { resolveColumn } from './resolve';
-import { Json, NullableType, Schema, Table } from './Table';
+import { GetColumnType, Json, NullableType, Schema, Table } from './Table';
 import {
     OperatorMap,
     JsonOperator,
@@ -164,10 +164,11 @@ const column = <S extends Schema, C extends keyof S & string>(
     column: C,
     full?: boolean,
     alias?: string
-): NullableType<S[C]['type'], S[C]['nullable']> => [
-    OperatorCode.Column,
-    resolveColumn(table, column, full, alias)
-];
+) =>
+    [
+        OperatorCode.Column,
+        resolveColumn(table, column, full, alias)
+    ] as NullableType<GetColumnType<S[C]>, S[C]['nullable']>;
 
 const raw = <const T>(
     textOrGet:

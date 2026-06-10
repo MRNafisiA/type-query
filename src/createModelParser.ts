@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js';
 import { err, ok, Result } from 'never-catch';
-import { NullableType, PgType, Schema, Table, Json } from './Table';
+import { Json, Table, Schema, NullableType, GetColumnType } from './Table';
 
 const Int2Range = {
     min: -32768,
@@ -206,8 +206,8 @@ const Parser = {
 
 type ModelHelper<S extends Schema, NotNull extends keyof S> = {
     [key in keyof S & string]: key extends NotNull
-        ? S[key]['type']
-        : NullableType<S[key]['type'], S[key]['nullable']>;
+        ? GetColumnType<S[key]>
+        : NullableType<GetColumnType<S[key]>, S[key]['nullable']>;
 };
 
 type Model<
@@ -253,7 +253,7 @@ type ModelParser<
 } & {
     [key in keyof S & string]: (
         v: unknown
-    ) => NullableType<S[key]['type'], S[key]['nullable']> | undefined;
+    ) => NullableType<GetColumnType<S[key]>, S[key]['nullable']> | undefined;
 };
 
 const createModelParser = <
@@ -266,8 +266,10 @@ const createModelParser = <
     { parsers, errorsMap } = {} as {
         parsers?: {
             [key in keyof S & string]?: (
-                v: NullableType<S[key]['type'], S[key]['nullable']>
-            ) => NullableType<S[key]['type'], S[key]['nullable']> | undefined;
+                v: NullableType<GetColumnType<S[key]>, S[key]['nullable']>
+            ) =>
+                | NullableType<GetColumnType<S[key]>, S[key]['nullable']>
+                | undefined;
         };
         errorsMap?: EMap;
     }
@@ -276,7 +278,7 @@ const createModelParser = <
         Object.fromEntries(
             Object.entries(columns).map(([key, column]) => {
                 let defaultParser;
-                switch (column.type as PgType) {
+                switch (column.type) {
                     case 'boolean':
                         defaultParser = Parser.boolean;
                         break;
@@ -358,11 +360,9 @@ const createModelParser = <
                                     _v.comparedTo(column.min) >= 0) &&
                                 (column.max === undefined ||
                                     _v.comparedTo(column.max) <= 0) &&
-                                _v.decimalPlaces() <=
-                                    (column as Record<'scale', number>).scale &&
+                                _v.decimalPlaces() <= column.scale &&
                                 _v.precision() - _v.decimalPlaces() <=
-                                    (column as Record<'precision', number>)
-                                        .precision
+                                    column.precision
                             ) {
                                 return _v;
                             }
@@ -403,6 +403,8 @@ const createModelParser = <
                     case 'jsonb':
                         defaultParser = Parser.json;
                         break;
+                    default:
+                        defaultParser = (v: unknown) => v;
                 }
 
                 const customParser = parsers?.[key];
@@ -417,7 +419,12 @@ const createModelParser = <
                               if (_v === undefined) {
                                   return undefined;
                               }
-                              return customParser(_v);
+                              return customParser(
+                                  _v as NullableType<
+                                      GetColumnType<S[string]>,
+                                      S[string]['nullable']
+                                  >
+                              );
                           }
                         : (v: unknown) =>
                               defaultParser(v, columns[key].nullable)

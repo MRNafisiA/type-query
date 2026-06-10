@@ -1,7 +1,7 @@
 import * as U from './utils';
 import Decimal from 'decimal.js';
 import { Query } from './entity';
-import { Json, NullableType, Schema, Table } from './Table';
+import { GetColumnType, Json, NullableType, Schema, Table } from './Table';
 import {
     LikeOperator,
     ListOperator,
@@ -17,7 +17,7 @@ type Context<S extends Schema = Schema> = {
     column: <C extends keyof S & string>(
         column: C,
         alias?: string
-    ) => NullableType<S[C]['type'], S[C]['nullable']>;
+    ) => NullableType<GetColumnType<S[C]>, S[C]['nullable']>;
     compare: <C extends keyof S & string>(
         column: C,
         ...args: ContextRule<S, C>
@@ -51,9 +51,9 @@ type ContextRules<S extends Schema> = {
 };
 type ContextRule<S extends Schema, C extends keyof S> =
     | (S[C]['nullable'] extends true ? [operator: NullOperator] : never)
-    | (S[C]['type'] extends boolean
+    | (GetColumnType<S[C]> extends boolean
           ? [operator: BooleanOperator]
-          : S[C]['type'] extends number
+          : GetColumnType<S[C]> extends number
             ?
                   | [
                         operator: CompareOperator,
@@ -75,7 +75,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                         startExpression: NullableType<number, S[C]['nullable']>,
                         endExpression: NullableType<number, S[C]['nullable']>
                     ]
-            : S[C]['type'] extends bigint
+            : GetColumnType<S[C]> extends bigint
               ?
                     | [
                           operator: CompareOperator,
@@ -100,7 +100,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                           >,
                           endExpression: NullableType<bigint, S[C]['nullable']>
                       ]
-              : S[C]['type'] extends Decimal
+              : GetColumnType<S[C]> extends Decimal
                 ?
                       | [
                             operator: CompareOperator,
@@ -128,7 +128,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                 S[C]['nullable']
                             >
                         ]
-                : S[C]['type'] extends string
+                : GetColumnType<S[C]> extends string
                   ?
                         | [
                               operator: CompareOperator | 'like',
@@ -156,7 +156,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                   S[C]['nullable']
                               >
                           ]
-                  : S[C]['type'] extends Date
+                  : GetColumnType<S[C]> extends Date
                     ?
                           | [
                                 operator: CompareOperator,
@@ -184,7 +184,7 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                     S[C]['nullable']
                                 >
                             ]
-                    : S[C]['type'] extends Json
+                    : GetColumnType<S[C]> extends Json
                       ?
                             | [
                                   operator: '=' | '!=' | '@>' | '<@',

@@ -1,6 +1,6 @@
 import { err, ok } from 'never-catch';
 import { Pool, PoolClient } from 'pg';
-import { NullableType, Schema, Table } from './Table';
+import { GetColumnType, NullableType, Schema, Table } from './Table';
 import { createEntity, NullableAndDefaultColumns } from './entity';
 import { transaction, TransactionIsolationLevel } from './transaction';
 import { generateCreateSequencesSQL, generateCreateTableSQL } from './ddl';
@@ -9,23 +9,23 @@ type TestTableData<S extends Schema = Schema> = {
     table: Table<S>;
     startData: ({
         [key in Exclude<keyof S, NullableAndDefaultColumns<S>>]: NullableType<
-            S[key]['type'],
+            GetColumnType<S[key]>,
             S[key]['nullable']
         >;
     } & {
         [key in NullableAndDefaultColumns<S>]?: NullableType<
-            S[key]['type'],
+            GetColumnType<S[key]>,
             S[key]['nullable']
         >;
     })[];
     finalData: {
         [key in keyof S & string]:
-            | NullableType<S[key]['type'], S[key]['nullable']>
+            | NullableType<GetColumnType<S[key]>, S[key]['nullable']>
             | ((
-                  cell: NullableType<S[key]['type'], S[key]['nullable']>,
+                  cell: NullableType<GetColumnType<S[key]>, S[key]['nullable']>,
                   rows: {
                       [key in keyof S & string]: NullableType<
-                          S[key]['type'],
+                          GetColumnType<S[key]>,
                           S[key]['nullable']
                       >;
                   }[],

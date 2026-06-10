@@ -3,7 +3,7 @@ import { ClientBase } from 'pg';
 import { Dictionary } from './keywords';
 import { err, ok, Result } from 'never-catch';
 import { Context, createContext } from './context';
-import { NullableType, Schema, Table } from './Table';
+import { GetColumnType, NullableType, Schema, Table } from './Table';
 import {
     resolveColumn,
     resolveResult,
@@ -369,10 +369,10 @@ type InsertingRow<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
         ? never
         : key]: key extends NullableAndDefaultColumns<S>
         ? never
-        : S[key & string]['type'];
+        : GetColumnType<S[key & string]>;
 } & {
     [key in N]?: NullableType<
-        S[key & string]['type'],
+        GetColumnType<S[key & string]>,
         S[key & string]['nullable']
     >;
 };
@@ -416,7 +416,7 @@ const createInsertQuery = (
         const rowTokens = [];
         for (const insertingColumn of insertingColumns) {
             if (_row[insertingColumn] === undefined) {
-                const column = table.columns[insertingColumn] as unknown as {
+                const column = table.columns[insertingColumn] as {
                     nullable: boolean;
                     defaultValue:
                         | undefined
@@ -499,7 +499,7 @@ const createInsertQuery = (
 
 // update
 type UpdateSets<S extends Schema = Schema> = {
-    [key in keyof S]?: NullableType<S[key]['type'], S[key]['nullable']>;
+    [key in keyof S]?: NullableType<GetColumnType<S[key]>, S[key]['nullable']>;
 };
 
 const createUpdateQuery = (
@@ -1091,7 +1091,10 @@ type QueryResultRow<
         ? T
         : key]: key extends CustomColumn<infer T, string>
         ? T
-        : NullableType<S[key & string]['type'], S[key & string]['nullable']>;
+        : NullableType<
+              GetColumnType<S[key & string]>,
+              S[key & string]['nullable']
+          >;
 };
 type ReturningRow = string | CustomColumn<unknown, string>;
 
