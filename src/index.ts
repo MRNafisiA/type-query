@@ -35,6 +35,7 @@ export {
 } from './resolve';
 export {
     createReference,
+    createTable,
     type Schema,
     type SchemaByColumns,
     type Table,
