@@ -1,38 +1,16 @@
 import Decimal from 'decimal.js';
 
-const createReference = <
-    T extends Table<Columns>,
-    C extends keyof T['columns']
->(
+const createReference = <T extends Table<Schema>, C extends keyof T['columns']>(
     reference: Reference<T, C>
 ) => reference as GetColumnType<T['columns'][C]>;
 
-type Schema = Record<
-    string,
-    {
-        type: unknown;
-        default: boolean;
-        nullable: boolean;
-    }
->;
-
-type SchemaByColumns<C extends Columns> = {
-    [key in keyof C]: {
-        type: GetColumnType<C[key]>;
-        default: C[key]['default'];
-        nullable: C[key]['nullable'];
-    };
-};
-
-const createTable = <C extends Columns>(table: Table<C>) => table;
-
-type Table<C extends Columns> = {
+type Table<S extends Schema> = {
     schemaName: string;
     tableName: string;
-    columns: C;
+    columns: S;
 };
 
-type Columns = Record<string, ColumnInfo>;
+type Schema = Record<string, ColumnInfo>;
 
 type ColumnInfo = (
     | BooleanColumn
@@ -49,7 +27,7 @@ type ColumnInfo = (
         | { nullable: true; primary?: never }
     );
 
-type Reference<T extends Table<Columns>, C extends keyof T['columns']> = {
+type Reference<T extends Table<Schema>, C extends keyof T['columns']> = {
     table: T;
     onUpdate?: ReferenceActions;
     onDelete?: ReferenceActions;
@@ -267,12 +245,10 @@ type BaseJsonValue =
     | JsonObject
     | JsonArray;
 
-export { createReference, createTable };
+export { createReference };
 export type {
-    Schema,
-    SchemaByColumns,
     Table,
-    Columns,
+    Schema,
     ColumnInfo,
     Reference,
     GetColumnType,

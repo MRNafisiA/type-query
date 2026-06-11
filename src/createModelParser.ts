@@ -1,14 +1,6 @@
 import Decimal from 'decimal.js';
 import { err, ok, Result } from 'never-catch';
-import {
-    Json,
-    Table,
-    Schema,
-    Columns,
-    NullableType,
-    GetColumnType,
-    SchemaByColumns
-} from './Table';
+import { Json, Table, Schema, NullableType, GetColumnType } from './Table';
 
 const Int2Range = {
     min: -32768,
@@ -214,8 +206,8 @@ const Parser = {
 
 type ModelHelper<S extends Schema, NotNull extends keyof S> = {
     [key in keyof S & string]: key extends NotNull
-        ? S[key]['type']
-        : NullableType<S[key]['type'], S[key]['nullable']>;
+        ? GetColumnType<S[key]>
+        : NullableType<GetColumnType<S[key]>, S[key]['nullable']>;
 };
 
 type Model<
@@ -265,23 +257,23 @@ type ModelParser<
 };
 
 const createModelParser = <
-    C extends Columns,
-    const EMap extends { [key in keyof C & string]: unknown } = {
-        [key in keyof C & string]: key;
+    S extends Schema,
+    const EMap extends { [key in keyof S & string]: unknown } = {
+        [key in keyof S & string]: key;
     }
 >(
-    { columns }: Table<C>,
+    { columns }: Table<S>,
     { parsers, errorsMap } = {} as {
         parsers?: {
-            [key in keyof C & string]?: (
-                v: NullableType<GetColumnType<C[key]>, C[key]['nullable']>
+            [key in keyof S & string]?: (
+                v: NullableType<GetColumnType<S[key]>, S[key]['nullable']>
             ) =>
-                | NullableType<GetColumnType<C[key]>, C[key]['nullable']>
+                | NullableType<GetColumnType<S[key]>, S[key]['nullable']>
                 | undefined;
         };
         errorsMap?: EMap;
     }
-): ModelParser<SchemaByColumns<C>, EMap> => {
+): ModelParser<S, EMap> => {
     const columnsParser: Record<string, (v: unknown) => unknown> =
         Object.fromEntries(
             Object.entries(columns).map(([key, column]) => {
@@ -431,8 +423,8 @@ const createModelParser = <
                               }
                               return customParser(
                                   _v as NullableType<
-                                      GetColumnType<C[string]>,
-                                      C[string]['nullable']
+                                      GetColumnType<S[string]>,
+                                      S[string]['nullable']
                                   >
                               );
                           }
@@ -476,7 +468,7 @@ const createModelParser = <
             return ok(result);
         },
         ...columnsParser
-    } as ModelParser<SchemaByColumns<C>, EMap>;
+    } as ModelParser<S, EMap>;
 };
 
 export type { ModelHelper, Model, ModelWithPrefix, ModelParser };

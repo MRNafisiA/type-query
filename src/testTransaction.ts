@@ -1,11 +1,11 @@
 import { err, ok } from 'never-catch';
 import { Pool, PoolClient } from 'pg';
 import { createEntity, NullableAndDefaultColumns } from './entity';
-import { Columns, GetColumnType, NullableType, Table } from './Table';
+import { Schema, GetColumnType, NullableType, Table } from './Table';
 import { transaction, TransactionIsolationLevel } from './transaction';
 import { generateCreateSequencesSQL, generateCreateTableSQL } from './ddl';
 
-type TestTableData<C extends Columns = Columns> = {
+type TestTableData<C extends Schema = Schema> = {
     table: Table<C>;
     startData: ({
         [key in Exclude<keyof C, NullableAndDefaultColumns<C>>]: NullableType<
@@ -147,11 +147,11 @@ const testTransaction = async (
         }
     });
 
-const createTestTableData = <C extends Columns>(
-    table: TestTableData<C>['table'],
-    startData: TestTableData<C>['startData'],
-    finalData: TestTableData<C>['finalData']
-): TestTableData<C> => ({ table, startData, finalData });
+const createTestTableData = <S extends Schema>(
+    table: TestTableData<S>['table'],
+    startData: TestTableData<S>['startData'],
+    finalData: TestTableData<S>['finalData']
+): TestTableData<S> => ({ table, startData, finalData });
 
 const isRowEqual = async (
     a: Record<string, unknown>,

@@ -3,8 +3,8 @@
 
 import * as U from './utils';
 import Decimal from 'decimal.js';
+import { Schema, Table } from './Table';
 import { err, ok, Result } from 'never-catch';
-import { Columns, Schema, Table } from './Table';
 import { Dictionary, OperatorCode } from './keywords';
 import { CustomColumn, Mode, QueryResult } from './entity';
 
@@ -919,7 +919,7 @@ const resolveExpression = (
 };
 
 const resolveColumn = (
-    table: Table<Columns>,
+    table: Table<Schema>,
     column: string,
     full: boolean = true,
     alias?: string
