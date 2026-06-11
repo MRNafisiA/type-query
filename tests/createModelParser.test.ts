@@ -1,9 +1,9 @@
 import Decimal from 'decimal.js';
 import { err, ok } from 'never-catch';
-import { createEntity } from '../src/entity';
+import { createTable } from '../src/Table';
 import { Parser, createModelParser } from '../src/createModelParser';
 
-const TestTable = createEntity({
+const TestTable = createTable({
     schemaName: 'public',
     tableName: 'test',
     columns: {
@@ -163,7 +163,7 @@ const TestTable = createEntity({
             default: false
         }
     }
-}).table;
+});
 const TestModelParser = createModelParser(TestTable, {
     parsers: {
         customParser: v => (v === 1 || v === 2 ? v : undefined)
@@ -704,7 +704,7 @@ describe('createModelUtils', () => {
             });
         });
         describe('custom error', () => {
-            const User = createEntity({
+            const UserTable = createTable({
                 schemaName: 'public',
                 tableName: 'user',
                 columns: {
@@ -721,7 +721,7 @@ describe('createModelUtils', () => {
                     }
                 }
             });
-            const UserModelParser = createModelParser(User.table, {
+            const UserModelParser = createModelParser(UserTable, {
                 errorsMap: {
                     id: [1],
                     username: [2]

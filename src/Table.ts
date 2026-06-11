@@ -1,6 +1,9 @@
 import Decimal from 'decimal.js';
 
-const createReference = <T extends Table, C extends keyof T['columns']>(
+const createReference = <
+    T extends Table<Columns>,
+    C extends keyof T['columns']
+>(
     reference: Reference<T, C>
 ) => reference as GetColumnType<T['columns'][C]>;
 
@@ -21,7 +24,9 @@ type SchemaByColumns<C extends Columns> = {
     };
 };
 
-type Table<C extends Columns = Columns> = {
+const createTable = <C extends Columns>(table: Table<C>) => table;
+
+type Table<C extends Columns> = {
     schemaName: string;
     tableName: string;
     columns: C;
@@ -44,7 +49,7 @@ type ColumnInfo = (
         | { nullable: true; primary?: never }
     );
 
-type Reference<T extends Table, C extends keyof T['columns']> = {
+type Reference<T extends Table<Columns>, C extends keyof T['columns']> = {
     table: T;
     onUpdate?: ReferenceActions;
     onDelete?: ReferenceActions;
@@ -247,10 +252,12 @@ type NullableType<T, Nullable extends boolean> = Nullable extends true
     : T;
 
 type Json = JsonObject | JsonArray;
+
 type JsonObject = {
     [key: number | string]: BaseJsonValue;
 };
 type JsonArray = BaseJsonValue[];
+
 type BaseJsonValue =
     | undefined
     | null
@@ -260,7 +267,7 @@ type BaseJsonValue =
     | JsonObject
     | JsonArray;
 
-export { createReference };
+export { createReference, createTable };
 export type {
     Schema,
     SchemaByColumns,

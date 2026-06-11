@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js';
-import { Schema } from '../src/Table';
+import { Query } from '../src/entity';
 import { OperatorCode } from '../src/keywords';
-import { createEntity, Query } from '../src/entity';
+import { createTable, Schema } from '../src/Table';
 import {
     or,
     and,
@@ -86,7 +86,7 @@ test('concat', () => {
 });
 
 test('column', () => {
-    const UserTable = createEntity({
+    const UserTable = createTable({
         schemaName: 'public',
         tableName: 'user',
         columns: {
@@ -97,7 +97,7 @@ test('column', () => {
                 title: 'userID'
             }
         }
-    }).table;
+    });
     const result = column(UserTable, 'id', true, 'B');
 
     expect(result).toStrictEqual([OperatorCode.Column, '"B"."userID"']);

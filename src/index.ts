@@ -16,6 +16,7 @@ export {
     getSequenceName
 } from './ddl';
 export {
+    type Entity,
     type InsertingRow,
     type UpdateSets,
     type JoinType,

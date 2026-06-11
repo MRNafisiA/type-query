@@ -2,22 +2,21 @@ import { ClientBase } from 'pg';
 import * as U from '../src/utils';
 import { err, ok } from 'never-catch';
 import { Context, createContext } from '../src/context';
+import { createTable, Schema, SchemaByColumns } from '../src/Table';
 import {
-    JoinData,
     createQuery,
     createEntity,
-    TableWithAlias,
     createDeleteQuery,
     createInsertQuery,
     createSelectQuery,
     createUpdateQuery,
+    SchemaMapContexts,
     createJoinSelectQuery,
     createJoinSelectEntity,
     getTableDataOfJoinSelectColumn
 } from '../src/entity';
-import { SchemaByColumns } from '../src';
 
-const UserTable = createEntity({
+const UserTable = createTable({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -57,18 +56,18 @@ const UserTable = createEntity({
             defaultValue: ['js', true]
         }
     }
-}).table;
+});
 type UserSchema = SchemaByColumns<typeof UserTable.columns>;
 const userContext = createContext(UserTable);
 
-const LaptopTable = createEntity({
+const LaptopTable = createTable({
     schemaName: 'public',
     tableName: 'laptop',
     columns: {
         id: { type: 'int2', nullable: false, default: false },
         userID: { type: 'int2', nullable: false, default: false }
     }
-}).table;
+});
 type LaptopSchema = SchemaByColumns<typeof LaptopTable.columns>;
 const lContext = createContext(LaptopTable, 'l');
 const uContext = createContext(UserTable, 'u');
@@ -516,7 +515,7 @@ describe('createUpdateQuery', () => {
         });
     });
     test('ok', () => {
-        const JobTable = createEntity({
+        const JobTable = createTable({
             schemaName: 'public',
             tableName: 'job',
             columns: {
@@ -537,11 +536,12 @@ describe('createUpdateQuery', () => {
                     defaultValue: ['updated-at']
                 }
             }
-        }).table;
+        });
+        const jobContext = createContext(JobTable);
         jest.useFakeTimers().setSystemTime(new Date(1));
 
         const result = createUpdateQuery(
-            userContext,
+            jobContext,
             JobTable,
             { id: undefined, title: 'a' },
             true,
@@ -876,7 +876,7 @@ describe('createJoinSelectQuery', () => {
                         table: LaptopTable,
                         alias: 'l',
                         joinType: 'inner',
-                        on: ({
+                        on: (({
                             uContext,
                             lContext
                         }: {
@@ -885,8 +885,10 @@ describe('createJoinSelectQuery', () => {
                         }) =>
                             uContext.columnsAnd({
                                 id: ['=', lContext.column('userID')]
-                            })
-                    } as unknown as TableWithAlias & JoinData
+                            })) as (
+                            contexts: SchemaMapContexts<Record<string, Schema>>
+                        ) => boolean
+                    }
                 ],
                 ['u_id'],
                 ({ uContext }) =>
@@ -982,7 +984,7 @@ describe('createJoinSelectEntity', () => {
         { uContext, lContext }
     );
 
-    const MonitorTable = createEntity({
+    const MonitorTable = createTable({
         schemaName: 'public',
         tableName: 'monitor',
         columns: {
@@ -997,7 +999,7 @@ describe('createJoinSelectEntity', () => {
                 default: false
             }
         }
-    }).table;
+    });
 
     test('select', () => {
         const result = UserJoin.select(
@@ -1035,7 +1037,7 @@ describe('createJoinSelectEntity', () => {
 });
 
 describe('getTableDataOfJoinSelectColumn', () => {
-    const PhoneTable = createEntity({
+    const PhoneTable = createTable({
         schemaName: 'public',
         tableName: 'phone',
         columns: {
@@ -1045,8 +1047,7 @@ describe('getTableDataOfJoinSelectColumn', () => {
                 default: false
             }
         }
-    }).table;
-
+    });
     test('no separator', () => {
         expect(() => getTableDataOfJoinSelectColumn([], 'a')).toThrow(
             'no separator'

@@ -1,8 +1,8 @@
 import { Dictionary } from './keywords';
-import { Table, PgType, Reference } from './Table';
+import { Table, PgType, Reference, Columns } from './Table';
 
 const generateCreateSequencesSQL = (
-    table: Table,
+    table: Table<Columns>,
     {
         applyIfNotExist = false,
         owner
@@ -44,7 +44,7 @@ const generateCreateSequencesSQL = (
 };
 
 const generateDropSequencesSQL = (
-    table: Table,
+    table: Table<Columns>,
     { applyIfExist = false }: { applyIfExist?: boolean } = {}
 ) => {
     const queries = [];
@@ -64,7 +64,7 @@ const generateDropSequencesSQL = (
 };
 
 const generateCreateTableSQL = (
-    table: Table,
+    table: Table<Columns>,
     {
         applyIfNotExist = false,
         isTemp = false,
@@ -114,7 +114,7 @@ const generateCreateTableSQL = (
         tokens.push(column.nullable ? 'NULL' : 'NOT NULL');
 
         // reference
-        const reference = column.reference as Reference<Table, string>;
+        const reference = column.reference as Reference<Table<Columns>, string>;
         if (reference !== undefined) {
             tokens.push(
                 `REFERENCES "${reference.table.schemaName}"."${reference.table.tableName}"` +
@@ -150,7 +150,7 @@ const generateCreateTableSQL = (
 };
 
 const generateDropTableSQL = (
-    table: Table,
+    table: Table<Columns>,
     { applyIfExist = false }: { applyIfExist?: boolean } = {}
 ) =>
     `DROP TABLE ${applyIfExist ? 'IF EXIST ' : ''}"${table.schemaName}"."${table.tableName}"`;

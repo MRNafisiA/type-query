@@ -20,7 +20,7 @@ import {
     ListWithSubQueryOperator
 } from './keywords';
 
-type Context<S extends Schema = Schema> = {
+type Context<S extends Schema> = {
     column: <C extends keyof S & string>(
         column: C,
         alias?: string
@@ -56,6 +56,7 @@ const createContext = <C extends Columns>(
 type ContextRules<S extends Schema> = {
     [C in keyof S]?: ContextRule<S, C>;
 };
+
 type ContextRule<S extends Schema, C extends keyof S> =
     | (S[C]['nullable'] extends true ? [operator: NullOperator] : never)
     | (S[C]['type'] extends boolean
