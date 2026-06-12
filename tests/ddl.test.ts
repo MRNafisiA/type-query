@@ -1,4 +1,4 @@
-import { createTable } from '../src/Table';
+import { createEntity } from '../src/entity';
 import { createReference } from '../src/Table';
 import {
     getSequenceName,
@@ -8,7 +8,7 @@ import {
     generateCreateSequencesSQL
 } from '../src/ddl';
 
-const UserGroupTable = createTable({
+const UserGroupTable = createEntity({
     schemaName: 'public',
     tableName: 'user_group',
     columns: {
@@ -19,9 +19,9 @@ const UserGroupTable = createTable({
             defaultValue: ['auto-increment']
         }
     }
-});
+}).table;
 
-const UserTable = createTable({
+const UserTable = createEntity({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -68,7 +68,7 @@ const UserTable = createTable({
             narrowType: undefined as unknown as [Date, Date]
         }
     }
-});
+}).table;
 
 describe('generateCreateSequencesSQL', () => {
     describe('applyIfNotExist: false', () => {

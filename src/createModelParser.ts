@@ -253,7 +253,7 @@ type ModelParser<
 } & {
     [key in keyof S & string]: (
         v: unknown
-    ) => NullableType<S[key]['type'], S[key]['nullable']> | undefined;
+    ) => NullableType<GetColumnType<S[key]>, S[key]['nullable']> | undefined;
 };
 
 const createModelParser = <
@@ -360,11 +360,9 @@ const createModelParser = <
                                     _v.comparedTo(column.min) >= 0) &&
                                 (column.max === undefined ||
                                     _v.comparedTo(column.max) <= 0) &&
-                                _v.decimalPlaces() <=
-                                    (column as Record<'scale', number>).scale &&
+                                _v.decimalPlaces() <= column.scale &&
                                 _v.precision() - _v.decimalPlaces() <=
-                                    (column as Record<'precision', number>)
-                                        .precision
+                                    column.precision
                             ) {
                                 return _v;
                             }

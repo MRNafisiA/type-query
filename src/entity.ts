@@ -3,7 +3,7 @@ import { ClientBase } from 'pg';
 import { Dictionary } from './keywords';
 import { err, ok, Result } from 'never-catch';
 import { Context, createContext } from './context';
-import { NullableType, Schema, Table } from './Table';
+import { GetColumnType, NullableType, Schema, Table } from './Table';
 import {
     resolveColumn,
     resolveResult,
@@ -11,58 +11,18 @@ import {
     resolveExpression
 } from './resolve';
 
-type Entity<S extends Schema = Schema> = {
-    select: <
-        const R extends (keyof S & string) | CustomColumn<unknown, string>
-    >(
-        returning: R[] | ((context: Context<S>) => R[]),
-        where: (null | boolean) | ((context: Context<S>) => null | boolean),
-        options?: SelectOptions<S>
-    ) => Query<S, R>;
-    insert: <
-        const R extends (keyof S & string) | CustomColumn<unknown, string>,
-        N extends NullableAndDefaultColumns<S> = never
-    >(
-        rows:
-            | InsertingRow<S, N>[]
-            | ((context: Context<S>) => InsertingRow<S, N>[]),
-        returning: R[] | ((context: Context<S>) => R[]),
-        options?: InsertOptions<S, N>
-    ) => Query<S, R>;
-    update: <
-        const R extends (keyof S & string) | CustomColumn<unknown, string>
-    >(
-        sets: UpdateSets<S> | ((context: Context<S>) => UpdateSets<S>),
-        where: (null | boolean) | ((context: Context<S>) => null | boolean),
-        returning: R[] | ((context: Context<S>) => R[])
-    ) => Query<S, R>;
-    delete: <
-        const R extends (keyof S & string) | CustomColumn<unknown, string>
-    >(
-        where: (null | boolean) | ((context: Context<S>) => null | boolean),
-        returning: R[] | ((context: Context<S>) => R[])
-    ) => Query<S, R>;
-    join: <MA extends string, JS extends Schema, JA extends string>(
-        mainAlias: MA,
-        joinType: JoinType,
-        joinTable: Table<JS>,
-        joinAlias: JA,
-        on:
-            | boolean
-            | ((
-                  contexts: SchemaMapContexts<Record<MA, S> & Record<JA, JS>>
-              ) => boolean)
-    ) => JoinEntity<
-        Record<MA, S> & Record<JA, JS>,
-        PrefixAliasOnSchema<S, MA> & PrefixAliasOnSchema<JS, JA>
-    >;
-};
-
-const createEntity = <S extends Schema>(table: Table<S>): Entity<S> => {
+const createEntity = <S extends Schema>(table: Table<S>) => {
     const context = createContext(table);
-
     return {
-        select: (returning, where, options = {}) =>
+        table,
+        context,
+        select: <
+            const R extends (keyof S & string) | CustomColumn<unknown, string>
+        >(
+            returning: R[] | ((context: Context<S>) => R[]),
+            where: (null | boolean) | ((context: Context<S>) => null | boolean),
+            options = {} as SelectOptions<S>
+        ): Query<S, R> =>
             createQuery(params =>
                 createSelectQuery(
                     context,
@@ -73,7 +33,16 @@ const createEntity = <S extends Schema>(table: Table<S>): Entity<S> => {
                     params
                 )
             ),
-        insert: (rows, returning, options = {}) =>
+        insert: <
+            const R extends (keyof S & string) | CustomColumn<unknown, string>,
+            N extends NullableAndDefaultColumns<S> = never
+        >(
+            rows:
+                | InsertingRow<S, N>[]
+                | ((context: Context<S>) => InsertingRow<S, N>[]),
+            returning: R[] | ((context: Context<S>) => R[]),
+            options = {} as InsertOptions<S, N>
+        ): Query<S, R> =>
             createQuery(params =>
                 createInsertQuery(
                     context,
@@ -84,7 +53,13 @@ const createEntity = <S extends Schema>(table: Table<S>): Entity<S> => {
                     params
                 )
             ),
-        update: (sets, where, returning) =>
+        update: <
+            const R extends (keyof S & string) | CustomColumn<unknown, string>
+        >(
+            sets: UpdateSets<S> | ((context: Context<S>) => UpdateSets<S>),
+            where: (null | boolean) | ((context: Context<S>) => null | boolean),
+            returning: R[] | ((context: Context<S>) => R[])
+        ): Query<S, R> =>
             createQuery(params =>
                 createUpdateQuery(
                     context,
@@ -95,12 +70,35 @@ const createEntity = <S extends Schema>(table: Table<S>): Entity<S> => {
                     params
                 )
             ),
-        delete: (where, returning) =>
+        delete: <
+            const R extends (keyof S & string) | CustomColumn<unknown, string>
+        >(
+            where: (null | boolean) | ((context: Context<S>) => null | boolean),
+            returning: R[] | ((context: Context<S>) => R[])
+        ): Query<S, R> =>
             createQuery(params =>
                 createDeleteQuery(context, table, returning, where, params)
             ),
-        join: (mainAlias, joinType, joinTable, joinAlias, on) =>
-            createJoinSelectEntity(
+        join: <MA extends string, JS extends Schema, JA extends string>(
+            mainAlias: MA,
+            joinType: JoinType,
+            joinTable: Table<JS>,
+            joinAlias: JA,
+            on:
+                | boolean
+                | ((
+                      contexts: SchemaMapContexts<
+                          Record<MA, S> & Record<JA, JS>
+                      >
+                  ) => boolean)
+        ): JoinEntity<
+            Record<MA, S> & Record<JA, JS>,
+            PrefixAliasOnSchema<S, MA> & PrefixAliasOnSchema<JS, JA>
+        > =>
+            createJoinSelectEntity<
+                Record<MA, S> & Record<JA, JS>,
+                PrefixAliasOnSchema<S, MA> & PrefixAliasOnSchema<JS, JA>
+            >(
                 { table, alias: mainAlias },
                 [
                     {
@@ -113,7 +111,7 @@ const createEntity = <S extends Schema>(table: Table<S>): Entity<S> => {
                 {
                     [`${mainAlias}Context`]: createContext(table, mainAlias),
                     [`${joinAlias}Context`]: createContext(joinTable, joinAlias)
-                }
+                } as SchemaMapContexts<Record<MA, S> & Record<JA, JS>>
             )
     };
 };
@@ -135,7 +133,7 @@ type CustomQueryBuilder = (
     params: string[]
 ) => QueryData;
 
-type SelectOptions<S extends Schema = Schema> = {
+type SelectOptions<S extends Schema> = {
     distinct?: (true | By<S>[]) | ((context: Context<S>) => true | By<S>[]);
     groupBy?: By<S>[] | ((context: Context<S>) => By<S>[]);
     orders?: Order<S>[] | ((context: Context<S>) => Order<S>[]);
@@ -351,15 +349,16 @@ const createSelectQuery = <S extends Schema>(
 type InsertOptions<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
     nullableDefaultColumns?: N[];
 };
+
 type InsertingRow<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
     [key in keyof S & string as key extends NullableAndDefaultColumns<S>
         ? never
         : key]: key extends NullableAndDefaultColumns<S>
         ? never
-        : S[key & string]['type'];
+        : GetColumnType<S[key & string]>;
 } & {
     [key in N]?: NullableType<
-        S[key & string]['type'],
+        GetColumnType<S[key & string]>,
         S[key & string]['nullable']
     >;
 };
@@ -403,7 +402,7 @@ const createInsertQuery = <S extends Schema>(
         const rowTokens = [];
         for (const insertingColumn of insertingColumns) {
             if (_row[insertingColumn] === undefined) {
-                const column = table.columns[insertingColumn] as unknown as {
+                const column = table.columns[insertingColumn] as {
                     nullable: boolean;
                     defaultValue:
                         | undefined
@@ -486,7 +485,7 @@ const createInsertQuery = <S extends Schema>(
 
 // update
 type UpdateSets<S extends Schema> = {
-    [key in keyof S]?: NullableType<S[key]['type'], S[key]['nullable']>;
+    [key in keyof S]?: NullableType<GetColumnType<S[key]>, S[key]['nullable']>;
 };
 
 const createUpdateQuery = <S extends Schema>(
@@ -656,6 +655,7 @@ type PrefixAliasOnSchema<S extends Schema, A extends string> = {
 };
 
 type JoinEntity<SMap extends Record<string, Schema>, AllS extends Schema> = {
+    contexts: SchemaMapContexts<SMap>;
     select: <
         const R extends (keyof AllS & string) | CustomColumn<unknown, string>
     >(
@@ -714,8 +714,9 @@ const createJoinSelectEntity = <
     joinTables: (TableWithAlias & JoinData<SMap>)[],
     contexts: SchemaMapContexts<SMap>
 ): JoinEntity<SMap, AllS> => ({
-    select: (returning, where, options = {}) => {
-        return createQuery(params =>
+    contexts,
+    select: (returning, where, options = {}) =>
+        createQuery(params =>
             createJoinSelectQuery(
                 contexts,
                 main,
@@ -725,8 +726,7 @@ const createJoinSelectEntity = <
                 options,
                 params
             )
-        );
-    },
+        ),
     join: <JS extends Schema, JA extends string>(
         joinType: JoinType,
         joinTable: Table<JS>,
@@ -739,10 +739,8 @@ const createJoinSelectEntity = <
         AllS & PrefixAliasOnSchema<JS, JA>
     > => {
         joinTables.push({
-            table: joinTable as Table<JS>,
-            on: on as
-                | boolean
-                | ((contexts: SchemaMapContexts<SMap>) => boolean),
+            table: joinTable,
+            on,
             joinType,
             alias: joinAlias
         });
@@ -1039,9 +1037,7 @@ type CustomColumn<T, N extends string> = {
     name: N;
 };
 
-type NullableAndDefaultColumns<
-    S extends Record<string, { default: boolean; nullable: boolean }>
-> = keyof {
+type NullableAndDefaultColumns<S extends Schema> = keyof {
     [key in keyof S as true extends S[key]['nullable']
         ? key
         : true extends S[key]['default']
@@ -1087,7 +1083,10 @@ type QueryResultRow<
         ? T
         : key]: key extends CustomColumn<infer T, string>
         ? T
-        : NullableType<S[key & string]['type'], S[key & string]['nullable']>;
+        : NullableType<
+              GetColumnType<S[key & string]>,
+              S[key & string]['nullable']
+          >;
 };
 
 type ReturningRow = string | CustomColumn<unknown, string>;
@@ -1144,7 +1143,6 @@ export {
     createQuery
 };
 export type {
-    Entity,
     By,
     Order,
     CustomQueryBuilder,

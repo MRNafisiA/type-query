@@ -16,7 +16,6 @@ export {
     getSequenceName
 } from './ddl';
 export {
-    type Entity,
     type InsertingRow,
     type UpdateSets,
     type JoinType,
@@ -35,11 +34,8 @@ export {
 } from './resolve';
 export {
     createReference,
-    createTable,
-    type Schema,
-    type SchemaByColumns,
     type Table,
-    type Columns,
+    type Schema,
     type ColumnInfo,
     type GetColumnType,
     type BooleanColumn,

@@ -1,32 +1,32 @@
 import { err, ok } from 'never-catch';
 import { Pool, PoolClient } from 'pg';
 import { createEntity, NullableAndDefaultColumns } from './entity';
-import { Schema, GetColumnType, NullableType, Table } from './Table';
+import { GetColumnType, NullableType, Schema, Table } from './Table';
 import { transaction, TransactionIsolationLevel } from './transaction';
 import { generateCreateSequencesSQL, generateCreateTableSQL } from './ddl';
 
-type TestTableData<C extends Schema = Schema> = {
-    table: Table<C>;
+type TestTableData<S extends Schema = Schema> = {
+    table: Table<S>;
     startData: ({
-        [key in Exclude<keyof C, NullableAndDefaultColumns<C>>]: NullableType<
-            GetColumnType<C[key]>,
-            C[key]['nullable']
+        [key in Exclude<keyof S, NullableAndDefaultColumns<S>>]: NullableType<
+            GetColumnType<S[key]>,
+            S[key]['nullable']
         >;
     } & {
-        [key in NullableAndDefaultColumns<C>]?: NullableType<
-            GetColumnType<C[key]>,
-            C[key]['nullable']
+        [key in NullableAndDefaultColumns<S>]?: NullableType<
+            GetColumnType<S[key]>,
+            S[key]['nullable']
         >;
     })[];
     finalData: {
-        [key in keyof C & string]:
-            | NullableType<GetColumnType<C[key]>, C[key]['nullable']>
+        [key in keyof S & string]:
+            | NullableType<GetColumnType<S[key]>, S[key]['nullable']>
             | ((
-                  cell: NullableType<GetColumnType<C[key]>, C[key]['nullable']>,
+                  cell: NullableType<GetColumnType<S[key]>, S[key]['nullable']>,
                   rows: {
-                      [key in keyof C & string]: NullableType<
-                          GetColumnType<C[key]>,
-                          C[key]['nullable']
+                      [key in keyof S & string]: NullableType<
+                          GetColumnType<S[key]>,
+                          S[key]['nullable']
                       >;
                   }[],
                   index: number
