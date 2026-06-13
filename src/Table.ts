@@ -4,13 +4,32 @@ const createReference = <T extends Table, C extends keyof T['columns']>(
     reference: Reference<T, C>
 ) => reference as GetColumnType<T['columns'][C]>;
 
-type Table<S extends Schema = Schema> = {
+type Schema = Record<
+    string,
+    {
+        type: unknown;
+        default: boolean;
+        nullable: boolean;
+    }
+>;
+
+type SchemaByColumns<C extends Columns> = {
+    [key in keyof C]: {
+        type: GetColumnType<C[key]>;
+        default: C[key]['default'];
+        nullable: C[key]['nullable'];
+    };
+};
+
+const createTable = <C extends Columns>(table: Table<C>) => table;
+
+type Table<S extends Columns = Columns> = {
     schemaName: string;
     tableName: string;
     columns: S;
 };
 
-type Schema = Record<string, ColumnInfo>;
+type Columns = Record<string, ColumnInfo>;
 
 type ColumnInfo = (
     | BooleanColumn
@@ -26,17 +45,6 @@ type ColumnInfo = (
         | { nullable: false; primary?: true | never }
         | { nullable: true; primary?: never }
     );
-
-type ExtractEssentialSchema<S extends Schema> = {
-    [key in keyof S & string]: {
-        type: S[key]['type'];
-        nullable: S[key]['nullable'];
-        default: S[key]['default'];
-        narrowType?: unknown extends S[key]['narrowType']
-            ? undefined
-            : S[key]['narrowType'];
-    };
-};
 
 type Reference<T extends Table, C extends keyof T['columns']> = {
     table: T;
@@ -256,12 +264,13 @@ type BaseJsonValue =
     | JsonObject
     | JsonArray;
 
-export { createReference };
+export { createReference, createTable };
 export type {
-    Table,
     Schema,
+    SchemaByColumns,
+    Table,
+    Columns,
     ColumnInfo,
-    ExtractEssentialSchema,
     Reference,
     GetColumnType,
     BooleanColumn,
@@ -281,3 +290,4 @@ export type {
     JsonArray,
     BaseJsonValue
 };
+

@@ -34,10 +34,12 @@ export {
 } from './resolve';
 export {
     createReference,
-    type Table,
+    createTable,
     type Schema,
+    type SchemaByColumns,
+    type Table,
+    type Columns,
     type ColumnInfo,
-    type ExtractEssentialSchema,
     type GetColumnType,
     type BooleanColumn,
     type Int2Int4Column,
@@ -65,3 +67,4 @@ export {
 } from './testTransaction';
 export { transaction } from './transaction';
 export * as U from './utils';
+

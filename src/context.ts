@@ -1,7 +1,14 @@
 import * as U from './utils';
 import Decimal from 'decimal.js';
 import { Query } from './entity';
-import { Json, Table, Schema, NullableType, GetColumnType } from './Table';
+import {
+    Json,
+    Table,
+    Schema,
+    Columns,
+    NullableType,
+    SchemaByColumns
+} from './Table';
 import {
     LikeOperator,
     ListOperator,
@@ -14,22 +21,22 @@ import {
 } from './keywords';
 
 type Context<S extends Schema> = {
-    column: <C extends keyof S & string>(
-        column: C,
+    column: <K extends keyof S & string>(
+        column: K,
         alias?: string
-    ) => NullableType<GetColumnType<S[C]>, S[C]['nullable']>;
-    compare: <C extends keyof S & string>(
-        column: C,
-        ...args: ContextRule<S, C>
+    ) => NullableType<S[K]['type'], S[K]['nullable']>;
+    compare: <K extends keyof S & string>(
+        column: K,
+        ...args: ContextRule<S, K>
     ) => boolean;
     columnsAnd: (rules: ContextRules<S>, alias?: string) => boolean;
     columnsOr: (rules: ContextRules<S>, alias?: string) => boolean;
 };
 
-const createContext = <S extends Schema>(
-    table: Table<S>,
+const createContext = <C extends Columns>(
+    table: Table<C>,
     alias = ''
-): Context<S> => {
+): Context<SchemaByColumns<C>> => {
     const contextHelper = createContextHelper(table);
     return {
         column: (column, _alias = alias) =>
@@ -47,24 +54,24 @@ const createContext = <S extends Schema>(
 };
 
 type ContextRules<S extends Schema> = {
-    [C in keyof S]?: ContextRule<S, C>;
+    [K in keyof S]?: ContextRule<S, K>;
 };
 
-type ContextRule<S extends Schema, C extends keyof S> =
-    | (S[C]['nullable'] extends true ? [operator: NullOperator] : never)
-    | (GetColumnType<S[C]> extends boolean
+type ContextRule<S extends Schema, K extends keyof S> =
+    | (S[K]['nullable'] extends true ? [operator: NullOperator] : never)
+    | (S[K]['type'] extends boolean
           ? [operator: BooleanOperator]
-          : GetColumnType<S[C]> extends number
+          : S[K]['type'] extends number
             ?
                   | [
                         operator: CompareOperator,
-                        expression: NullableType<number, S[C]['nullable']>
+                        expression: NullableType<number, S[K]['nullable']>
                     ]
                   | [
                         operator: ListOperator,
                         expression: readonly NullableType<
                             number,
-                            S[C]['nullable']
+                            S[K]['nullable']
                         >[]
                     ]
                   | [
@@ -73,20 +80,20 @@ type ContextRule<S extends Schema, C extends keyof S> =
                     ]
                   | [
                         operator: BetweenOperator,
-                        startExpression: NullableType<number, S[C]['nullable']>,
-                        endExpression: NullableType<number, S[C]['nullable']>
+                        startExpression: NullableType<number, S[K]['nullable']>,
+                        endExpression: NullableType<number, S[K]['nullable']>
                     ]
-            : GetColumnType<S[C]> extends bigint
+            : S[K]['type'] extends bigint
               ?
                     | [
                           operator: CompareOperator,
-                          expression: NullableType<bigint, S[C]['nullable']>
+                          expression: NullableType<bigint, S[K]['nullable']>
                       ]
                     | [
                           operator: ListOperator,
                           expression: readonly NullableType<
                               bigint,
-                              S[C]['nullable']
+                              S[K]['nullable']
                           >[]
                       ]
                     | [
@@ -97,21 +104,21 @@ type ContextRule<S extends Schema, C extends keyof S> =
                           operator: BetweenOperator,
                           startExpression: NullableType<
                               bigint,
-                              S[C]['nullable']
+                              S[K]['nullable']
                           >,
-                          endExpression: NullableType<bigint, S[C]['nullable']>
+                          endExpression: NullableType<bigint, S[K]['nullable']>
                       ]
-              : GetColumnType<S[C]> extends Decimal
+              : S[K]['type'] extends Decimal
                 ?
                       | [
                             operator: CompareOperator,
-                            expression: NullableType<Decimal, S[C]['nullable']>
+                            expression: NullableType<Decimal, S[K]['nullable']>
                         ]
                       | [
                             operator: ListOperator,
                             expression: readonly NullableType<
                                 Decimal,
-                                S[C]['nullable']
+                                S[K]['nullable']
                             >[]
                         ]
                       | [
@@ -122,24 +129,24 @@ type ContextRule<S extends Schema, C extends keyof S> =
                             operator: BetweenOperator,
                             startExpression: NullableType<
                                 Decimal,
-                                S[C]['nullable']
+                                S[K]['nullable']
                             >,
                             endExpression: NullableType<
                                 Decimal,
-                                S[C]['nullable']
+                                S[K]['nullable']
                             >
                         ]
-                : GetColumnType<S[C]> extends string
+                : S[K]['type'] extends string
                   ?
                         | [
                               operator: CompareOperator | 'like',
-                              expression: NullableType<string, S[C]['nullable']>
+                              expression: NullableType<string, S[K]['nullable']>
                           ]
                         | [
                               operator: ListOperator | 'like some' | 'like all',
                               expression: readonly NullableType<
                                   string,
-                                  S[C]['nullable']
+                                  S[K]['nullable']
                               >[]
                           ]
                         | [
@@ -150,24 +157,24 @@ type ContextRule<S extends Schema, C extends keyof S> =
                               operator: BetweenOperator,
                               startExpression: NullableType<
                                   string,
-                                  S[C]['nullable']
+                                  S[K]['nullable']
                               >,
                               endExpression: NullableType<
                                   string,
-                                  S[C]['nullable']
+                                  S[K]['nullable']
                               >
                           ]
-                  : GetColumnType<S[C]> extends Date
+                  : S[K]['type'] extends Date
                     ?
                           | [
                                 operator: CompareOperator,
-                                expression: NullableType<Date, S[C]['nullable']>
+                                expression: NullableType<Date, S[K]['nullable']>
                             ]
                           | [
                                 operator: ListOperator,
                                 expression: readonly NullableType<
                                     Date,
-                                    S[C]['nullable']
+                                    S[K]['nullable']
                                 >[]
                             ]
                           | [
@@ -178,20 +185,20 @@ type ContextRule<S extends Schema, C extends keyof S> =
                                 operator: BetweenOperator,
                                 startExpression: NullableType<
                                     Date,
-                                    S[C]['nullable']
+                                    S[K]['nullable']
                                 >,
                                 endExpression: NullableType<
                                     Date,
-                                    S[C]['nullable']
+                                    S[K]['nullable']
                                 >
                             ]
-                    : GetColumnType<S[C]> extends Json
+                    : S[K]['type'] extends Json
                       ?
                             | [
                                   operator: '=' | '!=' | '@>' | '<@',
                                   expression: NullableType<
                                       Json,
-                                      S[C]['nullable']
+                                      S[K]['nullable']
                                   >
                               ]
                             | [operator: '?', expression: null | string]
@@ -203,10 +210,10 @@ type ContextRule<S extends Schema, C extends keyof S> =
                       : never);
 
 const createContextHelper =
-    <S extends Schema>(table: Table<S>) =>
-    (rules: ContextRules<S>, alias?: string): boolean[] =>
+    <C extends Columns>(table: Table<C>) =>
+    (rules: ContextRules<SchemaByColumns<C>>, alias?: string): boolean[] =>
         Object.entries(rules).map(
-            ([key, value]: [keyof S & string, unknown[] | undefined]) => {
+            ([key, value]: [keyof C & string, unknown[] | undefined]) => {
                 if (value === undefined) {
                     throw `undefined value is not allowed for ${key}`;
                 }

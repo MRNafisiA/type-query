@@ -1,8 +1,8 @@
 import { ClientBase } from 'pg';
 import * as U from '../src/utils';
 import { err, ok } from 'never-catch';
-import { Schema } from '../src/Table';
 import { Context, createContext } from '../src/context';
+import { createTable, Schema, SchemaByColumns } from '../src/Table';
 import {
     createQuery,
     createEntity,
@@ -16,7 +16,7 @@ import {
     getTableDataOfJoinSelectColumn
 } from '../src/entity';
 
-const User = createEntity({
+const UserTable = createTable({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -57,19 +57,20 @@ const User = createEntity({
         }
     }
 });
-type UserSchema = typeof User.table.columns;
+const User = createEntity(UserTable);
+type UserSchema = SchemaByColumns<typeof UserTable.columns>;
 
-const LaptopTable = createEntity({
+const LaptopTable = createTable({
     schemaName: 'public',
     tableName: 'laptop',
     columns: {
         id: { type: 'int2', nullable: false, default: false },
         userID: { type: 'int2', nullable: false, default: false }
     }
-}).table;
-type LaptopSchema = typeof LaptopTable.columns;
+});
+type LaptopSchema = SchemaByColumns<typeof LaptopTable.columns>;
 const lContext = createContext(LaptopTable, 'l');
-const uContext = createContext(User.table, 'u');
+const uContext = createContext(UserTable, 'u');
 
 describe('createEntity', () => {
     test('select', () => {
@@ -146,7 +147,7 @@ describe('createSelectQuery', () => {
         test('distinct', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 true,
                 { distinct: [{ expression: undefined }] },
@@ -160,7 +161,7 @@ describe('createSelectQuery', () => {
         test('returning', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 [],
                 true,
                 {},
@@ -174,7 +175,7 @@ describe('createSelectQuery', () => {
         test('where', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 U.arithmetic('+', []),
                 {},
@@ -190,7 +191,7 @@ describe('createSelectQuery', () => {
         test('groupBy', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 true,
                 {
@@ -206,7 +207,7 @@ describe('createSelectQuery', () => {
         test('orderBy', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 true,
                 {
@@ -226,7 +227,7 @@ describe('createSelectQuery', () => {
         test('start', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 true,
                 {
@@ -242,7 +243,7 @@ describe('createSelectQuery', () => {
         test('step', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 true,
                 {
@@ -260,7 +261,7 @@ describe('createSelectQuery', () => {
         test('distinct: true', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 true,
                 {
@@ -279,7 +280,7 @@ describe('createSelectQuery', () => {
         test('distinct: array', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 true,
                 {
@@ -298,7 +299,7 @@ describe('createSelectQuery', () => {
         test('full', () => {
             const result = createSelectQuery(
                 User.context,
-                User.table,
+                UserTable,
                 ['id'],
                 context =>
                     (context as Context<UserSchema>).columnsAnd({
@@ -377,7 +378,7 @@ describe('createInsertQuery', () => {
         test('rows', () => {
             const result = createInsertQuery(
                 User.context,
-                User.table,
+                UserTable,
                 [],
                 [],
                 {},
@@ -391,7 +392,7 @@ describe('createInsertQuery', () => {
         test('returning', () => {
             const result = createInsertQuery(
                 User.context,
-                User.table,
+                UserTable,
                 [{ username: 'a' }],
                 [{ expression: undefined, name: 'b' }],
                 {},
@@ -405,7 +406,7 @@ describe('createInsertQuery', () => {
         test('no value', () => {
             const result = createInsertQuery(
                 User.context,
-                User.table,
+                UserTable,
                 [{}],
                 [],
                 {},
@@ -424,7 +425,7 @@ describe('createInsertQuery', () => {
 
         const result = createInsertQuery(
             User.context,
-            User.table,
+            UserTable,
             [
                 {
                     username: 'a'
@@ -453,7 +454,7 @@ describe('createUpdateQuery', () => {
         test('undefined key', () => {
             const result = createUpdateQuery(
                 User.context,
-                User.table,
+                UserTable,
                 { username: U.concat() },
                 true,
                 [],
@@ -469,7 +470,7 @@ describe('createUpdateQuery', () => {
         test('empty sets', () => {
             const result = createUpdateQuery(
                 User.context,
-                User.table,
+                UserTable,
                 {},
                 true,
                 [],
@@ -483,7 +484,7 @@ describe('createUpdateQuery', () => {
         test('where', () => {
             const result = createUpdateQuery(
                 User.context,
-                User.table,
+                UserTable,
                 { username: 'a' },
                 U.arithmetic('+', []),
                 [],
@@ -499,7 +500,7 @@ describe('createUpdateQuery', () => {
         test('returning', () => {
             const result = createUpdateQuery(
                 User.context,
-                User.table,
+                UserTable,
                 { username: 'a' },
                 true,
                 [{ expression: undefined, name: 'b' }],
@@ -512,7 +513,7 @@ describe('createUpdateQuery', () => {
         });
     });
     test('ok', () => {
-        const Job = createEntity({
+        const JobTable = createTable({
             schemaName: 'public',
             tableName: 'job',
             columns: {
@@ -534,11 +535,12 @@ describe('createUpdateQuery', () => {
                 }
             }
         });
+        const Job = createEntity(JobTable);
         jest.useFakeTimers().setSystemTime(new Date(1));
 
         const result = createUpdateQuery(
             Job.context,
-            Job.table,
+            JobTable,
             { id: undefined, title: 'a' },
             true,
             ['updatedAt'],
@@ -561,7 +563,7 @@ describe('createDeleteQuery', () => {
         test('where', () => {
             const result = createDeleteQuery(
                 User.context,
-                User.table,
+                UserTable,
                 [],
                 U.arithmetic('+', []),
                 []
@@ -576,7 +578,7 @@ describe('createDeleteQuery', () => {
         test('returning', () => {
             const result = createDeleteQuery(
                 User.context,
-                User.table,
+                UserTable,
                 [{ expression: undefined, name: 'b' }],
                 true,
                 []
@@ -590,7 +592,7 @@ describe('createDeleteQuery', () => {
     test('ok', () => {
         const result = createDeleteQuery(
             User.context,
-            User.table,
+            UserTable,
             ['username'],
             true,
             []
@@ -611,7 +613,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -636,7 +638,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -663,7 +665,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -690,7 +692,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -717,7 +719,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -748,7 +750,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -775,7 +777,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -804,7 +806,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -834,7 +836,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -864,7 +866,7 @@ describe('createJoinSelectQuery', () => {
             const result = createJoinSelectQuery(
                 { uContext, lContext },
                 {
-                    table: User.table,
+                    table: UserTable,
                     alias: 'u'
                 },
                 [
@@ -975,12 +977,12 @@ describe('createJoinSelectEntity', () => {
             [key in keyof LaptopSchema as `l_${key}`]: LaptopSchema[key];
         }
     >(
-        { table: User.table, alias: 'u' },
+        { table: UserTable, alias: 'u' },
         [{ table: LaptopTable, alias: 'l', joinType: 'inner', on: true }],
         { uContext, lContext }
     );
 
-    const MonitorTable = createEntity({
+    const MonitorTable = createTable({
         schemaName: 'public',
         tableName: 'monitor',
         columns: {
@@ -995,7 +997,7 @@ describe('createJoinSelectEntity', () => {
                 default: false
             }
         }
-    }).table;
+    });
 
     test('select', () => {
         const result = UserJoin.select(
@@ -1033,7 +1035,7 @@ describe('createJoinSelectEntity', () => {
 });
 
 describe('getTableDataOfJoinSelectColumn', () => {
-    const PhoneTable = createEntity({
+    const PhoneTable = createTable({
         schemaName: 'public',
         tableName: 'phone',
         columns: {
@@ -1043,7 +1045,7 @@ describe('getTableDataOfJoinSelectColumn', () => {
                 default: false
             }
         }
-    }).table;
+    });
 
     test('no separator', () => {
         expect(() => getTableDataOfJoinSelectColumn([], 'a')).toThrow(

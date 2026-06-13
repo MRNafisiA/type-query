@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { createEntity } from '../src';
+import { createTable } from '../src';
 import {
     isEqual,
     isRowEqual,
@@ -7,7 +7,7 @@ import {
     createTestTableData
 } from '../src/testTransaction';
 
-const UserTable = createEntity({
+const UserTable = createTable({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -23,7 +23,7 @@ const UserTable = createEntity({
             default: false
         }
     }
-}).table;
+});
 
 describe('testTransaction', () => {
     test('init db fails', async () => {
@@ -331,3 +331,4 @@ describe('isEqual', () => {
         expect(result).toStrictEqual(true);
     });
 });
+

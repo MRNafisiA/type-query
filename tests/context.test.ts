@@ -1,8 +1,8 @@
-import { createEntity } from '../src/entity';
+import { createTable } from '../src/Table';
 import { OperatorCode } from '../src/keywords';
 import { createContext, createContextHelper } from '../src/context';
 
-const UserTable = createEntity({
+const UserTable = createTable({
     schemaName: 'public',
     tableName: 'user',
     columns: {
@@ -12,7 +12,7 @@ const UserTable = createEntity({
             default: false
         }
     }
-}).table;
+});
 
 describe('createContextHelper', () => {
     const contextHelper = createContextHelper(UserTable);
@@ -211,3 +211,4 @@ describe('createContext', () => {
         });
     });
 });
+
