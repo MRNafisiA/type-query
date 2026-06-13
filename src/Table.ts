@@ -28,11 +28,13 @@ type ColumnInfo = (
     );
 
 type ExtractEssentialSchema<S extends Schema> = {
-    [key in keyof S]: {
+    [key in keyof S & string]: {
         type: S[key]['type'];
         nullable: S[key]['nullable'];
         default: S[key]['default'];
-        narrowType?: S[key]['narrowType'];
+        narrowType?: unknown extends S[key]['narrowType']
+            ? undefined
+            : S[key]['narrowType'];
     };
 };
 
