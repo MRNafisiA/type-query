@@ -37,6 +37,7 @@ export {
     type Table,
     type Schema,
     type ColumnInfo,
+    type ExtractEssentialSchema,
     type GetColumnType,
     type BooleanColumn,
     type Int2Int4Column,

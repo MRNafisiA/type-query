@@ -27,6 +27,15 @@ type ColumnInfo = (
         | { nullable: true; primary?: never }
     );
 
+type ExtractEssentialSchema<S extends Schema> = {
+    [key in keyof S]: {
+        type: S[key]['type'];
+        nullable: S[key]['nullable'];
+        default: S[key]['default'];
+        narrowType?: S[key]['narrowType'];
+    };
+};
+
 type Reference<T extends Table<Schema>, C extends keyof T['columns']> = {
     table: T;
     onUpdate?: ReferenceActions;
@@ -250,6 +259,7 @@ export type {
     Table,
     Schema,
     ColumnInfo,
+    ExtractEssentialSchema,
     Reference,
     GetColumnType,
     BooleanColumn,
