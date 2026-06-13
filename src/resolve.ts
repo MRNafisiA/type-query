@@ -919,7 +919,7 @@ const resolveExpression = (
 };
 
 const resolveColumn = (
-    table: Table<Schema>,
+    table: Table,
     column: string,
     full: boolean = true,
     alias?: string

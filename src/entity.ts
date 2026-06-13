@@ -633,7 +633,7 @@ const createDeleteQuery = <S extends Schema>(
 type JoinType = 'inner' | 'left' | 'right' | 'full';
 
 type TableWithAlias = {
-    table: Table<Schema>;
+    table: Table;
     alias: string;
 };
 

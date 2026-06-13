@@ -1,10 +1,10 @@
 import Decimal from 'decimal.js';
 
-const createReference = <T extends Table<Schema>, C extends keyof T['columns']>(
+const createReference = <T extends Table, C extends keyof T['columns']>(
     reference: Reference<T, C>
 ) => reference as GetColumnType<T['columns'][C]>;
 
-type Table<S extends Schema> = {
+type Table<S extends Schema = Schema> = {
     schemaName: string;
     tableName: string;
     columns: S;
@@ -38,7 +38,7 @@ type ExtractEssentialSchema<S extends Schema> = {
     };
 };
 
-type Reference<T extends Table<Schema>, C extends keyof T['columns']> = {
+type Reference<T extends Table, C extends keyof T['columns']> = {
     table: T;
     onUpdate?: ReferenceActions;
     onDelete?: ReferenceActions;
