@@ -1,14 +1,6 @@
 import Decimal from 'decimal.js';
 import { err, ok, Result } from 'never-catch';
-import {
-    Json,
-    Table,
-    Schema,
-    NullableType,
-    GetColumnType,
-    Columns,
-    SchemaByColumns
-} from './Table';
+import { Json, Table, Schema, NullableType, TableBySchema } from './Table';
 
 const Int2Range = {
     min: -32768,
@@ -214,8 +206,8 @@ const Parser = {
 
 type ModelHelper<S extends Schema, NotNull extends keyof S> = {
     [key in keyof S & string]: key extends NotNull
-        ? S[key]['type']
-        : NullableType<S[key]['type'], S[key]['nullable']>;
+        ? S[key]['narrowType']
+        : NullableType<S[key]['narrowType'], S[key]['nullable']>;
 };
 
 type Model<
@@ -261,30 +253,32 @@ type ModelParser<
 } & {
     [key in keyof S & string]: (
         v: unknown
-    ) => NullableType<S[key]['type'], S[key]['nullable']> | undefined;
+    ) => NullableType<S[key]['narrowType'], S[key]['nullable']> | undefined;
 };
 
 const createModelParser = <
-    C extends Columns,
-    const EMap extends { [key in keyof C & string]: unknown } = {
-        [key in keyof C & string]: key;
+    S extends Schema,
+    const EMap extends { [key in keyof S & string]: unknown } = {
+        [key in keyof S & string]: key;
     }
 >(
-    { columns }: Table<C>,
+    { columns }: TableBySchema<S>,
     { parsers, errorsMap } = {} as {
         parsers?: {
-            [key in keyof C & string]?: (
-                v: NullableType<GetColumnType<C[key]>, C[key]['nullable']>
+            [key in keyof S & string]?: (
+                v: NullableType<S[key]['narrowType'], S[key]['nullable']>
             ) =>
-                | NullableType<GetColumnType<C[key]>, C[key]['nullable']>
+                | NullableType<S[key]['narrowType'], S[key]['nullable']>
                 | undefined;
         };
         errorsMap?: EMap;
     }
-): ModelParser<SchemaByColumns<C>, EMap> => {
+): ModelParser<S, EMap> => {
     const columnsParser: Record<string, (v: unknown) => unknown> =
         Object.fromEntries(
-            Object.entries(columns).map(([key, column]) => {
+            (
+                Object.entries(columns) as [string, Table['columns'][string]][]
+            ).map(([key, column]) => {
                 let defaultParser;
                 switch (column.type) {
                     case 'boolean':
@@ -427,12 +421,7 @@ const createModelParser = <
                               if (_v === undefined) {
                                   return undefined;
                               }
-                              return customParser(
-                                  _v as NullableType<
-                                      GetColumnType<C[string]>,
-                                      C[string]['nullable']
-                                  >
-                              );
+                              return customParser(_v);
                           }
                         : (v: unknown) =>
                               defaultParser(v, columns[key].nullable)
@@ -474,7 +463,7 @@ const createModelParser = <
             return ok(result);
         },
         ...columnsParser
-    } as ModelParser<SchemaByColumns<C>, EMap>;
+    } as ModelParser<S, EMap>;
 };
 
 export type { ModelHelper, Model, ModelWithPrefix, ModelParser };

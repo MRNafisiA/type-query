@@ -7,26 +7,39 @@ const createReference = <T extends Table, C extends keyof T['columns']>(
 type Schema = Record<
     string,
     {
-        type: unknown;
+        type: PgType;
         default: boolean;
         nullable: boolean;
+        narrowType: unknown;
     }
 >;
 
 type SchemaByColumns<C extends Columns> = {
-    [key in keyof C]: {
-        type: GetColumnType<C[key]>;
+    [key in keyof C & string]: {
+        type: C[key]['type'];
         default: C[key]['default'];
         nullable: C[key]['nullable'];
+        narrowType: GetColumnType<C[key]>;
     };
 };
 
-const createTable = <C extends Columns>(table: Table<C>) => table;
-
-type Table<S extends Columns = Columns> = {
+type TableBySchema<S extends Schema = Schema> = {
     schemaName: string;
     tableName: string;
     columns: S;
+};
+
+const createTable = <C extends Columns>(table: Table<C>) =>
+    table as Table<{
+        [key in keyof C & string]: C[key] & {
+            narrowType: GetColumnType<C[key]>;
+        };
+    }>;
+
+type Table<C extends Columns = Columns> = {
+    schemaName: string;
+    tableName: string;
+    columns: C;
 };
 
 type Columns = Record<string, ColumnInfo>;
@@ -268,6 +281,7 @@ export { createReference, createTable };
 export type {
     Schema,
     SchemaByColumns,
+    TableBySchema,
     Table,
     Columns,
     ColumnInfo,
@@ -290,4 +304,3 @@ export type {
     JsonArray,
     BaseJsonValue
 };
-

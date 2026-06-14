@@ -38,6 +38,7 @@ export {
     createTable,
     type Schema,
     type SchemaByColumns,
+    type TableBySchema,
     type Table,
     type Columns,
     type ColumnInfo,

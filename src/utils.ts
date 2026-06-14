@@ -1,14 +1,7 @@
 import Decimal from 'decimal.js';
 import { Query } from './entity';
 import { resolveColumn } from './resolve';
-import {
-    Columns,
-    GetColumnType,
-    Json,
-    NullableType,
-    Schema,
-    Table
-} from './Table';
+import { Json, Schema, NullableType, TableBySchema } from './Table';
 import {
     OperatorMap,
     JsonOperator,
@@ -166,16 +159,15 @@ function concat(...a: unknown[]) {
     return [OperatorCode.Concat, a];
 }
 
-const column = <C extends Columns, K extends keyof C & string>(
-    table: Table<C>,
+const column = <S extends Schema, K extends keyof S & string>(
+    table: TableBySchema<S>,
     column: K,
     full?: boolean,
     alias?: string
-) =>
-    [
-        OperatorCode.Column,
-        resolveColumn(table, column, full, alias)
-    ] as NullableType<GetColumnType<C[K]>, C[K]['nullable']>;
+): NullableType<S[K]['narrowType'], S[K]['nullable']> => [
+    OperatorCode.Column,
+    resolveColumn(table, column, full, alias)
+];
 
 const raw = <const T>(
     textOrGet:

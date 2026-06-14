@@ -1,15 +1,18 @@
 import { Dictionary } from './keywords';
-import { Table, PgType, Reference } from './Table';
+import { Table, PgType, Reference, TableBySchema } from './Table';
 
 const generateCreateSequencesSQL = (
-    table: Table,
+    table: TableBySchema,
     {
         applyIfNotExist = false,
         owner
     }: { applyIfNotExist?: boolean; owner?: string } = {}
 ) => {
     const queries = [];
-    for (const [key, column] of Object.entries(table.columns)) {
+    for (const [key, column] of Object.entries(table.columns) as [
+        string,
+        Table['columns'][string]
+    ][]) {
         if (
             (column as unknown as Record<'defaultValue', ['auto-increment']>)
                 .defaultValue?.[0] !== 'auto-increment'
@@ -44,11 +47,14 @@ const generateCreateSequencesSQL = (
 };
 
 const generateDropSequencesSQL = (
-    table: Table,
+    table: TableBySchema,
     { applyIfExist = false }: { applyIfExist?: boolean } = {}
 ) => {
     const queries = [];
-    for (const [key, column] of Object.entries(table.columns)) {
+    for (const [key, column] of Object.entries(table.columns) as [
+        string,
+        Table['columns'][string]
+    ][]) {
         if (
             (column as unknown as Record<'defaultValue', ['auto-increment']>)
                 .defaultValue?.[0] !== 'auto-increment'
@@ -64,7 +70,7 @@ const generateDropSequencesSQL = (
 };
 
 const generateCreateTableSQL = (
-    table: Table,
+    table: TableBySchema,
     {
         applyIfNotExist = false,
         isTemp = false,
@@ -72,7 +78,10 @@ const generateCreateTableSQL = (
     }: { applyIfNotExist?: boolean; isTemp?: boolean; owner?: string } = {}
 ) => {
     // columns
-    const columnsAsEntries = Object.entries(table.columns);
+    const columnsAsEntries = Object.entries(table.columns) as [
+        string,
+        Table['columns'][string]
+    ][];
     const columns = columnsAsEntries.map(([key, column]) => {
         const tokens = [
             `"${column.title ?? key}" ` +
@@ -150,7 +159,7 @@ const generateCreateTableSQL = (
 };
 
 const generateDropTableSQL = (
-    table: Table,
+    table: TableBySchema,
     { applyIfExist = false }: { applyIfExist?: boolean } = {}
 ) =>
     `DROP TABLE ${applyIfExist ? 'IF EXIST ' : ''}"${table.schemaName}"."${table.tableName}"`;

@@ -1,14 +1,7 @@
 import * as U from './utils';
 import Decimal from 'decimal.js';
 import { Query } from './entity';
-import {
-    Json,
-    Table,
-    Schema,
-    Columns,
-    NullableType,
-    SchemaByColumns
-} from './Table';
+import { Json, Schema, NullableType, TableBySchema } from './Table';
 import {
     LikeOperator,
     ListOperator,
@@ -24,7 +17,7 @@ type Context<S extends Schema> = {
     column: <K extends keyof S & string>(
         column: K,
         alias?: string
-    ) => NullableType<S[K]['type'], S[K]['nullable']>;
+    ) => NullableType<S[K]['narrowType'], S[K]['nullable']>;
     compare: <K extends keyof S & string>(
         column: K,
         ...args: ContextRule<S, K>
@@ -33,10 +26,10 @@ type Context<S extends Schema> = {
     columnsOr: (rules: ContextRules<S>, alias?: string) => boolean;
 };
 
-const createContext = <C extends Columns>(
-    table: Table<C>,
+const createContext = <S extends Schema>(
+    table: TableBySchema<S>,
     alias = ''
-): Context<SchemaByColumns<C>> => {
+): Context<S> => {
     const contextHelper = createContextHelper(table);
     return {
         column: (column, _alias = alias) =>
@@ -59,9 +52,9 @@ type ContextRules<S extends Schema> = {
 
 type ContextRule<S extends Schema, K extends keyof S> =
     | (S[K]['nullable'] extends true ? [operator: NullOperator] : never)
-    | (S[K]['type'] extends boolean
+    | (S[K]['narrowType'] extends boolean
           ? [operator: BooleanOperator]
-          : S[K]['type'] extends number
+          : S[K]['narrowType'] extends number
             ?
                   | [
                         operator: CompareOperator,
@@ -83,7 +76,7 @@ type ContextRule<S extends Schema, K extends keyof S> =
                         startExpression: NullableType<number, S[K]['nullable']>,
                         endExpression: NullableType<number, S[K]['nullable']>
                     ]
-            : S[K]['type'] extends bigint
+            : S[K]['narrowType'] extends bigint
               ?
                     | [
                           operator: CompareOperator,
@@ -108,7 +101,7 @@ type ContextRule<S extends Schema, K extends keyof S> =
                           >,
                           endExpression: NullableType<bigint, S[K]['nullable']>
                       ]
-              : S[K]['type'] extends Decimal
+              : S[K]['narrowType'] extends Decimal
                 ?
                       | [
                             operator: CompareOperator,
@@ -136,7 +129,7 @@ type ContextRule<S extends Schema, K extends keyof S> =
                                 S[K]['nullable']
                             >
                         ]
-                : S[K]['type'] extends string
+                : S[K]['narrowType'] extends string
                   ?
                         | [
                               operator: CompareOperator | 'like',
@@ -164,7 +157,7 @@ type ContextRule<S extends Schema, K extends keyof S> =
                                   S[K]['nullable']
                               >
                           ]
-                  : S[K]['type'] extends Date
+                  : S[K]['narrowType'] extends Date
                     ?
                           | [
                                 operator: CompareOperator,
@@ -192,7 +185,7 @@ type ContextRule<S extends Schema, K extends keyof S> =
                                     S[K]['nullable']
                                 >
                             ]
-                    : S[K]['type'] extends Json
+                    : S[K]['narrowType'] extends Json
                       ?
                             | [
                                   operator: '=' | '!=' | '@>' | '<@',
@@ -210,10 +203,10 @@ type ContextRule<S extends Schema, K extends keyof S> =
                       : never);
 
 const createContextHelper =
-    <C extends Columns>(table: Table<C>) =>
-    (rules: ContextRules<SchemaByColumns<C>>, alias?: string): boolean[] =>
+    <S extends Schema>(table: TableBySchema<S>) =>
+    (rules: ContextRules<S>, alias?: string): boolean[] =>
         Object.entries(rules).map(
-            ([key, value]: [keyof C & string, unknown[] | undefined]) => {
+            ([key, value]: [keyof S & string, unknown[] | undefined]) => {
                 if (value === undefined) {
                     throw `undefined value is not allowed for ${key}`;
                 }

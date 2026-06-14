@@ -3,8 +3,8 @@
 
 import * as U from './utils';
 import Decimal from 'decimal.js';
-import { Schema, Table } from './Table';
 import { err, ok, Result } from 'never-catch';
+import { Schema, TableBySchema } from './Table';
 import { Dictionary, OperatorCode } from './keywords';
 import { CustomColumn, Mode, QueryResult } from './entity';
 
@@ -919,7 +919,7 @@ const resolveExpression = (
 };
 
 const resolveColumn = (
-    table: Table,
+    table: TableBySchema,
     column: string,
     full: boolean = true,
     alias?: string
@@ -934,7 +934,10 @@ const resolveColumn = (
     } else {
         prefix = '';
     }
-    return prefix + `"${table.columns[column].title ?? column}"`;
+    return (
+        prefix +
+        `"${(table.columns[column] as unknown as Record<'title', string | undefined>).title ?? column}"`
+    );
 };
 
 const resolveReturning = (

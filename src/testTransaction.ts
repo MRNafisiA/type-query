@@ -1,32 +1,32 @@
 import { err, ok } from 'never-catch';
 import { Pool, PoolClient } from 'pg';
+import { Schema, NullableType, TableBySchema } from './Table';
 import { createEntity, NullableAndDefaultColumns } from './entity';
-import { Columns, GetColumnType, NullableType, Table } from './Table';
 import { transaction, TransactionIsolationLevel } from './transaction';
 import { generateCreateSequencesSQL, generateCreateTableSQL } from './ddl';
 
-type TestTableData<C extends Columns = Columns> = {
-    table: Table<C>;
+type TestTableData<S extends Schema = Schema> = {
+    table: TableBySchema<S>;
     startData: ({
-        [key in Exclude<keyof C, NullableAndDefaultColumns<C>>]: NullableType<
-            GetColumnType<C[key]>,
-            C[key]['nullable']
+        [key in Exclude<keyof S, NullableAndDefaultColumns<S>>]: NullableType<
+            S[key]['narrowType'],
+            S[key]['nullable']
         >;
     } & {
-        [key in NullableAndDefaultColumns<C>]?: NullableType<
-            GetColumnType<C[key]>,
-            C[key]['nullable']
+        [key in NullableAndDefaultColumns<S>]?: NullableType<
+            S[key]['narrowType'],
+            S[key]['nullable']
         >;
     })[];
     finalData: {
-        [key in keyof C & string]:
-            | NullableType<GetColumnType<C[key]>, C[key]['nullable']>
+        [key in keyof S & string]:
+            | NullableType<S[key]['narrowType'], S[key]['nullable']>
             | ((
-                  cell: NullableType<GetColumnType<C[key]>, C[key]['nullable']>,
+                  cell: NullableType<S[key]['narrowType'], S[key]['nullable']>,
                   rows: {
-                      [key in keyof C & string]: NullableType<
-                          GetColumnType<C[key]>,
-                          C[key]['nullable']
+                      [key in keyof S & string]: NullableType<
+                          S[key]['narrowType'],
+                          S[key]['nullable']
                       >;
                   }[],
                   index: number
@@ -147,11 +147,11 @@ const testTransaction = async (
         }
     });
 
-const createTestTableData = <C extends Columns>(
-    table: TestTableData<C>['table'],
-    startData: TestTableData<C>['startData'],
-    finalData: TestTableData<C>['finalData']
-): TestTableData<C> => ({ table, startData, finalData });
+const createTestTableData = <S extends Schema>(
+    table: TestTableData<S>['table'],
+    startData: TestTableData<S>['startData'],
+    finalData: TestTableData<S>['finalData']
+): TestTableData<S> => ({ table, startData, finalData });
 
 const isRowEqual = async (
     a: Record<string, unknown>,
