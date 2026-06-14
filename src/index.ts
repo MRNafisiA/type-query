@@ -16,6 +16,7 @@ export {
     getSequenceName
 } from './ddl';
 export {
+    type Entity,
     type InsertingRow,
     type UpdateSets,
     type JoinType,
@@ -67,4 +68,3 @@ export {
 } from './testTransaction';
 export { transaction } from './transaction';
 export * as U from './utils';
-

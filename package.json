@@ -1,6 +1,6 @@
 {
     "name": "@mrnafisia/type-query",
-    "version": "4.0.11",
+    "version": "4.0.12",
     "description": "mini-orm with full type support for postgres.",
     "keywords": [
         "orm",
@@ -45,4 +45,3 @@
     },
     "types": "./dist/src/index.d.ts"
 }
-
