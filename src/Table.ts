@@ -6,12 +6,20 @@ const createReference = <T extends Table, C extends keyof T['columns']>(
 
 type Schema = Record<
     string,
-    {
-        type: PgType;
-        default: boolean;
-        nullable: boolean;
-        narrowType: unknown;
-    }
+    | {
+          type: Exclude<PgType, 'decimal'>;
+          default: boolean;
+          nullable: boolean;
+          narrowType: unknown;
+      }
+    | {
+          type: 'decimal';
+          default: boolean;
+          nullable: boolean;
+          narrowType: unknown;
+          precision: number;
+          scale: number;
+      }
 >;
 
 type SchemaByColumns<C extends Columns> = {
@@ -44,7 +52,7 @@ type Table<C extends Columns = Columns> = {
 
 type Columns = Record<string, ColumnInfo>;
 
-type ColumnInfo = (
+type ColumnInfo =
     | BooleanColumn
     | Int2Int4Column
     | Int8Column
@@ -53,11 +61,7 @@ type ColumnInfo = (
     | CharVarcharTextUuidColumn
     | DateTimestampTimestamptzColumn
     | JsonJsonbColumn
-    | CustomTypeColumn
-) & { title?: string } & (
-        | { nullable: false; primary?: true | never }
-        | { nullable: true; primary?: never }
-    );
+    | CustomTypeColumn;
 
 type Reference<T extends Table, C extends keyof T['columns']> = {
     table: T;
@@ -87,6 +91,11 @@ type GetColumnType<CI extends ColumnInfo> =
                         ? U
                         : never;
 
+type CommonColumnInfo = { title?: string } & (
+    | { nullable: false; primary?: true | never }
+    | { nullable: true; primary?: never }
+);
+
 type BooleanColumn<NT extends boolean = boolean> = {
     type: 'boolean';
     narrowType?: NT;
@@ -97,7 +106,8 @@ type BooleanColumn<NT extends boolean = boolean> = {
           default: true;
           defaultValue: ['sql', string] | ['js', boolean];
       }
-);
+) &
+    CommonColumnInfo;
 
 type Int2Int4Column<NT extends number = number> = {
     type: 'int2' | 'int4';
@@ -117,7 +127,8 @@ type Int2Int4Column<NT extends number = number> = {
           defaultValue: ['auto-increment'];
           sequenceTitle?: string;
       }
-);
+) &
+    CommonColumnInfo;
 
 type Int8Column<NT extends bigint = bigint> = {
     type: 'int8';
@@ -137,7 +148,8 @@ type Int8Column<NT extends bigint = bigint> = {
           defaultValue: ['auto-increment'];
           sequenceTitle?: string;
       }
-);
+) &
+    CommonColumnInfo;
 
 type Float4Float8Column<NT extends number = number> = {
     type: 'float4' | 'float8';
@@ -151,7 +163,8 @@ type Float4Float8Column<NT extends number = number> = {
           default: true;
           defaultValue: ['sql', string] | ['js', number];
       }
-);
+) &
+    CommonColumnInfo;
 
 type DecimalColumn<NT extends Decimal = Decimal> = {
     type: 'decimal';
@@ -167,7 +180,8 @@ type DecimalColumn<NT extends Decimal = Decimal> = {
           default: true;
           defaultValue: ['sql', string] | ['js', Decimal];
       }
-);
+) &
+    CommonColumnInfo;
 
 type CharVarcharTextUuidColumn<NT extends string = string> = {
     type: 'char' | 'varchar' | 'text' | 'uuid';
@@ -182,7 +196,8 @@ type CharVarcharTextUuidColumn<NT extends string = string> = {
           default: true;
           defaultValue: ['sql', string] | ['js', string];
       }
-);
+) &
+    CommonColumnInfo;
 
 type DateTimestampTimestamptzColumn<NT extends Date = Date> = {
     type: 'date' | 'timestamp' | 'timestamptz';
@@ -199,7 +214,8 @@ type DateTimestampTimestamptzColumn<NT extends Date = Date> = {
               | ['created-at']
               | ['updated-at'];
       }
-);
+) &
+    CommonColumnInfo;
 
 type JsonJsonbColumn<NT extends Json = Json> = {
     type: 'json' | 'jsonb';
@@ -211,7 +227,8 @@ type JsonJsonbColumn<NT extends Json = Json> = {
           default: true;
           defaultValue: ['sql', string] | ['js', Json];
       }
-);
+) &
+    CommonColumnInfo;
 
 type CustomTypeColumn<NT = unknown> = {
     type: `custom(${string})`;
@@ -223,7 +240,8 @@ type CustomTypeColumn<NT = unknown> = {
           default: true;
           defaultValue: ['sql', string] | ['js', NT];
       }
-);
+) &
+    CommonColumnInfo;
 
 type ReferenceActions =
     | 'no-action'
