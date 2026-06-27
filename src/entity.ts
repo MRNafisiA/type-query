@@ -1098,7 +1098,7 @@ const createQuery = <
             }
             return queryDataResult;
         },
-        execute: async <M extends Mode>(
+        execute: async <const M extends Mode>(
             client: ClientBase,
             mode: M,
             params: string[] = []

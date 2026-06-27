@@ -1,6 +1,6 @@
 {
     "name": "@mrnafisia/type-query",
-    "version": "4.0.16",
+    "version": "4.0.17",
     "description": "mini-orm with full type support for postgres.",
     "keywords": [
         "orm",
@@ -24,23 +24,23 @@
         "build": "tsc --build prd.tsconfig.json"
     },
     "devDependencies": {
-        "@types/jest": "^29.5.12",
-        "@types/node": "^20.11.26",
-        "@types/pg": "^8.11.3",
-        "@typescript-eslint/eslint-plugin": "^7.2.0",
-        "@typescript-eslint/parser": "^7.2.0",
-        "eslint": "^8.57.0",
-        "eslint-config-prettier": "^9.1.0",
-        "jest": "^29.7.0",
-        "prettier": "^3.2.5",
-        "ts-jest": "^29.1.2",
-        "typescript": "^5.4.3"
+        "@types/jest": "^29.5.14",
+        "@types/node": "^24.13.2",
+        "@types/pg": "^8.20.0",
+        "@typescript-eslint/eslint-plugin": "^8.62.0",
+        "@typescript-eslint/parser": "^8.62.0",
+        "eslint": "^10.6.0",
+        "eslint-config-prettier": "^10.1.8",
+        "jest": "^30.4.2",
+        "prettier": "^3.8.5",
+        "ts-jest": "^29.4.11",
+        "typescript": "^5.9.3"
     },
     "peerDependencies": {
-        "decimal.js": "10.4.3"
+        "decimal.js": "10.6.0"
     },
     "dependencies": {
-        "decimal.js": "10.4.3",
+        "decimal.js": "10.6.0",
         "never-catch": "1.1.0"
     },
     "types": "./dist/src/index.d.ts"
