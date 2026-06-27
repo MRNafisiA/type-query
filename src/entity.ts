@@ -34,24 +34,15 @@ const createEntity = <S extends Schema>(table: TableBySchema<S>) => {
                 )
             ),
         insert: <
-            const R extends (keyof S & string) | CustomColumn<unknown, string>,
-            N extends NullableAndDefaultColumns<S> = never
+            const R extends (keyof S & string) | CustomColumn<unknown, string>
         >(
             rows:
-                | InsertingRow<S, N>[]
-                | ((context: Context<S>) => InsertingRow<S, N>[]),
-            returning: R[] | ((context: Context<S>) => R[]),
-            options = {} as InsertOptions<S, N>
+                | InsertingRow<S>[]
+                | ((context: Context<S>) => InsertingRow<S>[]),
+            returning: R[] | ((context: Context<S>) => R[])
         ): Query<S, R> =>
             createQuery(params =>
-                createInsertQuery(
-                    context,
-                    table,
-                    rows,
-                    returning,
-                    options,
-                    params
-                )
+                createInsertQuery(context, table, rows, returning, params)
             ),
         update: <
             const R extends (keyof S & string) | CustomColumn<unknown, string>
@@ -350,16 +341,15 @@ type InsertOptions<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
     nullableDefaultColumns?: N[];
 };
 
-type InsertingRow<S extends Schema, N extends NullableAndDefaultColumns<S>> = {
-    [key in keyof S & string as key extends NullableAndDefaultColumns<S>
-        ? never
-        : key]: key extends NullableAndDefaultColumns<S>
-        ? never
-        : S[key & string]['narrowType'];
+type InsertingRow<S extends Schema> = {
+    [key in Exclude<
+        keyof S & string,
+        NullableAndDefaultColumns<S>
+    >]: S[key]['narrowType'];
 } & {
-    [key in N]?: NullableType<
-        S[key & string]['narrowType'],
-        S[key & string]['nullable']
+    [key in NullableAndDefaultColumns<S>]?: NullableType<
+        S[key]['narrowType'],
+        S[key]['nullable']
     >;
 };
 
@@ -370,27 +360,10 @@ const createInsertQuery = <S extends Schema>(
         | Record<string, unknown>[]
         | ((context: Context<S>) => Record<string, unknown>[]),
     returning: ReturningRow[] | ((context: Context<S>) => ReturningRow[]),
-    options: InsertOptions<S, NullableAndDefaultColumns<S>>,
     params: string[]
 ): Result<QueryData, string> => {
     const errorPrefix = `insert("${table.schemaName}"."${table.tableName}")`;
-    const { nullableDefaultColumns = [] } = options;
     const tokens = [`INSERT INTO "${table.schemaName}"."${table.tableName}"`];
-
-    // columns
-    const insertingColumns: string[] = [];
-    const columnsTextArray = [];
-    for (const column in table.columns) {
-        if (
-            nullableDefaultColumns.includes(column as never) ||
-            !table.columns[column].nullable ||
-            table.columns[column].default
-        ) {
-            insertingColumns.push(column);
-            columnsTextArray.push(resolveColumn(table, column, false));
-        }
-    }
-    tokens.push(`(${columnsTextArray.join(', ')})`, 'VALUES');
 
     // rows
     const rowsTextArray: string[] = [];
@@ -398,6 +371,23 @@ const createInsertQuery = <S extends Schema>(
     if (_rows.length === 0) {
         return err(`${errorPrefix} -> rows -> empty`);
     }
+
+    const temp: Record<string, true> = Object.fromEntries(
+        Object.keys(table.columns)
+            .filter(
+                columnKey =>
+                    !table.columns[columnKey].nullable ||
+                    table.columns[columnKey].default
+            )
+            .map(columnKey => [columnKey, true])
+    );
+    _rows.forEach(_row => Object.keys(_row).forEach(key => (temp[key] = true)));
+    const insertingColumns = Object.keys(temp);
+    const columnsTextArray = insertingColumns.map(columnKey =>
+        resolveColumn(table, columnKey, false)
+    );
+    tokens.push(`(${columnsTextArray.join(', ')})`, 'VALUES');
+
     for (const _row of _rows) {
         const rowTokens = [];
         for (const insertingColumn of insertingColumns) {
@@ -1032,7 +1022,7 @@ const getTableDataOfJoinSelectColumn = (
 // util
 type OrderDirection = 'asc' | 'desc';
 
-type Mode = [] | ['count', number] | ['get', 'one' | number];
+type Mode = [] | ['count', number] | ['get', number];
 
 type CustomColumn<T, N extends string> = {
     expression: T;
@@ -1069,13 +1059,11 @@ type QueryResult<
     S extends Schema,
     R extends keyof S | CustomColumn<unknown, string>,
     M extends Mode
-> = M extends ['get', 'one']
+> = M extends ['get', 1]
     ? QueryResultRow<S, R>
-    : M extends ['get', number] | []
-      ? QueryResultRow<S, R>[]
-      : M extends ['count', number]
-        ? undefined
-        : never;
+    : M extends ['count', number]
+      ? undefined
+      : QueryResultRow<S, R>[];
 
 type QueryResultRow<
     S extends Schema,

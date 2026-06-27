@@ -1,5 +1,5 @@
 import { Dictionary } from './keywords';
-import { Table, PgType, Reference, TableBySchema } from './Table';
+import { Schema, Table, PgType, Reference, TableBySchema } from './Table';
 
 const generateCreateSequencesSQL = (
     table: TableBySchema,
@@ -123,13 +123,16 @@ const generateCreateTableSQL = (
         tokens.push(column.nullable ? 'NULL' : 'NOT NULL');
 
         // reference
-        const reference = column.reference as Reference<Table, string>;
+        const reference = column.reference as Reference<Schema, string>;
         if (reference !== undefined) {
             tokens.push(
                 `REFERENCES "${reference.table.schemaName}"."${reference.table.tableName}"` +
                     `("${
-                        reference.table.columns[reference.column].title ??
-                        reference.column
+                        (
+                            reference.table.columns[reference.column] as {
+                                title?: string;
+                            }
+                        ).title ?? reference.column
                     }") ` +
                     `ON UPDATE ${
                         Dictionary.ReferenceAction[

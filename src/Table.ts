@@ -1,8 +1,8 @@
 import Decimal from 'decimal.js';
 
-const createReference = <T extends Table, C extends keyof T['columns']>(
-    reference: Reference<T, C>
-) => reference as GetColumnType<T['columns'][C]>;
+const createReference = <S extends Schema, C extends keyof S & string>(
+    reference: Reference<S, C>
+) => reference as NullableType<S[C]['narrowType'], S[C]['nullable']>;
 
 type Schema = Record<
     string,
@@ -63,8 +63,8 @@ type ColumnInfo =
     | JsonJsonbColumn
     | CustomTypeColumn;
 
-type Reference<T extends Table, C extends keyof T['columns']> = {
-    table: T;
+type Reference<S extends Schema, C extends keyof S & string> = {
+    table: TableBySchema<S>;
     onUpdate?: ReferenceActions;
     onDelete?: ReferenceActions;
     column: C;

@@ -381,7 +381,6 @@ describe('createInsertQuery', () => {
                 UserTable,
                 [],
                 [],
-                {},
                 []
             );
 
@@ -395,7 +394,6 @@ describe('createInsertQuery', () => {
                 UserTable,
                 [{ username: 'a' }],
                 [{ expression: undefined, name: 'b' }],
-                {},
                 []
             );
 
@@ -409,7 +407,6 @@ describe('createInsertQuery', () => {
                 UserTable,
                 [{}],
                 [],
-                {},
                 []
             );
 
@@ -432,15 +429,12 @@ describe('createInsertQuery', () => {
                 }
             ],
             ['id', 'username'],
-            {
-                nullableDefaultColumns: ['email' as never]
-            },
             ['b']
         );
 
         expect(result).toStrictEqual(
             ok({
-                sql: `INSERT INTO "public"."user" ("ID", "username", "email", "level", "createdAt", "isAdmin") VALUES (DEFAULT, $2, NULL, 1, '1970-01-01T00:00:00.001Z', TRUE) RETURNING "ID" AS "id", "username"`,
+                sql: `INSERT INTO "public"."user" ("ID", "username", "level", "createdAt", "isAdmin") VALUES (DEFAULT, $2, 1, '1970-01-01T00:00:00.001Z', TRUE) RETURNING "ID" AS "id", "username"`,
                 params: ['b', 'a']
             })
         );

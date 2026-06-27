@@ -61,20 +61,9 @@ const testTransaction = async (
             for (const tableWithData of tablesWithData) {
                 if (tableWithData.startData.length !== 0) {
                     const insertResult = await createEntity(tableWithData.table)
-                        .insert(
-                            tableWithData.startData,
-                            [{ expression: true, name: 'confirm' }] as const,
-                            {
-                                nullableDefaultColumns: Object.entries(
-                                    tableWithData.table.columns
-                                )
-                                    .filter(
-                                        ([, column]) =>
-                                            column.nullable || column.default
-                                    )
-                                    .map(([key]) => key)
-                            }
-                        )
+                        .insert(tableWithData.startData, [
+                            { expression: true, name: 'confirm' }
+                        ])
                         .execute(client, [
                             'count',
                             tableWithData.startData.length

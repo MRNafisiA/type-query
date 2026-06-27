@@ -40,15 +40,15 @@ describe('testTransaction', () => {
         };
         const result = await testTransaction(
             [
-                {
-                    table: UserTable,
-                    startData: [
+                createTestTableData(
+                    UserTable,
+                    [
                         {
                             id: 1
                         }
                     ],
-                    finalData: []
-                }
+                    []
+                )
             ],
             async () => undefined,
             mockPool as unknown as Pool
@@ -61,7 +61,7 @@ describe('testTransaction', () => {
                 `CREATE SEQUENCE "public"."user_id_seq" AS SMALLINT; CREATE TABLE "public"."user"("id" SMALLINT DEFAULT NEXTVAL('"public"."user_id_seq"'::REGCLASS) NOT NULL, "username" CHARACTER VARYING NULL);`
             ],
             [
-                `INSERT INTO "public"."user" ("id", "username") VALUES (1, NULL) RETURNING (TRUE) AS "confirm";`,
+                `INSERT INTO "public"."user" ("id") VALUES (1) RETURNING (TRUE) AS "confirm";`,
                 []
             ],
             ['ROLLBACK;']
@@ -104,7 +104,7 @@ describe('testTransaction', () => {
                 `CREATE SEQUENCE "public"."user_id_seq" AS SMALLINT; CREATE TABLE "public"."user"("id" SMALLINT DEFAULT NEXTVAL('"public"."user_id_seq"'::REGCLASS) NOT NULL, "username" CHARACTER VARYING NULL);`
             ],
             [
-                `INSERT INTO "public"."user" ("id", "username") VALUES (1, NULL) RETURNING (TRUE) AS "confirm";`,
+                `INSERT INTO "public"."user" ("id") VALUES (1) RETURNING (TRUE) AS "confirm";`,
                 []
             ],
             [`SELECT "id", "username" FROM "public"."user" WHERE TRUE;`, []],
@@ -168,7 +168,7 @@ describe('testTransaction', () => {
                 `CREATE SEQUENCE "public"."user_id_seq" AS SMALLINT; CREATE TABLE "public"."user"("id" SMALLINT DEFAULT NEXTVAL('"public"."user_id_seq"'::REGCLASS) NOT NULL, "username" CHARACTER VARYING NULL);`
             ],
             [
-                `INSERT INTO "public"."user" ("id", "username") VALUES (1, NULL) RETURNING (TRUE) AS "confirm";`,
+                `INSERT INTO "public"."user" ("id") VALUES (1) RETURNING (TRUE) AS "confirm";`,
                 []
             ],
             [`SELECT "id", "username" FROM "public"."user" WHERE TRUE;`, []],
@@ -216,7 +216,7 @@ describe('testTransaction', () => {
                 `CREATE SEQUENCE "public"."user_id_seq" AS SMALLINT; CREATE TABLE "public"."user"("id" SMALLINT DEFAULT NEXTVAL('"public"."user_id_seq"'::REGCLASS) NOT NULL, "username" CHARACTER VARYING NULL);`
             ],
             [
-                `INSERT INTO "public"."user" ("id", "username") VALUES (1, NULL) RETURNING (TRUE) AS "confirm";`,
+                `INSERT INTO "public"."user" ("id") VALUES (1) RETURNING (TRUE) AS "confirm";`,
                 []
             ],
             [`SELECT "id", "username" FROM "public"."user" WHERE TRUE;`, []],
@@ -331,4 +331,3 @@ describe('isEqual', () => {
         expect(result).toStrictEqual(true);
     });
 });
-

@@ -375,8 +375,8 @@ function compare(
 const subQuery = <T>(query: Query<Schema, never>): T =>
     [OperatorCode.SubQuery, query] as T;
 
-const subQueryExist = <T>(query: Query<Schema, never>): T =>
-    [OperatorCode.SubQueryExist, query] as T;
+const subQueryExist = (query: Query<Schema, never>): boolean =>
+    [OperatorCode.SubQueryExist, query] as unknown as boolean;
 
 const stringify = (value: unknown, inline = false): string => {
     switch (typeof value) {

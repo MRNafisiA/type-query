@@ -1010,14 +1010,11 @@ const resolveResult = <
             ? ok(undefined as QueryResult<S, R, M>)
             : err(false);
     }
-    if (
-        mode[0] === 'get' &&
-        rows.length !== (mode[1] === 'one' ? 1 : mode[1])
-    ) {
+    if (mode[0] === 'get' && rows.length !== (mode[1] === 1 ? 1 : mode[1])) {
         return err(false);
     }
 
-    if (mode[0] === 'get' && mode[1] === 'one') {
+    if (mode[0] === 'get' && mode[1] === 1) {
         return ok(rows[0] as QueryResult<S, R, M>);
     } else {
         return ok(rows as QueryResult<S, R, M>);
