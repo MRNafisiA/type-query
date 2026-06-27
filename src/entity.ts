@@ -1043,7 +1043,7 @@ type Query<
     R extends keyof S | CustomColumn<unknown, string>
 > = {
     getData: (params?: string[]) => Result<QueryData, string>;
-    execute: <M extends Mode>(
+    execute: <const M extends Mode>(
         client: ClientBase,
         mode: M,
         params?: string[]
