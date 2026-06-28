@@ -146,7 +146,7 @@ Type-Query works directly with the [pg](https://node-postgres.com) library.
 import { Pool } from 'pg';
 
 const pool = new Pool({
-    connectionString: 'postgres://postgres:12345678@localhost:5432/test'
+    connectionString: 'postgres://postgres:12345678@localhost:5432/app'
 });
 
 export { pool };
@@ -301,7 +301,7 @@ import { PoolClient } from 'pg';
 const updateUser = async (client: PoolClient) => {
     const result = await User.update(
         { isActive: true }, //                          Set column values
-        context => context.compare('id', '=', 123), //  Condition: WHERE id = 123
+        context => context.compare('id', '=', 1), //    Condition: WHERE id = 123
         ['id'] //                                       Return the 'id' column of updated rows
     ).execute(client, []);
     if (!result.ok) {
@@ -469,18 +469,28 @@ type UserModel<
 export { type UserModel };
 ```
 
+Example:
+
 ```typescript
 import { UserModel } from './User';
 
 type AddUser = UserModel<
     'username' | 'name', // required
-    'roles' // optional
+    'roles' //              optional
 >; // { username: string, name: string | null, roles?: string[] }
 
 type EditUser = UserModel<
-    'id', // required
-    'username' | 'name' | 'roles' // optional
->; // { id: number, username?: string, name?: string | null, roles?: string[] }
+    'id', //                            required
+    'username' | 'name' | 'roles', //   optional
+    'name' //                           null not allowed
+>; // { id: number, username?: string, name?: string, roles?: string[] }
+
+type GetUser = UserModel<
+    'id', //                            required
+    'username' | 'name' | 'roles', //   optional
+    never,
+    'u_' //                             alias when selecting using join
+>; // { u_id: number, u_username?: string, u_name?: string, u_roles?: string[] }
 ```
 
 ## Defining a Model Parser
@@ -504,6 +514,8 @@ const UserModelParser = createModelParser(User.table, {
         username:
             'Username must be 1-24 characters and contain only letters, numbers, underscores, or dashes.',
         name: 'Please provide a valid name.',
+        isAdmin: 'invalid isAdmin',
+        isActive: 'invalid isActive',
         roles: 'At most 5 roles are allowed.'
     },
     parsers: {
@@ -525,12 +537,13 @@ const data = { id: 1 };
 const result = UserModelParser.Parse(
     data, //            data must be at least in the form of Record<string, unknown>
     ['id', 'name'], //  required
-    ['username'] //     optional
+    ['username'], //    optional
+    ['name'] //         null not allowed
 );
 if (!result.ok) {
     throw new Error(result.error); //      'Please provide a valid name.'
 }
-console.log(result.value); //   { id: number, name: string | null, username?: string }
+console.log(result.value); //   { id: number, name: string, username?: string }
 ```
 
 Parsing a single field:
@@ -556,7 +569,6 @@ console.log(parsedUsername); // 'admin'
 ```typescript
 import Decimal from 'decimal.js';
 import { Pool, Query, types } from 'pg';
-import process = require('node:process');
 
 // (REQUIRED) Improve the pg parser (refer to the pg documentation for more details)
 types.setTypeParser(types.builtins.INT8, v => BigInt(v));
@@ -1557,7 +1569,7 @@ const selectUser = async (client: PoolClient) => {
         ],
         true,
         {
-            distinct: ['name', 'username'],
+            distinct: ['name'],
             groupBy: context => [
                 'name',
                 {
@@ -1836,7 +1848,10 @@ transaction(
     },
     'read-committed',
     false
-).then(console.log);
+).then(async result => {
+    console.log(result);
+    await pool.end();
+});
 ```
 
 ## Test Transaction Utility (for Unit and E2E Tests)
@@ -1872,6 +1887,8 @@ The default value is `true`. Pass `false` when you need the data to remain for d
 
 ### Example of Test Transaction
 
+**Hint:** Do not forget to put `.test.ts` at the end of the file name so the `test` and `expect` functions work.
+
 ```typescript
 import { Pool } from 'pg';
 import { User, type UserModel } from './User';
@@ -1881,55 +1898,61 @@ const testPool = new Pool({
     connectionString: 'postgres://postgres:12345678@localhost:5432/test'
 });
 
-const user: UserModel = {
-    id: 1,
-    username: 'john',
-    name: 'john doe',
-    isActive: true,
-    isAdmin: false,
-    roles: []
-};
+afterAll(async () => {
+    await testPool.end();
+});
 
-testTransaction(
-    [
-        createTestTableData(
-            User.table,
-            [user], // Nullable and default columns are optional
-            [
-                {
-                    ...user,
-                    name: 'JOHN DOE', // A plain value to check directly
-                    roles: (
-                        //    Or a function that can check the value dynamically.
-                        //    A boolean or Promise<boolean> for asynchronous checks (e.g., hash password verification).
-                        cell,
-                        rows,
-                        index
-                    ) => cell.length >= 3
-                }
-            ]
-        )
-    ],
-    async client => {
-        const result = await User.update(
-            { name: 'JOHN DOE', roles: ['reporter', 'writer', 'manager'] },
-            context => context.compare('id', '=', 1),
-            ['id', 'roles']
-        ).execute(client, ['get', 1]);
-        if (!result.ok) {
-            throw new Error('Query failed.');
-        }
+test('update user', () => {
+    const user: UserModel = {
+        id: 1,
+        username: 'john',
+        name: 'john doe',
+        isActive: true,
+        isAdmin: false,
+        roles: []
+    };
 
-        expect(result.value).toStrictEqual({
-            id: 1,
-            name: 'JOHN DOE',
-            roles: ['reporter', 'writer', 'manager']
-        });
-    },
-    testPool,
-    'read-committed',
-    true
-);
+    return testTransaction(
+        [
+            createTestTableData(
+                User.table,
+                [user], // Nullable and default columns are optional
+                [
+                    {
+                        ...user,
+                        name: 'JOHN DOE', // A plain value to check directly
+                        roles: (
+                            //    Or a function that can check the value dynamically.
+                            //    A boolean or Promise<boolean> for asynchronous checks (e.g., hash password verification).
+                            cell,
+                            rows,
+                            index
+                        ) => cell.length >= 3
+                    }
+                ]
+            )
+        ],
+        async client => {
+            const result = await User.update(
+                { name: 'JOHN DOE', roles: ['reporter', 'writer', 'manager'] },
+                context => context.compare('id', '=', 1),
+                ['id', 'name', 'roles']
+            ).execute(client, ['get', 1]);
+            if (!result.ok) {
+                throw new Error('Query failed.');
+            }
+
+            expect(result.value).toStrictEqual({
+                id: 1,
+                name: 'JOHN DOE',
+                roles: ['reporter', 'writer', 'manager']
+            });
+        },
+        testPool,
+        'read-committed',
+        true
+    );
+});
 ```
 
 ## Json Type
@@ -1954,4 +1977,3 @@ type BaseJsonValue =
     | JsonObject
     | JsonArray;
 ```
-
