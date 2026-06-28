@@ -26,6 +26,7 @@
         - [Advanced Table Definitions Example](#advanced-table-definitions-example)
     - [Generating Tables and Sequences SQL](#generating-tables-and-sequences-sql)
         - [Setup and Teardown Database Sequences and Tables](#setup-and-teardown-database-sequences-and-tables)
+    - [`execute()` and `getData()`](#execute-and-getdata)
     - [Expression System](#expression-system)
         - [U.compare](#ucompare)
         - [U.arithmetic](#uarithmetic)
@@ -151,7 +152,7 @@ const pool = new Pool({
 export { pool };
 ```
 
-## Defining Table and Entity
+## Defining a Table
 
 Start by defining your table structure using the `createTable` function. This defines the schema, column types, and
 validation rules for the model parser.
@@ -162,11 +163,11 @@ validation rules for the model parser.
 import { createTable } from '@mrnafisia/type-query';
 
 const UserTable = createTable({
-    schemaName: 'public',           // Database schema
-    tableName: 'user',              // Table name
+    schemaName: 'public', //    Database schema
+    tableName: 'user', //       Table name
     columns: {
         id: {
-            type: 'int4',           // PostgreSQL type
+            type: 'int4', //    PostgreSQL type
             nullable: false,
             default: true,
             primary: true,
@@ -178,14 +179,20 @@ const UserTable = createTable({
             default: false,
             minLength: 1,
             maxLength: 24,
-            regex: /^[\w-]*$/    // Alphanumeric, underscore, or dash
+            regex: /^[\w-]*$/ //    Alphanumeric, underscore, or dash
         },
         name: {
             type: 'varchar',
-            nullable: true,       // This column can be NULL
+            nullable: true, //      This column can be NULL
             default: false,
             minLength: 6,
             maxLength: 100
+        },
+        isAdmin: {
+            type: 'boolean',
+            nullable: false,
+            default: true,
+            defaultValue: ['js', false]
         },
         isActive: {
             type: 'boolean',
@@ -232,11 +239,11 @@ import { PoolClient } from 'pg';
 
 const selectUser = async (client: PoolClient) => {
     const result = await User.select(
-        ['id', 'username'],     // selecting columns
-        true                    // WHERE condition (true means no filter)
+        ['id', 'username'], //  selecting columns
+        true //                 WHERE condition (true means no filter)
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); // Array of rows: { id: number, username: string }[]
 };
@@ -244,6 +251,7 @@ const selectUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await selectUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -269,7 +277,7 @@ const insertUser = async (client: PoolClient) => {
         []
     );
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); // Array of rows: { id: number }[]
 };
@@ -277,6 +285,7 @@ const insertUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await insertUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -296,7 +305,7 @@ const updateUser = async (client: PoolClient) => {
         ['id'] //                                       Return the 'id' column of updated rows
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); //                       Array of rows: { id: number }[]
 };
@@ -304,6 +313,7 @@ const updateUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await updateUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -322,7 +332,7 @@ const deleteUser = async (client: PoolClient) => {
         ['id']
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); // Array of rows: { id: number }[]
 };
@@ -330,6 +340,7 @@ const deleteUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await deleteUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -340,10 +351,7 @@ The library provides a powerful join system that allows you to join multiple tab
 `Product.ts`
 
 ```typescript
-import {
-    createTable,
-    createEntity
-} from '@mrnafisia/type-query';
+import { createTable, createEntity } from '@mrnafisia/type-query';
 
 const Product = createEntity(
     createTable({
@@ -387,16 +395,16 @@ import { Product } from './Product';
 
 const joinSelect = async (client: PoolClient) => {
     const result = await Product.join(
-        'p',                    // Alias for the Token table
-        'inner',                // Join type: 'inner', 'left', 'right', 'full'
-        User.table,             // The table to join with
-        'u',                    // Alias for the User table
+        'p', //         Alias for the Product table
+        'inner', //     Join type: 'inner', 'left', 'right', 'full'
+        User.table, //  The table to join with
+        'u', //         Alias for the User table
         ({ pContext, uContext }) =>
             pContext.compare('userID', '=', uContext.column('id'))
     )
         .select(
             [
-                'u_id',           // 'u_id' means: from the User table (alias 'u'), column 'id'
+                'u_id', // 'u_id' means: from the User table (alias 'u'), column 'id'
                 'u_username',
                 'p_id',
                 'p_title'
@@ -405,13 +413,13 @@ const joinSelect = async (client: PoolClient) => {
         )
         .execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value);
-    /* Array of rows: { 
-     *      u_id: number, 
-     *      u_username: string, 
-     *      p_id: number, 
+    /* Array of rows: {
+     *      u_id: number,
+     *      u_username: string,
+     *      p_id: number,
      *      p_title: string
      *  }[]
      */
@@ -420,6 +428,7 @@ const joinSelect = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await joinSelect(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -488,20 +497,20 @@ import { createModelParser } from '@mrnafisia/type-query';
 // UserSchema definition ...
 // UserModel definition ...
 
-const UserModelParser = createModelParser(
-    User.table,
-    {
-        errorsMap: { //     Map database columns to user-friendly error messages
-            id: 'Invalid ID format.',
-            username: 'Username must be 1-24 characters and contain only letters, numbers, underscores, or dashes.',
-            name: 'Please provide a valid name.',
-            roles: 'At most 5 roles are allowed.'
-        },
-        parsers: { //       Custom parsing logic for specific columns
-            roles: v =>
-                v.length < 5 ? v : undefined
-        }
-    });
+const UserModelParser = createModelParser(User.table, {
+    errorsMap: {
+        //  Map database columns to user-friendly error messages
+        id: 'Invalid ID format.',
+        username:
+            'Username must be 1-24 characters and contain only letters, numbers, underscores, or dashes.',
+        name: 'Please provide a valid name.',
+        roles: 'At most 5 roles are allowed.'
+    },
+    parsers: {
+        //  Custom parsing logic for specific columns
+        roles: v => (v.length < 5 ? v : undefined)
+    }
+});
 
 export { UserModelParser };
 ```
@@ -514,14 +523,14 @@ import { UserModelParser } from './User';
 const data = { id: 1 };
 
 const result = UserModelParser.Parse(
-    data,                   // data must be at least in the form of Record<string, unknown>
-    ['id', 'name'],         // required
-    ['username']            // optional
+    data, //            data must be at least in the form of Record<string, unknown>
+    ['id', 'name'], //  required
+    ['username'] //     optional
 );
 if (!result.ok) {
-    throw result.error; // 'Please provide a valid name.'
+    throw new Error(result.error); //      'Please provide a valid name.'
 }
-console.log(result.value); // { id: number, name: string | null, username?: string }
+console.log(result.value); //   { id: number, name: string | null, username?: string }
 ```
 
 Parsing a single field:
@@ -533,7 +542,7 @@ const username = 'admin';
 
 const parsedUsername = UserModelParser.username(username);
 if (parsedUsername === undefined) {
-    throw 'username is invalid.';
+    throw new Error('username is invalid.');
 }
 console.log(parsedUsername); // 'admin'
 ```
@@ -549,7 +558,7 @@ import Decimal from 'decimal.js';
 import { Pool, Query, types } from 'pg';
 import process = require('node:process');
 
-// (RECOMMENDED) Improve the pg parser (refer to the pg documentation for more details)
+// (REQUIRED) Improve the pg parser (refer to the pg documentation for more details)
 types.setTypeParser(types.builtins.INT8, v => BigInt(v));
 types.setTypeParser(types.builtins.NUMERIC, v => new Decimal(v));
 types.setTypeParser(types.builtins.DATE, v => new Date(`${v}T00:00:00Z`));
@@ -557,7 +566,7 @@ types.setTypeParser(types.builtins.DATE, v => new Date(`${v}T00:00:00Z`));
 // (OPTIONAL) Log all executed queries to the console
 if (process.env.NODE_ENV === 'development') {
     const submit = Query.prototype.submit;
-    Query.prototype.submit = function(
+    Query.prototype.submit = function (
         this: Record<'text' | 'values', string>
     ) {
         console.info(`\x1b[36mQuery: ${this.text}`);
@@ -567,7 +576,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Create a pg Pool
-const pool = new Pool({ connectionString: 'postgres://postgres:12345678@localhost:5432/app' });
+const pool = new Pool({
+    connectionString: 'postgres://postgres:12345678@localhost:5432/app'
+});
 
 export { pool };
 ```
@@ -579,7 +590,7 @@ The `createTable` function supports a wide range of column options for rigorous 
 ### Column Options Reference
 
 | Option           | Type                                    | Description                                                                                                                                                             |
-|------------------|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `type`           | `string`                                | See the [type Options Reference](#type-options-reference).                                                                                                              |
 | `nullable`       | `boolean`                               | If `true`, the column can store `NULL` values.                                                                                                                          |
 | `primary?`       | `true`                                  | Marks the column as a primary key. Applicable only if the column is not null.                                                                                           |
@@ -600,7 +611,7 @@ The `createTable` function supports a wide range of column options for rigorous 
 ### `type` Options Reference
 
 | Kind          | PG Type             | JS Type                                       | Description                                      |
-|---------------|---------------------|-----------------------------------------------|--------------------------------------------------|
+| ------------- | ------------------- | --------------------------------------------- | ------------------------------------------------ |
 | **Boolean**   | `boolean`           | `boolean`                                     |                                                  |
 | **Integer**   | `int2`              | `number`                                      |                                                  |
 | **Integer**   | `int4`              | `number`                                      |                                                  |
@@ -622,7 +633,7 @@ The `createTable` function supports a wide range of column options for rigorous 
 ### `defaultValue` Options Reference
 
 | Type            | defaultValue Type                                                              |
-|-----------------|--------------------------------------------------------------------------------|
+| --------------- | ------------------------------------------------------------------------------ |
 | **boolean**     | `['sql', string]` \| `['js', boolean]`                                         |
 | **int2**        | `['sql', string]` \| `['js', number]` \| `['auto-increment']`                  |
 | **int4**        | `['sql', string]` \| `['js', number]` \| `['auto-increment']`                  |
@@ -667,9 +678,7 @@ const Token = createEntity(
             userID: {
                 type: 'int4',
                 nullable: false,
-                default: true,
-                primary: true,
-                defaultValue: ['auto-increment'],
+                default: false,
                 reference: createReference({
                     table: User.table,
                     column: 'id',
@@ -680,7 +689,6 @@ const Token = createEntity(
         }
     })
 );
-
 ```
 
 ### Advanced Table Definitions Example
@@ -722,7 +730,9 @@ const Price = createEntity(
                 nullable: false,
                 default: false,
                 narrowType: undefined as unknown as
-                    'retail' | 'wholesale' | 'mass-production'
+                    | 'retail'
+                    | 'wholesale'
+                    | 'mass-production'
             },
             createdAt: {
                 type: 'timestamptz',
@@ -746,36 +756,24 @@ import {
     generateCreateSequencesSQL
 } from '@mrnafisia/type-query';
 
-const createSequencesSQL: string[] = generateCreateSequencesSQL(
-    User.table,
-    {
-        applyIfNotExist: true, //   Optional: apply CREATE SEQUENCE IF NOT EXISTS
-        owner: 'app_admin' //       Optional: change owner to: app_admin
-    }
-);
+const createSequencesSQL: string[] = generateCreateSequencesSQL(User.table, {
+    applyIfNotExist: true, //   Optional: apply CREATE SEQUENCE IF NOT EXISTS
+    owner: 'app_admin' //       Optional: change owner to: app_admin
+});
 
-const dropSequencesSQL: string[] = generateDropSequencesSQL(
-    User.table,
-    {
-        applyIfExist: true //       Optional: apply DROP SEQUENCE IF EXISTS
-    }
-);
+const dropSequencesSQL: string[] = generateDropSequencesSQL(User.table, {
+    applyIfExist: true //       Optional: apply DROP SEQUENCE IF EXISTS
+});
 
-const createTableSQL: string = generateCreateTableSQL(
-    User.table,
-    {
-        applyIfNotExist: true, //   Optional: apply CREATE TABLE IF NOT EXISTS
-        isTemp: true, //            Optional: apply CREATE TEMPORARY TABLE
-        owner: 'app_admin' //       Optional: change owner to: app_admin
-    }
-);
+const createTableSQL: string = generateCreateTableSQL(User.table, {
+    applyIfNotExist: true, //   Optional: apply CREATE TABLE IF NOT EXISTS
+    isTemp: true, //            Optional: apply CREATE TEMPORARY TABLE
+    owner: 'app_admin' //       Optional: change owner to: app_admin
+});
 
-const dropTableSQL: string = generateDropTableSQL(
-    User.table,
-    {
-        applyIfExist: true //       Optional: apply DROP TABLE IF EXISTS
-    }
-);
+const dropTableSQL: string = generateDropTableSQL(User.table, {
+    applyIfExist: true //       Optional: apply DROP TABLE IF EXISTS
+});
 ```
 
 ### Setup and Teardown Database Sequences and Tables
@@ -794,19 +792,33 @@ import {
 
 const Tables = [User.table];
 
-const setupDatabaseSequencesAndTables = () => pool.connect().then(client =>
-    client.query(Tables.flatMap(table => [
-        ...generateCreateSequencesSQL(table),
-        generateCreateTableSQL(table)
-    ]).join(';\n') + ';').finally(() => client.release())
-);
+const setupDatabaseSequencesAndTables = () =>
+    pool
+        .connect()
+        .then(client =>
+            client
+                .query(
+                    Tables.flatMap(table => [
+                        ...generateCreateSequencesSQL(table),
+                        generateCreateTableSQL(table)
+                    ]).join(';\n') + ';'
+                )
+                .finally(() => client.release())
+        );
 
-const teardownDatabaseSequencesAndTables = () => pool.connect().then(client =>
-    client.query(Tables.flatMap(table => [
-        ...generateDropSequencesSQL(table),
-        generateDropTableSQL(table)
-    ]).join(';\n') + ';').finally(() => client.release())
-);
+const teardownDatabaseSequencesAndTables = () =>
+    pool
+        .connect()
+        .then(client =>
+            client
+                .query(
+                    Tables.flatMap(table => [
+                        ...generateDropSequencesSQL(table),
+                        generateDropTableSQL(table)
+                    ]).join(';\n') + ';'
+                )
+                .finally(() => client.release())
+        );
 
 export {
     Tables,
@@ -814,6 +826,16 @@ export {
     teardownDatabaseSequencesAndTables
 };
 ```
+
+## `execute()` and `getData()`
+
+A complete query object exposes two methods: **`getData()`** and **`execute()`**. Both methods prepare the query and its associated parameters.
+
+- **`getData()`** returns the prepared query in the form `Result<{ sql: string, params: string[] }, unknown>`. This is useful for debugging, logging, or inspecting the generated SQL before execution.  
+  For more details, check out [never-catch](https://github.com/MRNafisiA/never-catch) (inspired by the [Rust](https://rust-lang.org/) `Result` enum).
+- **`execute()`** runs the query against the database using the provided `PoolClient`.
+
+Both methods may return an error if a problem is detected in the query (e.g., a neutral expression or an invalid configuration).
 
 ## Expression System
 
@@ -825,7 +847,7 @@ used exclusively within Type-Query functions and contexts. **Do not** mix it wit
 Use `U.compare` to compare two values using a variety of operators.
 
 | Operators                                             | Expression Type                                         | Example                                                                                                                                                                       |
-|-------------------------------------------------------|---------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `'= null'` \| `'!= null'`                             | `null`                                                  | `U.compare(null, '!= null')`                                                                                                                                                  |
 | `'= true'` \| `'= false'`                             | `boolean`                                               | `U.compare(false, '= true')`                                                                                                                                                  |
 | `'='` \| `'!='` \| `'>'` \| `'>='` \| `'<'` \| `'<='` | `number` \| `bigint` \| `Decimal` \| `string` \| `Date` | `U.compare(1, '=', 2)`, `U.compare(BigInt(1), '!=', BigInt(2))`, `U.compare(new Decimal(1.1), '>', new Decimal(2.2))`                                                         |
@@ -842,9 +864,7 @@ Example:
 import { User } from './User';
 import { U } from '@mrnafisia/type-query';
 
-console.log(
-    User.select(['id'], U.compare(1, '=', 2)).getData()
-);
+console.log(User.select(['id'], U.compare(1, '=', 2)).getData());
 ```
 
 ### U.arithmetic
@@ -852,7 +872,7 @@ console.log(
 Use `U.arithmetic` to apply an arithmetic operator to two values.
 
 | Operators                                  | Expression Type                   | Example                                                                                                                                       |
-|--------------------------------------------|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `'+'` \| `'-'` \| `'*'` \| `'/'` \| `'**'` | `number` \| `bigint` \| `Decimal` | `U.arithmetic(1, '+', 2)` (= 3), `U.arithmetic(1, '+', [2, 3])` (= 6), `U.arithmetic(2, '*', 3)` (= 6), `U.arithmetic(2, '*', [3, 4])` (= 24) |
 
 Example:
@@ -871,7 +891,7 @@ console.log(
 Use `U.json` to apply `jsonb`/`json`-specific operators.
 
 | Operators                                                   | Expression Type                      | Example                                                                                                                                                                                   |
-|-------------------------------------------------------------|--------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `'j-'` \| `'j- Array'` \| `'->'` \| `'-> Array'` \| `'->>'` | `Json` (See [Json Type](#json-type)) | `U.json('{ "name": "john" }', 'j-', 'name')`, `U.json('{ "name": "john" }', '->', 'name')`, `U.json('{ "name": { "first": "John", "last": "Diggle" } }', '-> Array', ['name', 'diggle'])` |
 
 Example:
@@ -926,15 +946,12 @@ console.log(
         U.compare(
             1,
             '=',
-            U.fun(
-                'ANY',
-                [
-                    U.cons(
-                        'ARRAY', //     Constructor name
-                        [1, 2, 3] //    Elements
-                    ) as number[] //    Explicit casting is needed as Type-Query doesn't know the SQL constructor signature
-                ]
-            ) as number
+            U.fun('ANY', [
+                U.cons(
+                    'ARRAY', //     Constructor name
+                    [1, 2, 3] //    Elements
+                ) as number[] //    Explicit casting is needed as Type-Query doesn't know the SQL constructor signature
+            ]) as number
         )
     ).getData()
 );
@@ -956,16 +973,18 @@ console.log(
             '=',
             U.switchCase(
                 [
-                    { //                                Case 1
+                    {
+                        //  Case 1
                         when: U.compare(2, '=', 3),
                         then: 4
                     },
-                    { //                                Case 2
+                    {
+                        //  Case 2
                         when: U.compare(5, '=', 6),
                         then: 7
                     }
                 ],
-                8 //                                    Default value
+                8 // Default value
             )
         )
     ).getData()
@@ -977,7 +996,7 @@ console.log(
 Use `U.concat` to concatenate strings and JSON values.
 
 | Expression Type                      | Example                                                                        |
-|--------------------------------------|--------------------------------------------------------------------------------|
+| ------------------------------------ | ------------------------------------------------------------------------------ |
 | `string`                             | `U.concat('hello', ' ', 'world!')`                                             |
 | `Json` (See [Json Type](#json-type)) | `U.concat('["John"], ["Sam"])`, `U.concat('{"name": "John" }', '{"age": 10}')` |
 
@@ -1000,9 +1019,7 @@ Use `U.not` to negate a boolean expression.
 import { User } from './User';
 import { U } from '@mrnafisia/type-query';
 
-console.log(
-    User.select(['id'], U.not(U.compare(1, '=', 1))).getData()
-);
+console.log(User.select(['id'], U.not(U.compare(1, '=', 1))).getData());
 ```
 
 ### U.and
@@ -1016,11 +1033,7 @@ import { U } from '@mrnafisia/type-query';
 console.log(
     User.select(
         ['id'],
-        U.and(
-            U.compare(1, '=', 1),
-            false,
-            U.compare('A', '!=', 'A')
-        )
+        U.and(U.compare(1, '=', 1), false, U.compare('A', '!=', 'A'))
     ).getData()
 );
 ```
@@ -1036,11 +1049,7 @@ import { U } from '@mrnafisia/type-query';
 console.log(
     User.select(
         ['id'],
-        U.or(
-            U.compare(1, '=', 1),
-            false,
-            U.compare('A', '!=', 'A')
-        )
+        U.or(U.compare(1, '=', 1), false, U.compare('A', '!=', 'A'))
     ).getData()
 );
 ```
@@ -1057,11 +1066,7 @@ import { U } from '@mrnafisia/type-query';
 console.log(
     User.select(
         ['id'],
-        U.compare(
-            1,
-            'in',
-            U.subQuery<number[]>(User.select(['id'], true))
-        )
+        U.compare(1, 'in', U.subQuery<number[]>(User.select(['id'], true)))
     ).getData()
 );
 ```
@@ -1075,10 +1080,7 @@ import { User } from './User';
 import { U } from '@mrnafisia/type-query';
 
 console.log(
-    User.select(
-        ['id'],
-        U.subQueryExist(User.select(['id'], true))
-    ).getData()
+    User.select(['id'], U.subQueryExist(User.select(['id'], true))).getData()
 );
 ```
 
@@ -1093,9 +1095,8 @@ import { User } from './User';
 import { U } from '@mrnafisia/type-query';
 
 console.log(
-    User.select(
-        ['id'],
-        context => U.compare(
+    User.select(['id'], context =>
+        U.compare(
             U.raw<Date>(paramsStart => ({
                 expression: `($${paramsStart++} + $${paramsStart++})`,
                 params: ['2000-01-01T00:00:00.000Z', '2000-01-02T00:00:00.000Z']
@@ -1154,7 +1155,7 @@ Use `U.column` to access the columns of a table.
 **Hint:** This is a low-level API and is used internally. Prefer using `context.column` instead.
 
 | Parameters | Type      | Description                                                                                                     |
-|------------|-----------|-----------------------------------------------------------------------------------------------------------------|
+| ---------- | --------- | --------------------------------------------------------------------------------------------------------------- |
 | `table`    | `Table`   | The table definition.                                                                                           |
 | `column`   | `string`  | The column name.                                                                                                |
 | `full?`    | `boolean` | The full form, which includes the schema and table name as a prefix.                                            |
@@ -1167,7 +1168,10 @@ import { User } from './User';
 import { U } from '@mrnafisia/type-query';
 
 console.log(
-    User.select(['id'], U.compare(U.column(User.table, 'id', false), '=', 1)).getData()
+    User.select(
+        ['id'],
+        U.compare(U.column(User.table, 'id', false), '=', 1)
+    ).getData()
 );
 ```
 
@@ -1235,25 +1239,21 @@ For reusability, you can define a `where` clause separately.
 import { type UserSchema, User } from './User';
 import { U, type Context } from '@mrnafisia/type-query';
 
-const where = (context: Context<UserSchema>) => U.and(
-    U.compare(context.column('id'), '=', 1),
-    context.compare('id', '=', 1),
-    context.columnsAnd({
-        id: ['=', 1],
-        name: ['like', 'John%']
-    }),
-    context.columnsOr({
-        id: ['=', 1],
-        isAdmin: ['= true']
-    })
-);
+const where = (context: Context<UserSchema>) =>
+    U.and(
+        U.compare(context.column('id'), '=', 1),
+        context.compare('id', '=', 1),
+        context.columnsAnd({
+            id: ['=', 1],
+            name: ['like', 'John%']
+        }),
+        context.columnsOr({
+            id: ['=', 1],
+            isAdmin: ['= true']
+        })
+    );
 
-console.log(
-    User.select(
-        ['id'],
-        where
-    ).getData()
-);
+console.log(User.select(['id'], where).getData());
 ```
 
 ## Execution Mode
@@ -1276,7 +1276,9 @@ const selectUser = async (client: PoolClient) => {
     if (!result.ok) {
         console.log('Query failed!');
         if (result.error === false) {
-            console.log('The query was successful on the database, but the number of fetched rows was not 1.');
+            console.log(
+                'The query was successful on the database, but the number of fetched rows was not 1.'
+            );
         } else {
             console.log(`Database failed with error: ${result.error}`);
         }
@@ -1289,6 +1291,7 @@ const selectUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await selectUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1304,7 +1307,9 @@ const selectUser = async (client: PoolClient) => {
     if (!result.ok) {
         console.log('Query failed!');
         if (result.error === false) {
-            console.log('The query was successful on the database, but the number of fetched rows was not 5.');
+            console.log(
+                'The query was successful on the database, but the number of fetched rows was not 5.'
+            );
         } else {
             console.log(`Database failed with error: ${result.error}`);
         }
@@ -1318,6 +1323,7 @@ const selectUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await selectUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1329,11 +1335,16 @@ import { User } from './User';
 import { PoolClient } from 'pg';
 
 const selectUser = async (client: PoolClient) => {
-    const result = await User.select(['id'], true).execute(client, ['count', 2]);
+    const result = await User.select(['id'], true).execute(client, [
+        'count',
+        2
+    ]);
     if (!result.ok) {
         console.log('Query failed!');
         if (result.error === false) {
-            console.log('The query was successful on the database, but the number of fetched rows was not 2.');
+            console.log(
+                'The query was successful on the database, but the number of fetched rows was not 2.'
+            );
         } else {
             console.log(`Database failed with error: ${result.error}`);
         }
@@ -1346,6 +1357,7 @@ const selectUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await selectUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1359,7 +1371,9 @@ import { PoolClient } from 'pg';
 const selectUser = async (client: PoolClient) => {
     const result = await User.select(['id'], true).execute(client, []);
     if (!result.ok) {
-        console.log(`Query failed! Database failed with error: ${result.error}`);
+        console.log(
+            `Query failed! Database failed with error: ${result.error}`
+        );
     } else {
         console.log('Query succeeded.');
         console.log(result.value[0]); // First element: { "id" }
@@ -1370,6 +1384,7 @@ const selectUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await selectUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1424,7 +1439,7 @@ type CustomQueryBuilder = (
         string
     >,
     params: string[]
-) => { sql: string, params: string[] };
+) => { sql: string; params: string[] };
 
 const defaultCustomQueryBuilder: CustomQueryBuilder = (parts, params) => {
     const tokens = ['SELECT'];
@@ -1472,7 +1487,10 @@ const selectUser = async (client: PoolClient) => {
             'name',
             {
                 name: 'isActiveAndIsAdmin',
-                expression: U.and(context.column('isActive'), context.column('isAdmin'))
+                expression: U.and(
+                    context.column('isActive'),
+                    context.column('isAdmin')
+                )
             }
         ],
         context => context.compare('username', 'like', 'john%'),
@@ -1499,20 +1517,21 @@ const selectUser = async (client: PoolClient) => {
         }
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value);
     /*  Array of rows: {
-    *       id: number,
-    *       name: string | null,
-    *       isActiveAndIsAdmin: boolean
-    *   }[]
-    */
+     *       id: number,
+     *       name: string | null,
+     *       isActiveAndIsAdmin: boolean
+     *   }[]
+     */
 };
 
 pool.connect().then(async client => {
     await selectUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1544,75 +1563,27 @@ const selectUser = async (client: PoolClient) => {
                 {
                     expression: U.and(
                         context.column('isActive'),
-                        context.column('isAdmin'))
+                        context.column('isAdmin')
+                    )
                 }
             ]
         }
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value);
     /*  Array of rows: {
-    *       name: string | null,
-    *       isActiveAndIsAdmin: boolean
-    *   }[]
-    */
+     *       name: string | null,
+     *       isActiveAndIsAdmin: boolean
+     *   }[]
+     */
 };
 
 pool.connect().then(async client => {
     await selectUser(client);
     client.release();
-});
-```
-
-Example 3:
-
-```typescript
-import { pool } from './db';
-import { User } from './User';
-import { PoolClient } from 'pg';
-import { U } from '@mrnafisia/type-query';
-
-const selectUser = async (client: PoolClient) => {
-    const result = await User.select(
-        context => [
-            'name',
-            {
-                name: 'isActiveAndIsAdmin',
-                expression: U.and(
-                    context.column('isActive'),
-                    context.column('isAdmin')
-                )
-            }
-        ],
-        true,
-        {
-            distinct: ['name', 'username'],
-            groupBy: context => [
-                'name',
-                {
-                    expression: U.and(
-                        context.column('isActive'),
-                        context.column('isAdmin'))
-                }
-            ]
-        }
-    ).execute(client, []);
-    if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
-    }
-    console.log(result.value);
-    /*  Array of rows: {
-    *       name: string | null,
-    *       isActiveAndIsAdmin: boolean
-    *   }[]
-    */
-};
-
-pool.connect().then(async client => {
-    await selectUser(client);
-    client.release();
+    await pool.end();
 });
 ```
 
@@ -1646,7 +1617,7 @@ const insertUser = async (client: PoolClient) => {
         ['id']
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); // { id: number }[]
 };
@@ -1654,6 +1625,7 @@ const insertUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await insertUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1681,16 +1653,15 @@ import { U } from '@mrnafisia/type-query';
 
 const updateUser = async (client: PoolClient) => {
     const result = await User.update(
-        context =>
-            ({
-                isActive: U.not(context.column('isActive')),
-                isAdmin: false
-            }),
+        context => ({
+            isActive: U.not(context.column('isActive')),
+            isAdmin: false
+        }),
         context => context.compare('roles', '?', 'reporter'),
         ['id']
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); // { id: number }[]
 };
@@ -1698,6 +1669,7 @@ const updateUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await updateUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1724,7 +1696,7 @@ const deleteUser = async (client: PoolClient) => {
         ['id']
     ).execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); // { id: number }[]
 };
@@ -1732,6 +1704,7 @@ const deleteUser = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await deleteUser(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1750,7 +1723,7 @@ provided. A prefix of `${mainAlias}_` is added, so with `'u'` as the main alias,
 This specifies one of the four standard SQL join types.
 
 ```typescript
-type JoinType = 'inner' | 'left' | 'right' | 'full'
+type JoinType = 'inner' | 'left' | 'right' | 'full';
 ```
 
 ### JOIN Parameter: `joinTable`
@@ -1783,10 +1756,10 @@ const joinSelect = async (client: PoolClient) => {
         'inner',
         Product.table,
         'p',
-        ({ uContext, pContext }) => uContext.compare('id', '=', pContext.column('userID'))
-    ).select(
-        ['u_id', 'p_title'],
         ({ uContext, pContext }) =>
+            uContext.compare('id', '=', pContext.column('userID'))
+    )
+        .select(['u_id', 'p_title'], ({ uContext, pContext }) =>
             U.and(
                 uContext.compare('name', 'like', 'john%'),
                 pContext.columnsOr({
@@ -1794,9 +1767,10 @@ const joinSelect = async (client: PoolClient) => {
                     isDisabled: ['= false']
                 })
             )
-    ).execute(client, []);
+        )
+        .execute(client, []);
     if (!result.ok) {
-        throw `Query failed with error ${result.error}`;
+        throw new Error(`Query failed with error ${result.error}`);
     }
     console.log(result.value); // { u_id: number, p_title: string }[]
 };
@@ -1804,6 +1778,7 @@ const joinSelect = async (client: PoolClient) => {
 pool.connect().then(async client => {
     await joinSelect(client);
     client.release();
+    await pool.end();
 });
 ```
 
@@ -1827,7 +1802,11 @@ result determines whether the transaction is committed or rolled back.
 Specifies one of the four standard SQL isolation levels. The default value is `serializable`.
 
 ```typescript
-type TransactionIsolationLevel = 'read-uncommitted' | 'read-committed' | 'repeatable-read' | 'serializable'
+type TransactionIsolationLevel =
+    | 'read-uncommitted'
+    | 'read-committed'
+    | 'repeatable-read'
+    | 'serializable';
 ```
 
 ### Transaction Parameter: `readOnly?`
@@ -1898,7 +1877,9 @@ import { Pool } from 'pg';
 import { User, type UserModel } from './User';
 import { testTransaction, createTestTableData } from '@mrnafisia/type-query';
 
-const testPool = new Pool({ connectionString: 'postgres://postgres:12345678@localhost:5432/test' });
+const testPool = new Pool({
+    connectionString: 'postgres://postgres:12345678@localhost:5432/test'
+});
 
 const user: UserModel = {
     id: 1,
@@ -1913,13 +1894,20 @@ testTransaction(
     [
         createTestTableData(
             User.table,
-            [user], //                              Nullable and default columns are optional
-            [{
-                ...user,
-                name: 'JOHN DOE', //                A plain value to check directly
-                roles: (cell, rows, index) => //    Or a function that can check the value dynamically.
-                    cell.length >= 3 //             A boolean or Promise<boolean> for asynchronous checks (e.g., hash password verification).
-            }]
+            [user], // Nullable and default columns are optional
+            [
+                {
+                    ...user,
+                    name: 'JOHN DOE', // A plain value to check directly
+                    roles: (
+                        //    Or a function that can check the value dynamically.
+                        //    A boolean or Promise<boolean> for asynchronous checks (e.g., hash password verification).
+                        cell,
+                        rows,
+                        index
+                    ) => cell.length >= 3
+                }
+            ]
         )
     ],
     async client => {
@@ -1932,8 +1920,11 @@ testTransaction(
             throw new Error('Query failed.');
         }
 
-        expect(result.value)
-            .toStrictEqual({ id: 1, name: 'JOHN DOE', roles: ['reporter', 'writer', 'manager'] });
+        expect(result.value).toStrictEqual({
+            id: 1,
+            name: 'JOHN DOE',
+            roles: ['reporter', 'writer', 'manager']
+        });
     },
     testPool,
     'read-committed',
@@ -1963,3 +1954,4 @@ type BaseJsonValue =
     | JsonObject
     | JsonArray;
 ```
+
