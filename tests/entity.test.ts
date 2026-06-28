@@ -365,7 +365,7 @@ describe('createSelectQuery', () => {
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT "ID" AS "id" FROM "public"."user" WHERE "username" = $2 GROUP BY "ID", ("ID" + 1) ORDER BY "username" ASC, "email" ASC NULL FIRST, "level" ASC NULL LAST, ("ID" + 2) DESC, ("ID" + 2) DESC NULL FIRST, ("ID" + 2) DESC NULL LAST OFFSET 3 LIMIT 4',
+                    sql: 'SELECT "ID" AS "id" FROM "public"."user" WHERE "username" = $2 GROUP BY "ID", ("ID" + 1) ORDER BY "username" ASC, "email" ASC NULLS FIRST, "level" ASC NULLS LAST, ("ID" + 2) DESC, ("ID" + 2) DESC NULLS FIRST, ("ID" + 2) DESC NULLS LAST OFFSET 3 LIMIT 4',
                     params: ['b', 'a']
                 })
             );
@@ -954,7 +954,7 @@ describe('createJoinSelectQuery', () => {
 
             expect(result).toStrictEqual(
                 ok({
-                    sql: 'SELECT "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON "u"."ID" = "l"."userID" WHERE "u"."username" = $2 GROUP BY "u"."ID", ("u"."ID" + 1) ORDER BY "u"."username" ASC, "u"."email" ASC NULL FIRST, "u"."level" ASC NULL LAST, ("u"."ID" + 2) DESC, ("u"."ID" + 2) DESC NULL FIRST, ("u"."ID" + 2) DESC NULL LAST OFFSET 1 LIMIT 2',
+                    sql: 'SELECT "u"."ID" AS "u_id" FROM "public"."user" "u" INNER JOIN "public"."laptop" "l" ON "u"."ID" = "l"."userID" WHERE "u"."username" = $2 GROUP BY "u"."ID", ("u"."ID" + 1) ORDER BY "u"."username" ASC, "u"."email" ASC NULLS FIRST, "u"."level" ASC NULLS LAST, ("u"."ID" + 2) DESC, ("u"."ID" + 2) DESC NULLS FIRST, ("u"."ID" + 2) DESC NULLS LAST OFFSET 1 LIMIT 2',
                     params: ['b', 'a']
                 })
             );
