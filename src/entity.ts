@@ -1022,7 +1022,8 @@ const getTableDataOfJoinSelectColumn = (
 // util
 type OrderDirection = 'asc' | 'desc';
 
-type Mode = [] | ['count', number] | ['get', number];
+// using 'one' instead of 1 is intentional. make using array.length for second parameter easier.
+type Mode = [] | ['count', number] | ['get', 'one' | number];
 
 type CustomColumn<T, N extends string> = {
     expression: T;
@@ -1059,7 +1060,7 @@ type QueryResult<
     S extends Schema,
     R extends keyof S | CustomColumn<unknown, string>,
     M extends Mode
-> = M extends ['get', 1]
+> = M extends ['get', 'one']
     ? QueryResultRow<S, R>
     : M extends ['count', number]
       ? undefined
@@ -1160,3 +1161,4 @@ export type {
     QueryResultRow,
     ReturningRow
 };
+

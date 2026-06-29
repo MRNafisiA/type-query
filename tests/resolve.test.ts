@@ -1377,17 +1377,17 @@ describe('resolveResult', () => {
     });
     describe('mode:get', () => {
         test('err one', () => {
-            const result = resolveResult([], ['get', 1]);
+            const result = resolveResult([], ['get', 'one']);
 
             expect(result).toStrictEqual(err(false));
         });
         test('err number', () => {
-            const result = resolveResult([], ['get', 1]);
+            const result = resolveResult([], ['get', 'one']);
 
             expect(result).toStrictEqual(err(false));
         });
         test('ok one', () => {
-            const result = resolveResult([{ a: 1 }], ['get', 1]);
+            const result = resolveResult([{ a: 1 }], ['get', 'one']);
 
             expect(result).toStrictEqual(ok({ a: 1 }));
         });
@@ -1398,3 +1398,4 @@ describe('resolveResult', () => {
         });
     });
 });
+
